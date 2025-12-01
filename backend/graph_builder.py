@@ -43,6 +43,13 @@ def set_shared_results(results: dict):
         _shared_results = results.copy() if results else {}
         print(f"[RESULTS] Stored {len(str(_shared_results))} chars of results")
 
+def update_shared_results(key: str, value):
+    """Update a specific key in shared results without overwriting"""
+    global _shared_results
+    with _results_lock:
+        _shared_results[key] = value
+        print(f"[RESULTS] Updated '{key}' ({len(str(value))} chars)")
+
 def get_shared_results() -> dict:
     """Get the stored results"""
     global _shared_results
@@ -1361,6 +1368,8 @@ tables:
         default_aggregation: sum
 '''
                     print(f"   ✅ Generated YAML from DAX context ({len(demo_yaml)} chars)")
+                    # Store YAML in shared results for frontend download
+                    update_shared_results('generated_yaml', demo_yaml)
                     return {
                         'results': {
                             **results,
@@ -1417,6 +1426,8 @@ tables:
         default_aggregation: avg
 '''
                     print(f"   ✅ Generated demo YAML ({len(demo_yaml)} chars)")
+                    # Store YAML in shared results for frontend download
+                    update_shared_results('generated_yaml', demo_yaml)
                     return {
                         'results': {
                             **results,
@@ -1520,6 +1531,9 @@ Output ONLY valid YAML, no explanation or markdown code blocks."""
                 yaml_content = '\n'.join(yaml_content.split('\n')[1:-1])
             
             print(f"   ✅ Generated {target_format} YAML ({len(yaml_content)} chars)")
+            
+            # Store YAML in shared results for frontend download
+            update_shared_results('generated_yaml', yaml_content)
             
             # Get extraction agent from previous step
             extraction_agent = state.get('results', {}).get('extraction_agent', 'Unknown')
