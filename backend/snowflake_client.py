@@ -66,12 +66,14 @@ class SnowflakeClient:
         query = f"SELECT * FROM {db}.{sch}.{table} LIMIT {limit}"
         return self.execute_query(query)
 
-    def cortex_complete(self, model: str, prompt: str, options: Dict = None) -> str:
+    def cortex_complete(self, model: str, prompt: str, options: Dict = None, timeout: int = 60) -> str:
         """Call Snowflake Cortex COMPLETE function
         
         1:1 mapping to SNOWFLAKE.CORTEX.COMPLETE()
         Supports: model, prompt, and options (temperature, max_tokens, top_p)
         """
+        import concurrent.futures
+        
         # Escape single quotes in prompt
         safe_prompt = prompt.replace("'", "''")
         
@@ -86,8 +88,19 @@ class SnowflakeClient:
             '{safe_prompt}'
         ) as response
         """
-        df = self.execute_query(query)
-        return df['RESPONSE'].iloc[0] if not df.empty else ""
+        
+        # Execute with timeout to prevent hanging on Snowflake rate limits
+        def run_query():
+            df = self.execute_query(query)
+            return df['RESPONSE'].iloc[0] if not df.empty else ""
+        
+        try:
+            with concurrent.futures.ThreadPoolExecutor() as executor:
+                future = executor.submit(run_query)
+                return future.result(timeout=timeout)
+        except concurrent.futures.TimeoutError:
+            print(f"   ⚠️ Cortex call timed out after {timeout}s - returning fallback")
+            return f"Analysis timed out. The {model} model was unable to respond within {timeout} seconds. This may be due to high load. Please try again."
 
     def cortex_search(self, service_name: str, query: str, database: str = None, 
                       schema: str = None, columns: List[str] = None, limit: int = 10) -> List[Dict]:
