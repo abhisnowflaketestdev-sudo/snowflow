@@ -198,11 +198,17 @@ def traced_node(node_id: str, node_fn: Callable) -> Callable:
             if result is None:
                 result = {}
             
-            # STEP 3b: Send completion event to queue
+            # STEP 3b: Send completion event to queue (include error if present)
             eq = get_execution_queue()
             if eq and should_notify:
                 try:
-                    eq.put_nowait({'type': 'node_completed', 'node_id': node_id})
+                    completed_event = {'type': 'node_completed', 'node_id': node_id}
+                    # Include error info if node returned an error
+                    if result.get('error'):
+                        completed_event['error'] = result['error']
+                    if result.get('auth_error'):
+                        completed_event['auth_error'] = True
+                    eq.put_nowait(completed_event)
                 except Exception:
                     pass
             print(f"[TRACE] ✅ Node '{node_id}' - COMPLETED")
@@ -263,12 +269,14 @@ class WorkflowState(TypedDict):
     agent_results: Annotated[List[Dict[str, Any]], operator.add]  # Results from multiple agents (supports concurrent writes)
     current_node: Annotated[str, last_value]  # Track current node (last wins)
     error: Annotated[str, last_value]  # Any error message (last wins)
+    auth_error: Annotated[bool, last_value]  # Auth error flag for special handling
     routing_decision: Annotated[str, last_value]  # For Router nodes - which agent to route to
     user_prompt: str  # Natural language query that triggered the workflow (set once at start)
     selected_agents: Annotated[List[str], operator.add]  # For Supervisor - agents selected for execution
     executed_nodes: Annotated[List[str], operator.add]  # Track which nodes actually executed (for frontend tracing)
     simulated_nodes: Annotated[List[str], operator.add]  # Track nodes that ran in simulated mode (external APIs unavailable)
     execution_timing: Dict[str, Dict[str, Any]]  # Execution plan with timing for each node
+    semantic_models: Annotated[Dict[str, Dict[str, Any]], merge_dicts]  # Semantic models for Cortex Analyst (supports concurrent writes)
 
 
 def create_source_node(node_config: Dict):
@@ -387,23 +395,58 @@ def create_agent_node(node_config: Dict):
         tool_results = {}
         tool_messages = []
         
-        # Execute enabled tools
-        analyst_config = tools.get('analyst', {})
-        if analyst_config.get('enabled'):
-            db = analyst_config.get('semanticModelDatabase', '')
-            schema = analyst_config.get('semanticModelSchema', '')
-            stage = analyst_config.get('semanticModelStage', '')
-            yaml_file = analyst_config.get('semanticModelFile', '')
-            
-            if db and schema and stage and yaml_file:
-                semantic_path = f"@{db}.{schema}.{stage}/{yaml_file}"
-                question = f"Analyze the following data context: {json.dumps(state.get('data', [])[:5], default=str)}"
-                analyst_result = snowflake_client.cortex_analyst(semantic_path, question)
-                tool_results['analyst'] = analyst_result
-                tool_messages.append(f"Cortex Analyst queried semantic model")
+        # Normalize tools format: handle both array ["Analyst"] and dict {"analyst": {...}}
+        tools_enabled = set()
+        if isinstance(tools, list):
+            # Array format: ["Analyst", "Search", "SQL"]
+            tools_enabled = {t.lower() for t in tools}
+        elif isinstance(tools, dict):
+            # Dict format: {"analyst": {"enabled": true}}
+            for tool_name, tool_config in tools.items():
+                if isinstance(tool_config, dict) and tool_config.get('enabled'):
+                    tools_enabled.add(tool_name.lower())
         
-        search_config = tools.get('search', {})
-        if search_config.get('enabled'):
+        # Execute Cortex Analyst if enabled
+        if 'analyst' in tools_enabled:
+            user_prompt = state.get('user_prompt', '')
+            semantic_models = state.get('semantic_models', {})
+            
+            # Find a semantic model to use (prefer one matching agent's domain)
+            agent_domain = agent_name.lower().replace('agent', '').replace('💰', '').replace('👥', '').replace('📦', '').replace('🏷️', '').replace('🏪', '').replace('💵', '').strip()
+            
+            selected_model = None
+            for model_id, model_info in semantic_models.items():
+                model_label = model_info.get('label', '').lower()
+                # Match by domain (e.g., "sales agent" matches "Sales SV")
+                if agent_domain in model_label or model_label.replace(' sv', '') in agent_domain:
+                    selected_model = model_info
+                    break
+            
+            # Fallback: use first available model
+            if not selected_model and semantic_models:
+                selected_model = list(semantic_models.values())[0]
+            
+            if selected_model and selected_model.get('path') and user_prompt:
+                semantic_path = selected_model['path']
+                print(f"   🔍 Cortex Analyst: Querying {selected_model.get('label', 'semantic model')}")
+                print(f"   📝 Question: {user_prompt[:60]}...")
+                
+                try:
+                    analyst_result = snowflake_client.cortex_analyst(semantic_path, user_prompt)
+                    if analyst_result and 'error' not in str(analyst_result).lower():
+                        tool_results['analyst'] = analyst_result
+                        tool_messages.append(f"🔍 Cortex Analyst queried {selected_model.get('label', 'semantic model')}")
+                        print(f"   ✅ Analyst returned data")
+                    else:
+                        print(f"   ⚠️ Analyst returned no data or error")
+                except Exception as e:
+                    print(f"   ⚠️ Cortex Analyst error: {e}")
+            elif not selected_model:
+                print(f"   ⚠️ No semantic model available for Analyst tool")
+        
+        # Execute Cortex Search if enabled (dict format for backward compat)
+        search_config = tools.get('search', {}) if isinstance(tools, dict) else {}
+        if 'search' in tools_enabled and search_config.get('searchServiceName'):
             service_name = search_config.get('searchServiceName', '')
             if service_name:
                 search_results = snowflake_client.cortex_search(
@@ -704,8 +747,25 @@ For example:
                 print(f"{'='*60}\n")
                 
             except Exception as e:
-                print(f"   ⚠️ Planning error: {e}, defaulting to Sales")
-                selected_agents = ['Sales']
+                error_msg = str(e)
+                # Detect auth errors specifically
+                if 'Authentication token has expired' in error_msg or '390114' in error_msg:
+                    print(f"   🔐 AUTH ERROR: Snowflake token expired")
+                    return {
+                        'error': 'Snowflake authentication token has expired. Please restart the backend to re-authenticate.',
+                        'auth_error': True,
+                        'selected_agents': [],
+                        'messages': [
+                            f"👔 Supervisor '{label}' received query",
+                            f"🔐 ERROR: Snowflake authentication token has expired",
+                            f"⚠️ Please restart the backend to re-authenticate"
+                        ],
+                        'current_node': node_config['id'],
+                        'executed_nodes': [node_config['id']]
+                    }
+                else:
+                    print(f"   ⚠️ Planning error: {e}, defaulting to Sales")
+                    selected_agents = ['Sales']
         else:
             selected_agents = ['Sales']
         
@@ -1802,6 +1862,7 @@ def create_semantic_model_node(node_config: Dict):
     def semantic_model_node(state: WorkflowState) -> Dict:
         # NOTE: Timing and tracing handled by traced_node wrapper
         data = node_config.get('data', {})
+        node_id = node_config.get('id', '')
         label = data.get('label', 'Semantic Model')
         database = data.get('database', '')
         schema = data.get('schema', '')
@@ -1814,9 +1875,22 @@ def create_semantic_model_node(node_config: Dict):
         
         print(f"📊 SEMANTIC VIEW LOADED: {label}" + (f" from {yaml_file}" if yaml_file else ""))
         
+        # Store semantic model info in state for agents to use
+        # This enables Cortex Analyst integration
+        existing_models = state.get('semantic_models', {})
+        existing_models[node_id] = {
+            'label': label,
+            'path': semantic_path,
+            'database': database,
+            'schema': schema,
+            'stage': stage,
+            'yaml_file': yaml_file
+        }
+        
         return {
             'messages': [f"📊 Semantic View '{label}' loaded" + (f" from {yaml_file}" if yaml_file else "")],
-            'executed_nodes': [node_config['id']]
+            'executed_nodes': [node_config['id']],
+            'semantic_models': existing_models  # Store for agents
         }
     return semantic_model_node
 
@@ -2100,16 +2174,21 @@ def build_graph(nodes: List[Dict], edges: List[Dict]) -> StateGraph:
                 def make_supervisor_router(agent_list, supervisor_id):
                     """Create routing function that returns only selected agent node IDs"""
                     def supervisor_route(state: WorkflowState) -> list:
+                        # Check for auth error - don't route to any agents
+                        if state.get('auth_error') or state.get('error'):
+                            print(f"[SUPERVISOR ROUTE] ❌ Error detected, skipping all agents")
+                            return []  # Empty list = skip all agents
+                        
                         selected = state.get('selected_agents', [])
                         
                         print(f"[SUPERVISOR ROUTE] selected_agents from state: {selected}")
                         print(f"[SUPERVISOR ROUTE] Available agents: {[(a[0], a[1]) for a in agent_list]}")
                         
                         if not selected:
-                            # No agents selected = route to all (fallback)
-                            all_ids = [a[0] for a in agent_list]
-                            print(f"[SUPERVISOR ROUTE] No selection, routing to ALL: {all_ids}")
-                            return all_ids
+                            # No agents selected - default to first agent only (not ALL)
+                            default = [agent_list[0][0]] if agent_list else []
+                            print(f"[SUPERVISOR ROUTE] No selection, defaulting to: {default}")
+                            return default
                         
                         # Match selected agent names to node IDs
                         activated = []
@@ -2479,6 +2558,14 @@ async def execute_workflow_streaming(nodes: List[Dict], edges: List[Dict], promp
                     node_id = event.get('node_id')
                     completed_nodes.add(node_id)
                     yield event
+                    
+                    # CHECK FOR AUTH ERROR from supervisor
+                    # This event may have error info from the node execution
+                    node_error = event.get('error')
+                    if node_error and ('authentication' in node_error.lower() or 'auth' in str(node_error).lower() or 'expired' in str(node_error).lower()):
+                        print(f"[ERROR] 🔐 Auth error detected in {node_id}: {node_error}")
+                        yield {'type': 'error', 'error': node_error, 'auth_error': True, 'node_id': node_id}
+                        break
                     
                     # IMMEDIATE FAN-IN CHECK: After every completion, check if we should force output
                     # With CONDITIONAL ROUTING, only selected agents execute. We use traced_nodes

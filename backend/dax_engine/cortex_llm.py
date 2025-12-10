@@ -301,3 +301,6 @@ def create_cortex_translator(snowflake_client: Any) -> Optional[CortexLLMTransla
 
 
 
+
+
+

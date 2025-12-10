@@ -2000,7 +2000,20 @@ function Flow() {
               setExecutionPhase('');
               showToast('Workflow completed!', 'success');
             } else if (eventData.type === 'error') {
-              throw new Error(eventData.error);
+              // Handle specific error types
+              const errorMsg = eventData.error || 'Unknown error';
+              const isAuthError = eventData.auth_error || errorMsg.includes('Authentication') || errorMsg.includes('expired');
+              
+              setExecStatus('error');
+              setActiveNodes(new Set());
+              setExecutionPhase('');
+              
+              if (isAuthError) {
+                showToast('🔐 Snowflake Auth Error: Token expired. Restart backend to re-authenticate.', 'error');
+              } else {
+                showToast(`Workflow Error: ${errorMsg.substring(0, 100)}`, 'error');
+              }
+              return; // Exit gracefully instead of throwing
             }
           }
         }
@@ -2010,7 +2023,15 @@ function Flow() {
       setExecStatus('error');
       setActiveNodes(new Set());
       setExecutionPhase('');
-      showToast('Failed to connect to backend', 'error');
+      const errMsg = err instanceof Error ? err.message : 'Unknown error';
+      // Show more specific error message
+      if (errMsg.includes('Authentication') || errMsg.includes('expired') || errMsg.includes('auth')) {
+        showToast('🔐 Snowflake Auth Error: Token expired. Restart backend.', 'error');
+      } else if (errMsg.includes('fetch') || errMsg.includes('network') || errMsg.includes('Failed')) {
+        showToast('Failed to connect to backend', 'error');
+      } else {
+        showToast(`Error: ${errMsg.substring(0, 100)}`, 'error');
+      }
     }
   };
 

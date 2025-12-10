@@ -1,0 +1,459 @@
+{
+  "name": "Pharma Enterprise Analytics - GSK/AZ Style",
+  "description": "Multi-LOB pharmaceutical analytics platform covering R&D, Manufacturing, Commercial, Medical Affairs, and Finance",
+  "nodes": [
+    {
+      "id": "veeva-crm",
+      "type": "externalAgent",
+      "position": { "x": -200, "y": 50 },
+      "data": {
+        "label": "💊 Veeva CRM",
+        "agentType": "custom",
+        "endpoint": "https://api.veeva.com/v1/hcp-engagement",
+        "method": "POST",
+        "authType": "oauth",
+        "provider": "Veeva",
+        "systemPrompt": "HCP engagement and territory management data"
+      }
+    },
+    {
+      "id": "clinical-ctms",
+      "type": "externalAgent",
+      "position": { "x": -200, "y": 250 },
+      "data": {
+        "label": "🔬 Clinical CTMS",
+        "agentType": "custom",
+        "endpoint": "https://api.medidata.com/v1/trials",
+        "method": "POST",
+        "authType": "oauth",
+        "provider": "Medidata",
+        "systemPrompt": "Clinical trial management system - enrollment, sites, protocols"
+      }
+    },
+    {
+      "id": "sap-mfg",
+      "type": "externalAgent",
+      "position": { "x": -200, "y": 450 },
+      "data": {
+        "label": "🏭 SAP Manufacturing",
+        "agentType": "custom",
+        "endpoint": "https://api.sap.com/s4hana/manufacturing",
+        "method": "POST",
+        "authType": "oauth",
+        "provider": "SAP",
+        "systemPrompt": "Manufacturing execution, batch records, quality data"
+      }
+    },
+    {
+      "id": "agent-gateway",
+      "type": "externalAgent",
+      "position": { "x": 150, "y": 250 },
+      "data": {
+        "label": "🛡️ Pharma Data Gateway",
+        "agentType": "gateway",
+        "endpoint": "internal://pharma-gateway",
+        "method": "POST",
+        "systemPrompt": "Secure gateway for pharma data aggregation with compliance checks"
+      }
+    },
+    {
+      "id": "tmdl-clinical",
+      "type": "context",
+      "position": { "x": 400, "y": -100 },
+      "data": {
+        "label": "📋 Clinical Trials TMDL",
+        "contextType": "tmdl",
+        "sourceFile": "clinical_trials.tmdl",
+        "content": "// Clinical Trial Data Model\ntable TRIAL_ENROLLMENT {\n  TRIAL_ID, SITE_ID, PATIENT_COUNT, ENROLLMENT_DATE, TARGET_VS_ACTUAL\n}\ntable TRIAL_OUTCOMES {\n  TRIAL_ID, ENDPOINT, RESULT, P_VALUE, SIGNIFICANCE\n}"
+      }
+    },
+    {
+      "id": "tmdl-manufacturing",
+      "type": "context",
+      "position": { "x": 400, "y": 50 },
+      "data": {
+        "label": "🏭 Manufacturing TMDL",
+        "contextType": "tmdl",
+        "sourceFile": "manufacturing.tmdl",
+        "content": "// Manufacturing Data Model\ntable BATCH_RECORDS {\n  BATCH_ID, PRODUCT_ID, SITE_ID, YIELD_PCT, QUALITY_SCORE, DEVIATION_COUNT\n}\ntable EQUIPMENT_OEE {\n  EQUIPMENT_ID, AVAILABILITY, PERFORMANCE, QUALITY, OEE_SCORE\n}"
+      }
+    },
+    {
+      "id": "tmdl-commercial",
+      "type": "context",
+      "position": { "x": 400, "y": 200 },
+      "data": {
+        "label": "💰 Commercial TMDL",
+        "contextType": "tmdl",
+        "sourceFile": "commercial.tmdl",
+        "content": "// Commercial Data Model\ntable PRODUCT_SALES {\n  PRODUCT_ID, TERRITORY_ID, REVENUE, UNITS, MARKET_SHARE, YOY_GROWTH\n}\ntable HCP_ENGAGEMENT {\n  HCP_ID, REP_ID, CALLS, SAMPLES, RX_LIFT\n}"
+      }
+    },
+    {
+      "id": "tmdl-safety",
+      "type": "context",
+      "position": { "x": 400, "y": 350 },
+      "data": {
+        "label": "⚠️ Pharmacovigilance TMDL",
+        "contextType": "tmdl",
+        "sourceFile": "pharmacovigilance.tmdl",
+        "content": "// Safety Data Model\ntable ADVERSE_EVENTS {\n  AE_ID, PRODUCT_ID, SEVERITY, OUTCOME, REPORT_DATE, CAUSALITY\n}\ntable SAFETY_SIGNALS {\n  SIGNAL_ID, PRODUCT_ID, SIGNAL_TYPE, PRR_SCORE, STATUS\n}"
+      }
+    },
+    {
+      "id": "tmdl-supply",
+      "type": "context",
+      "position": { "x": 400, "y": 500 },
+      "data": {
+        "label": "📦 Supply Chain TMDL",
+        "contextType": "tmdl",
+        "sourceFile": "supply_chain.tmdl",
+        "content": "// Supply Chain Data Model\ntable INVENTORY_LEVELS {\n  PRODUCT_ID, WAREHOUSE_ID, QTY_ON_HAND, DAYS_SUPPLY, EXPIRY_RISK\n}\ntable DEMAND_FORECAST {\n  PRODUCT_ID, PERIOD, FORECAST_QTY, ACTUAL_QTY, MAPE\n}"
+      }
+    },
+    {
+      "id": "tmdl-finance",
+      "type": "context",
+      "position": { "x": 400, "y": 650 },
+      "data": {
+        "label": "💵 Finance TMDL",
+        "contextType": "tmdl",
+        "sourceFile": "finance.tmdl",
+        "content": "// Finance Data Model\ntable RD_SPEND {\n  THERAPEUTIC_AREA, PROJECT_ID, SPEND_YTD, BUDGET, VARIANCE\n}\ntable PRODUCT_PNL {\n  PRODUCT_ID, REVENUE, COGS, GROSS_MARGIN, OPEX, EBITDA\n}"
+      }
+    },
+    {
+      "id": "schema-transformer",
+      "type": "schemaTransformer",
+      "position": { "x": 650, "y": 250 },
+      "data": {
+        "label": "🔄 Cortex Schema Transformer",
+        "targetFormat": "yaml",
+        "extractionAgent": "cortex",
+        "cortexModel": "mistral-large2",
+        "database": "PHARMA_ANALYTICS.ENTERPRISE.MODELS"
+      }
+    },
+    {
+      "id": "sv-clinical",
+      "type": "semanticModel",
+      "position": { "x": 900, "y": -100 },
+      "data": {
+        "label": "🔬 Clinical Trials SV",
+        "database": "PHARMA_ANALYTICS",
+        "schema": "SEMANTIC_MODELS",
+        "stage": "CORTEX_STAGE",
+        "yamlFile": "clinical_trials_analytics.yaml"
+      }
+    },
+    {
+      "id": "sv-manufacturing",
+      "type": "semanticModel",
+      "position": { "x": 900, "y": 50 },
+      "data": {
+        "label": "🏭 Manufacturing SV",
+        "database": "PHARMA_ANALYTICS",
+        "schema": "SEMANTIC_MODELS",
+        "stage": "CORTEX_STAGE",
+        "yamlFile": "manufacturing_analytics.yaml"
+      }
+    },
+    {
+      "id": "sv-commercial",
+      "type": "semanticModel",
+      "position": { "x": 900, "y": 200 },
+      "data": {
+        "label": "💰 Commercial SV",
+        "database": "PHARMA_ANALYTICS",
+        "schema": "SEMANTIC_MODELS",
+        "stage": "CORTEX_STAGE",
+        "yamlFile": "commercial_analytics.yaml"
+      }
+    },
+    {
+      "id": "sv-safety",
+      "type": "semanticModel",
+      "position": { "x": 900, "y": 350 },
+      "data": {
+        "label": "⚠️ Pharmacovigilance SV",
+        "database": "PHARMA_ANALYTICS",
+        "schema": "SEMANTIC_MODELS",
+        "stage": "CORTEX_STAGE",
+        "yamlFile": "pharmacovigilance_analytics.yaml"
+      }
+    },
+    {
+      "id": "sv-supply",
+      "type": "semanticModel",
+      "position": { "x": 900, "y": 500 },
+      "data": {
+        "label": "📦 Supply Chain SV",
+        "database": "PHARMA_ANALYTICS",
+        "schema": "SEMANTIC_MODELS",
+        "stage": "CORTEX_STAGE",
+        "yamlFile": "supply_chain_analytics.yaml"
+      }
+    },
+    {
+      "id": "sv-finance",
+      "type": "semanticModel",
+      "position": { "x": 900, "y": 650 },
+      "data": {
+        "label": "💵 Finance SV",
+        "database": "PHARMA_ANALYTICS",
+        "schema": "SEMANTIC_MODELS",
+        "stage": "CORTEX_STAGE",
+        "yamlFile": "finance_analytics.yaml"
+      }
+    },
+    {
+      "id": "yaml-output",
+      "type": "fileOutput",
+      "position": { "x": 900, "y": 800 },
+      "data": {
+        "label": "📄 Cortex YAML Bundle",
+        "outputFormat": "yaml",
+        "fileName": "pharma_semantic_model.yaml"
+      }
+    },
+    {
+      "id": "router-therapeutic",
+      "type": "router",
+      "position": { "x": 1150, "y": 100 },
+      "data": {
+        "label": "🧬 Therapeutic Area Router",
+        "strategy": "llm",
+        "routes": [
+          { "label": "Oncology", "target": "agent-oncology" },
+          { "label": "Immunology", "target": "agent-immunology" },
+          { "label": "Rare Disease", "target": "agent-rare-disease" },
+          { "label": "Vaccines", "target": "agent-vaccines" }
+        ],
+        "systemPrompt": "Route queries to appropriate therapeutic area specialist based on drug/disease mentioned"
+      }
+    },
+    {
+      "id": "supervisor",
+      "type": "supervisor",
+      "position": { "x": 1150, "y": 350 },
+      "data": {
+        "label": "🧠 Chief Scientific Officer AI",
+        "model": "mistral-large2",
+        "strategy": "llm",
+        "systemPrompt": "You are the AI Chief Scientific Officer for a top-10 pharmaceutical company. You coordinate insights across R&D, Manufacturing, Commercial, Safety, Supply Chain, and Finance to provide executive-level strategic recommendations.",
+        "agents": ["Clinical", "Manufacturing", "Commercial", "Safety", "Supply", "Finance"]
+      }
+    },
+    {
+      "id": "agent-clinical",
+      "type": "cortexAgent",
+      "position": { "x": 1450, "y": -100 },
+      "data": {
+        "label": "🔬 Clinical Development Agent",
+        "model": "mistral-large2",
+        "tools": ["Analyst", "Search"],
+        "systemPrompt": "Clinical trials expert specializing in enrollment metrics, site performance, protocol deviations, and efficacy/safety endpoints. Focus on Phase 1-4 trial analytics."
+      }
+    },
+    {
+      "id": "agent-manufacturing",
+      "type": "cortexAgent",
+      "position": { "x": 1450, "y": 50 },
+      "data": {
+        "label": "🏭 Manufacturing Excellence Agent",
+        "model": "mistral-large2",
+        "tools": ["Analyst", "Search"],
+        "systemPrompt": "Manufacturing operations expert specializing in batch yield, OEE, deviation management, and GMP compliance. Focus on cost optimization and quality metrics."
+      }
+    },
+    {
+      "id": "agent-commercial",
+      "type": "cortexAgent",
+      "position": { "x": 1450, "y": 200 },
+      "data": {
+        "label": "💰 Commercial Analytics Agent",
+        "model": "mistral-large2",
+        "tools": ["Analyst", "Search"],
+        "systemPrompt": "Commercial analytics expert specializing in sales performance, market share, HCP engagement, and territory optimization. Focus on revenue growth and market access."
+      }
+    },
+    {
+      "id": "agent-safety",
+      "type": "cortexAgent",
+      "position": { "x": 1450, "y": 350 },
+      "data": {
+        "label": "⚠️ Pharmacovigilance Agent",
+        "model": "mistral-large2",
+        "tools": ["Analyst", "Search"],
+        "systemPrompt": "Drug safety expert specializing in adverse event monitoring, signal detection, and regulatory compliance. Focus on patient safety and risk management."
+      }
+    },
+    {
+      "id": "agent-supply",
+      "type": "cortexAgent",
+      "position": { "x": 1450, "y": 500 },
+      "data": {
+        "label": "📦 Supply Chain Agent",
+        "model": "mistral-large2",
+        "tools": ["Analyst", "Search"],
+        "systemPrompt": "Supply chain expert specializing in inventory optimization, demand forecasting, and distribution. Focus on service levels and cold chain integrity."
+      }
+    },
+    {
+      "id": "agent-finance",
+      "type": "cortexAgent",
+      "position": { "x": 1450, "y": 650 },
+      "data": {
+        "label": "💵 Finance Agent",
+        "model": "mistral-large2",
+        "tools": ["Analyst", "Search"],
+        "systemPrompt": "Financial analytics expert specializing in R&D ROI, product P&L, and portfolio economics. Focus on capital allocation and margin optimization."
+      }
+    },
+    {
+      "id": "agent-oncology",
+      "type": "cortexAgent",
+      "position": { "x": 1450, "y": 800 },
+      "data": {
+        "label": "🎗️ Oncology Specialist",
+        "model": "mistral-large2",
+        "tools": ["Analyst", "Search"],
+        "systemPrompt": "Oncology therapeutic area expert. Deep knowledge of tumor types, treatment regimens, biomarkers, and competitive landscape in cancer therapies."
+      }
+    },
+    {
+      "id": "agent-immunology",
+      "type": "cortexAgent",
+      "position": { "x": 1450, "y": 950 },
+      "data": {
+        "label": "🛡️ Immunology Specialist",
+        "model": "mistral-large2",
+        "tools": ["Analyst", "Search"],
+        "systemPrompt": "Immunology therapeutic area expert. Specializes in autoimmune diseases, biologics, and immune-modulating therapies."
+      }
+    },
+    {
+      "id": "agent-rare-disease",
+      "type": "cortexAgent",
+      "position": { "x": 1450, "y": 1100 },
+      "data": {
+        "label": "🧬 Rare Disease Specialist",
+        "model": "mistral-large2",
+        "tools": ["Analyst", "Search"],
+        "systemPrompt": "Rare disease expert. Specializes in orphan drugs, gene therapies, patient identification, and specialized distribution."
+      }
+    },
+    {
+      "id": "agent-vaccines",
+      "type": "cortexAgent",
+      "position": { "x": 1450, "y": 1250 },
+      "data": {
+        "label": "💉 Vaccines Specialist",
+        "model": "mistral-large2",
+        "tools": ["Analyst", "Search"],
+        "systemPrompt": "Vaccines expert. Specializes in immunization programs, efficacy studies, cold chain logistics, and public health partnerships."
+      }
+    },
+    {
+      "id": "regulatory-callback",
+      "type": "externalAgent",
+      "position": { "x": 1700, "y": 350 },
+      "data": {
+        "label": "📋 Regulatory Compliance Check",
+        "agentType": "custom",
+        "endpoint": "https://api.veeva.com/vault/regulatory",
+        "method": "POST",
+        "authType": "oauth",
+        "provider": "Veeva Vault",
+        "systemPrompt": "Validate insights against regulatory requirements before executive presentation"
+      }
+    },
+    {
+      "id": "output-executive",
+      "type": "output",
+      "position": { "x": 1950, "y": 350 },
+      "data": {
+        "label": "📊 Executive Dashboard",
+        "outputType": "display"
+      }
+    }
+  ],
+  "edges": [
+    { "id": "e1", "source": "veeva-crm", "target": "agent-gateway" },
+    { "id": "e2", "source": "clinical-ctms", "target": "agent-gateway" },
+    { "id": "e3", "source": "sap-mfg", "target": "agent-gateway" },
+    { "id": "e4", "source": "agent-gateway", "target": "schema-transformer" },
+    { "id": "e5", "source": "tmdl-clinical", "target": "schema-transformer" },
+    { "id": "e6", "source": "tmdl-manufacturing", "target": "schema-transformer" },
+    { "id": "e7", "source": "tmdl-commercial", "target": "schema-transformer" },
+    { "id": "e8", "source": "tmdl-safety", "target": "schema-transformer" },
+    { "id": "e9", "source": "tmdl-supply", "target": "schema-transformer" },
+    { "id": "e10", "source": "tmdl-finance", "target": "schema-transformer" },
+    { "id": "e11", "source": "schema-transformer", "target": "sv-clinical" },
+    { "id": "e12", "source": "schema-transformer", "target": "sv-manufacturing" },
+    { "id": "e13", "source": "schema-transformer", "target": "sv-commercial" },
+    { "id": "e14", "source": "schema-transformer", "target": "sv-safety" },
+    { "id": "e15", "source": "schema-transformer", "target": "sv-supply" },
+    { "id": "e16", "source": "schema-transformer", "target": "sv-finance" },
+    { "id": "e17", "source": "schema-transformer", "target": "yaml-output" },
+    { "id": "e18", "source": "sv-clinical", "target": "router-therapeutic" },
+    { "id": "e19", "source": "sv-manufacturing", "target": "supervisor" },
+    { "id": "e20", "source": "sv-commercial", "target": "router-therapeutic" },
+    { "id": "e21", "source": "sv-safety", "target": "supervisor" },
+    { "id": "e22", "source": "sv-supply", "target": "supervisor" },
+    { "id": "e23", "source": "sv-finance", "target": "supervisor" },
+    { "id": "e24", "source": "sv-clinical", "target": "supervisor" },
+    { "id": "e25", "source": "sv-commercial", "target": "supervisor" },
+    { "id": "e26", "source": "router-therapeutic", "target": "agent-oncology" },
+    { "id": "e27", "source": "router-therapeutic", "target": "agent-immunology" },
+    { "id": "e28", "source": "router-therapeutic", "target": "agent-rare-disease" },
+    { "id": "e29", "source": "router-therapeutic", "target": "agent-vaccines" },
+    { "id": "e30", "source": "supervisor", "target": "agent-clinical" },
+    { "id": "e31", "source": "supervisor", "target": "agent-manufacturing" },
+    { "id": "e32", "source": "supervisor", "target": "agent-commercial" },
+    { "id": "e33", "source": "supervisor", "target": "agent-safety" },
+    { "id": "e34", "source": "supervisor", "target": "agent-supply" },
+    { "id": "e35", "source": "supervisor", "target": "agent-finance" },
+    { "id": "e36", "source": "supervisor", "target": "regulatory-callback" },
+    { "id": "e37", "source": "agent-clinical", "target": "output-executive" },
+    { "id": "e38", "source": "agent-manufacturing", "target": "output-executive" },
+    { "id": "e39", "source": "agent-commercial", "target": "output-executive" },
+    { "id": "e40", "source": "agent-safety", "target": "output-executive" },
+    { "id": "e41", "source": "agent-supply", "target": "output-executive" },
+    { "id": "e42", "source": "agent-finance", "target": "output-executive" },
+    { "id": "e43", "source": "agent-oncology", "target": "output-executive" },
+    { "id": "e44", "source": "agent-immunology", "target": "output-executive" },
+    { "id": "e45", "source": "agent-rare-disease", "target": "output-executive" },
+    { "id": "e46", "source": "agent-vaccines", "target": "output-executive" },
+    { "id": "e47", "source": "regulatory-callback", "target": "output-executive" },
+    { "id": "e48", "source": "yaml-output", "target": "supervisor" }
+  ],
+  "metadata": {
+    "industry": "Pharmaceutical/Life Sciences",
+    "company_reference": "GSK/AstraZeneca-style",
+    "complexity": "Enterprise",
+    "node_count": 32,
+    "agent_count": 10,
+    "use_cases": [
+      "Clinical trial performance analysis",
+      "Manufacturing yield optimization", 
+      "Commercial territory insights",
+      "Drug safety signal detection",
+      "Supply chain risk assessment",
+      "R&D portfolio ROI analysis",
+      "Cross-functional executive briefings"
+    ],
+    "example_prompts": [
+      "What's our Phase 3 enrollment rate vs target for the oncology pipeline?",
+      "Which manufacturing sites have batch failure rates above 2%?",
+      "How is our new immunology drug performing vs Humira in key territories?",
+      "Show me adverse event trends for products launched in the last 2 years",
+      "What's our inventory risk for cold chain products in EMEA?",
+      "Compare R&D ROI across therapeutic areas for the last 5 years",
+      "Give me a cross-functional view of our oncology franchise health"
+    ]
+  }
+}
+
+
+
