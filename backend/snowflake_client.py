@@ -183,6 +183,108 @@ class SnowflakeClient:
                 "error": str(e)
             }
 
+    def write_to_stage(self, content: str, database: str, schema: str, stage: str, 
+                       filename: str, overwrite: bool = True) -> Dict:
+        """Write content to a Snowflake stage
+        
+        Creates a temp file locally and PUTs it to the specified stage.
+        
+        Args:
+            content: The content to write
+            database: Target database
+            schema: Target schema  
+            stage: Target stage name
+            filename: Name of the file to create in stage
+            overwrite: Whether to overwrite existing file
+        
+        Returns:
+            Dict with success status and details
+        """
+        import tempfile
+        import os as local_os
+        
+        try:
+            conn = self.connect()
+            cursor = conn.cursor()
+            
+            # Create temp file with content
+            with tempfile.NamedTemporaryFile(mode='w', suffix=f'_{filename}', delete=False) as f:
+                f.write(content)
+                temp_path = f.name
+            
+            try:
+                # Build PUT command
+                stage_path = f"@{database}.{schema}.{stage}"
+                put_cmd = f"PUT 'file://{temp_path}' '{stage_path}/' OVERWRITE={str(overwrite).upper()} AUTO_COMPRESS=FALSE"
+                
+                print(f"   📤 Uploading to {stage_path}/{filename}")
+                cursor.execute(put_cmd)
+                result = cursor.fetchone()
+                
+                # Rename if needed (PUT uses temp filename)
+                temp_basename = local_os.path.basename(temp_path)
+                if temp_basename != filename:
+                    # Copy to final name and remove temp
+                    copy_cmd = f"COPY INTO @{database}.{schema}.{stage}/{filename} FROM @{database}.{schema}.{stage}/{temp_basename}"
+                    try:
+                        cursor.execute(copy_cmd)
+                    except:
+                        pass  # File may already have correct name
+                
+                return {
+                    "success": True,
+                    "stage_path": f"{stage_path}/{filename}",
+                    "size": len(content),
+                    "message": f"Successfully uploaded {filename} to {stage_path}"
+                }
+            finally:
+                # Clean up temp file
+                local_os.unlink(temp_path)
+                cursor.close()
+                
+        except Exception as e:
+            return {
+                "success": False,
+                "error": str(e),
+                "message": f"Failed to upload to stage: {str(e)}"
+            }
+
+    def list_stage_files(self, database: str, schema: str, stage: str, pattern: str = None) -> List[Dict]:
+        """List files in a Snowflake stage
+        
+        Args:
+            database: Database name
+            schema: Schema name
+            stage: Stage name
+            pattern: Optional regex pattern to filter files
+        
+        Returns:
+            List of file info dicts
+        """
+        try:
+            query = f"LIST @{database}.{schema}.{stage}"
+            if pattern:
+                query += f" PATTERN='{pattern}'"
+            
+            df = self.execute_query(query)
+            if df.empty:
+                return []
+            
+            files = []
+            for _, row in df.iterrows():
+                file_info = {
+                    'name': row.get('name', ''),
+                    'size': row.get('size', 0),
+                    'md5': row.get('md5', ''),
+                    'last_modified': row.get('last_modified', '')
+                }
+                files.append(file_info)
+            
+            return files
+        except Exception as e:
+            print(f"   ⚠️ Error listing stage: {e}")
+            return []
+
     def close(self):
         if self._conn and not self._conn.is_closed():
             self._conn.close()

@@ -627,3 +627,116 @@ Per ROADMAP.md:
 - Snowflake-style UI (white/blue) - **DON'T CHANGE**
 - Keep this log updated after major tasks
 - Backend for Semantic Model + Analyst execution not yet implemented
+
+---
+
+## 🆕 SESSION: January 9, 2026 (Returning After 1 Month)
+
+> **User returned after ~1 month break. This section captures all updates from this session.**
+
+### GitHub Migration ✅
+- **Old repo:** `abhisnowflakedev/snowflow` (account shut down)
+- **New repo:** `abhisnowflaketestdev-sudo/snowflow`
+- **PAT Token:** User provided new token with read/write permissions
+- Code successfully pushed to new GitHub repo
+
+### UI/UX Improvements ✅
+
+#### Resizable Left Sidebar (NEW)
+- Added `sidebarWidth` state (default 280px)
+- Added `handleSidebarResizeStart` drag handler
+- Sidebar can be dragged between 200px - 500px
+- Visual resize handle with grip icon (⋮⋮) on right edge
+- Cursor changes to `col-resize` on hover
+
+**Files modified:**
+- `frontend/src/App.tsx` - Added resize state, handler, and UI
+
+### Security Audit ✅ CRITICAL
+
+**All Python vulnerabilities patched:**
+
+| Package | Old → New | CVE Fixed |
+|---------|-----------|-----------|
+| aiohttp | 3.13.2 → 3.13.3 | CVE-2025-69223 thru CVE-2025-69230 (DoS, request smuggling) |
+| urllib3 | 2.6.1 → 2.6.3 | CVE-2026-21441 (decompression bomb) |
+| marshmallow | 3.26.1 → 3.26.2 | CVE-2025-68480 (DoS via many=True) |
+| filelock | 3.20.0 → 3.20.2 | CVE-2025-68146 (TOCTOU race condition) |
+| langchain-core | 1.1.0 → 1.2.6 | CVE-2025-68664 (serialization injection) |
+
+**Frontend:** `npm audit` shows **0 vulnerabilities**
+
+**Requirements file updated:** `backend/requirements.txt` now has pinned secure versions with CVE comments
+
+### Code Audit Findings
+
+- ✅ No hardcoded secrets (all credentials from env vars)
+- ✅ No critical security issues
+- ⚠️ Minor lint warnings (unused vars, `any` types) - not security-critical
+- ⚠️ Debug statements in `graph_builder.py` - fine for dev, should clean for prod
+
+---
+
+## Pending Work (As of Jan 9, 2026)
+
+### 🔴 P0 - Must Complete
+
+1. **Control Tower Feature** - Major feature still pending
+   - Agent approval workflows
+   - Marketplace publishing
+   - Visual reflection of agent activities
+   - Real-time monitoring dashboard
+
+2. **UI/UX Fixes** (Some still needed verification)
+   - Panel overflow in node detail panels
+   - Output nodes receiving generated content
+   - Dynamic dropdowns for Snowflake configs
+
+### 🟡 P1 - Should Complete
+
+3. **File Menu Redesign** - More intuitive toolbar (partially done)
+4. **DAX Translator** - Clarify role for Power BI integration use cases
+
+### 🟢 P2 - Nice to Have
+
+5. **GitHub Auto-Commit** - Let AI commit changes automatically
+6. **More Templates** - Industry-specific workflows
+
+---
+
+## How to Run (Updated)
+
+**Backend:**
+```bash
+cd /Users/abhineetasthana/snowflow/backend
+./venv/bin/python -m uvicorn main:app --host 0.0.0.0 --port 8000 --reload
+```
+
+**Frontend:**
+```bash
+cd /Users/abhineetasthana/snowflow/frontend
+npm run dev
+```
+
+**URLs:**
+- Frontend: http://localhost:5173
+- Backend API: http://localhost:8000
+- Health Check: http://localhost:8000/health
+
+---
+
+## Key Decisions (Jan 9, 2026)
+
+| Decision | Rationale |
+|----------|-----------|
+| Migrated to new GitHub account | Old account (`abhisnowflakedev`) was shut down |
+| Pinned all Python deps to secure versions | Enterprise production readiness |
+| Added resizable sidebar | User requested adjustable panel width |
+| Kept marshmallow < 4.0 | Required for dataclasses-json compatibility |
+
+---
+
+**Last Updated:** 2026-01-09
+
+> **IF AI LOSES MEMORY, READ THIS FILE FIRST.**
+> Also check: BACKLOG.md, ROADMAP.md, ARCHITECTURE.md

@@ -1,5 +1,5 @@
 import { Handle, Position } from 'reactflow';
-import { FileUp, FileDown, ArrowRightLeft, Sparkles, Eye, Download, Copy, Check, Maximize2, Minimize2 } from 'lucide-react';
+import { FileUp, FileDown, ArrowRightLeft, Sparkles, Eye, Download, Copy, Check, Maximize2, Minimize2, Cloud } from 'lucide-react';
 import { useState } from 'react';
 
 // ============================================================================
@@ -94,6 +94,14 @@ interface FileOutputNodeData {
   label: string;
   outputFormat: 'yaml' | 'json' | 'sql';
   generatedContent?: string;
+  // Optional: Write to Snowflake Stage
+  writeToStage?: boolean;
+  stageDatabase?: string;
+  stageSchema?: string;
+  stageName?: string;
+  stageFilename?: string;
+  stageWriteStatus?: 'pending' | 'writing' | 'success' | 'error';
+  stageWriteMessage?: string;
 }
 
 export const FileOutputNode = ({ data, selected }: { data: FileOutputNodeData; selected?: boolean }) => {
@@ -214,6 +222,48 @@ export const FileOutputNode = ({ data, selected }: { data: FileOutputNodeData; s
           </div>
         )}
       </div>
+
+      {/* Snowflake Stage Write Status */}
+      {data.writeToStage && data.stageName && (
+        <div style={{ 
+          padding: 8, 
+          background: data.stageWriteStatus === 'success' ? '#D1FAE5' : 
+                      data.stageWriteStatus === 'error' ? '#FEE2E2' :
+                      data.stageWriteStatus === 'writing' ? '#DBEAFE' : '#F3F4F6',
+          borderRadius: 6, 
+          fontSize: 10, 
+          marginBottom: 8,
+          display: 'flex',
+          alignItems: 'center',
+          gap: 6
+        }}>
+          <Cloud size={12} color={
+            data.stageWriteStatus === 'success' ? '#059669' : 
+            data.stageWriteStatus === 'error' ? '#DC2626' :
+            data.stageWriteStatus === 'writing' ? '#2563EB' : '#6B7280'
+          } />
+          <div style={{ flex: 1 }}>
+            <div style={{ 
+              fontWeight: 600, 
+              color: data.stageWriteStatus === 'success' ? '#059669' : 
+                     data.stageWriteStatus === 'error' ? '#DC2626' :
+                     data.stageWriteStatus === 'writing' ? '#2563EB' : '#6B7280'
+            }}>
+              {data.stageWriteStatus === 'success' ? '✓ Uploaded to Stage' : 
+               data.stageWriteStatus === 'error' ? '✗ Upload Failed' :
+               data.stageWriteStatus === 'writing' ? '↻ Uploading...' : '→ Will upload to Stage'}
+            </div>
+            <div style={{ fontSize: 9, color: '#6B7280', fontFamily: 'monospace' }}>
+              @{data.stageDatabase}.{data.stageSchema}.{data.stageName}/{data.stageFilename || 'output.' + config.ext}
+            </div>
+            {data.stageWriteMessage && (
+              <div style={{ fontSize: 9, color: data.stageWriteStatus === 'error' ? '#DC2626' : '#059669', marginTop: 2 }}>
+                {data.stageWriteMessage}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
       
       {/* Expandable Content Preview */}
       {isExpanded && data.generatedContent && (

@@ -1,11 +1,40 @@
-fastapi
-uvicorn
-langgraph
-langchain-community
-snowflake-snowpark-python
-snowflake-connector-python
-python-dotenv
-pandas
-pydantic
-httpx
+# SnowFlow Backend Dependencies
+# Last security audit: 2026-01-09
+# All versions pinned to patched releases
 
+# Web Framework
+fastapi>=0.122.0
+uvicorn>=0.38.0
+starlette>=0.50.0
+
+# AI/LLM Orchestration
+langgraph>=1.0.4
+langchain-community>=0.4.1
+langchain-core>=1.2.5  # Fixed CVE-2025-68664 (serialization injection)
+
+# Snowflake Integration
+snowflake-snowpark-python>=1.42.0
+snowflake-connector-python>=4.1.0
+
+# Environment & Config
+python-dotenv>=1.2.1
+pydantic>=2.12.4
+pydantic-settings>=2.12.0
+
+# Data Processing
+pandas>=2.3.3
+numpy>=2.3.5
+
+# HTTP Client
+httpx>=0.28.1
+aiohttp>=3.13.3  # Fixed CVE-2025-69223 thru CVE-2025-69230 (DoS, request smuggling)
+urllib3>=2.6.3  # Fixed CVE-2026-21441 (decompression bomb)
+
+# Serialization (must be <4.0 for dataclasses-json compatibility)
+marshmallow>=3.26.2,<4.0.0  # Fixed CVE-2025-68480 (DoS via many=True)
+
+# File Locking (transitive dep, but important to pin)
+filelock>=3.20.1  # Fixed CVE-2025-68146 (TOCTOU race condition)
+
+# Cryptography (ensure latest for security)
+cryptography>=46.0.3

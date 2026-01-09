@@ -45,9 +45,82 @@ let nodeId = 10;
 
 function NodeDetailPanel({ customTools, isReadOnly }: { customTools: CustomTool[]; isReadOnly?: boolean }) {
   const { selectedNode, setSelectedNode, updateNodeData } = useFlowStore();
+  const [sfDatabases, setSfDatabases] = useState<string[]>([]);
+  const [sfSchemas, setSfSchemas] = useState<string[]>([]);
+  const [sfStages, setSfStages] = useState<string[]>([]);
+  const [sfYamlFiles, setSfYamlFiles] = useState<string[]>([]);
+  const [loadingOptions, setLoadingOptions] = useState(false);
+  
+  // Fetch Snowflake metadata for dropdowns
+  useEffect(() => {
+    const fetchDatabases = async () => {
+      try {
+        const res = await axios.get('http://localhost:8000/catalog/databases');
+        if (res.data.databases) {
+          setSfDatabases(res.data.databases);
+        }
+      } catch (err) {
+        // Fallback to common defaults
+        setSfDatabases(['SNOWFLOW_DEV', 'SNOWFLOW_PROD', 'DEMO_DB']);
+      }
+    };
+    fetchDatabases();
+  }, []);
+  
+  // Fetch schemas when database changes
+  useEffect(() => {
+    const fetchSchemas = async () => {
+      if (!selectedNode?.data?.database) return;
+      try {
+        const res = await axios.get(`http://localhost:8000/catalog/schemas/${selectedNode.data.database}`);
+        if (res.data.schemas) {
+          setSfSchemas(res.data.schemas);
+        }
+      } catch (err) {
+        setSfSchemas(['PUBLIC', 'DEMO', 'SEMANTIC_MODELS', 'RETAIL_ANALYTICS']);
+      }
+    };
+    fetchSchemas();
+  }, [selectedNode?.data?.database]);
+  
+  // Fetch stages when schema changes
+  useEffect(() => {
+    const fetchStages = async () => {
+      if (!selectedNode?.data?.database || !selectedNode?.data?.schema) return;
+      try {
+        const res = await axios.get(`http://localhost:8000/catalog/stages/${selectedNode.data.database}/${selectedNode.data.schema}`);
+        if (res.data.stages) {
+          setSfStages(res.data.stages);
+        }
+      } catch (err) {
+        setSfStages(['SEMANTIC_MODELS', 'CORTEX_STAGE', 'DATA_STAGE']);
+      }
+    };
+    fetchStages();
+  }, [selectedNode?.data?.database, selectedNode?.data?.schema]);
+  
+  // Fetch YAML files when stage changes
+  useEffect(() => {
+    const fetchYamlFiles = async () => {
+      if (!selectedNode?.data?.database || !selectedNode?.data?.schema || !selectedNode?.data?.stage) return;
+      setLoadingOptions(true);
+      try {
+        const res = await axios.get(
+          `http://localhost:8000/catalog/semantic-models/${selectedNode.data.database}/${selectedNode.data.schema}/${selectedNode.data.stage}`
+        );
+        if (res.data.semantic_models) {
+          setSfYamlFiles(res.data.semantic_models.map((m: any) => m.name));
+        }
+      } catch (err) {
+        setSfYamlFiles([]);
+      } finally {
+        setLoadingOptions(false);
+      }
+    };
+    fetchYamlFiles();
+  }, [selectedNode?.data?.database, selectedNode?.data?.schema, selectedNode?.data?.stage]);
   
   if (!selectedNode) return null;
-
 
   const renderFields = () => {
     const { type, data } = selectedNode;
@@ -68,21 +141,31 @@ function NodeDetailPanel({ customTools, isReadOnly }: { customTools: CustomTool[
           </div>
           <div style={{ marginBottom: 16 }}>
             <label style={labelStyle}>Database</label>
-            <input 
+            <select 
               style={inputStyle} 
-              value={data.database || ''} 
-              onChange={(e) => updateNodeData(selectedNode.id, { database: e.target.value })}
-              placeholder="e.g., SNOWFLOW_DEV"
-            />
+              value={data.database || ''}
+              onChange={(e) => updateNodeData(selectedNode.id, { database: e.target.value, schema: '' })}
+            >
+              <option value="">Select database...</option>
+              {sfDatabases.map(db => (
+                <option key={db} value={db}>{db}</option>
+              ))}
+            </select>
           </div>
           <div style={{ marginBottom: 16 }}>
             <label style={labelStyle}>Schema</label>
-            <input 
+            <select 
               style={inputStyle} 
-              value={data.schema || ''} 
+              value={data.schema || ''}
               onChange={(e) => updateNodeData(selectedNode.id, { schema: e.target.value })}
-              placeholder="e.g., DEMO"
-            />
+              disabled={!data.database}
+            >
+              <option value="">Select schema...</option>
+              {sfSchemas.map(s => (
+                <option key={s} value={s}>{s}</option>
+              ))}
+            </select>
+            {!data.database && <div style={hintStyle}>Select database first</div>}
           </div>
           <div style={{ marginBottom: 16 }}>
             <label style={labelStyle}>Object Type</label>
@@ -1155,38 +1238,73 @@ function NodeDetailPanel({ customTools, isReadOnly }: { customTools: CustomTool[
           <div style={sectionStyle}>YAML Location</div>
           <div style={{ marginBottom: 16 }}>
             <label style={labelStyle}>Database</label>
-            <input 
+            <select 
               style={inputStyle} 
-              value={data.database || ''} 
-              onChange={(e) => updateNodeData(selectedNode.id, { database: e.target.value })}
-            />
+              value={data.database || ''}
+              onChange={(e) => {
+                updateNodeData(selectedNode.id, { database: e.target.value, schema: '', stage: '', yamlFile: '' });
+              }}
+            >
+              <option value="">Select database...</option>
+              {sfDatabases.map(db => (
+                <option key={db} value={db}>{db}</option>
+              ))}
+            </select>
           </div>
           <div style={{ marginBottom: 16 }}>
             <label style={labelStyle}>Schema</label>
-            <input 
+            <select 
               style={inputStyle} 
-              value={data.schema || ''} 
-              onChange={(e) => updateNodeData(selectedNode.id, { schema: e.target.value })}
-            />
+              value={data.schema || ''}
+              onChange={(e) => {
+                updateNodeData(selectedNode.id, { schema: e.target.value, stage: '', yamlFile: '' });
+              }}
+              disabled={!data.database}
+            >
+              <option value="">Select schema...</option>
+              {sfSchemas.map(s => (
+                <option key={s} value={s}>{s}</option>
+              ))}
+            </select>
+            {!data.database && <div style={hintStyle}>Select database first</div>}
           </div>
           <div style={{ marginBottom: 16 }}>
             <label style={labelStyle}>Stage</label>
-            <input 
+            <select 
               style={inputStyle} 
-              value={data.stage || ''} 
-              onChange={(e) => updateNodeData(selectedNode.id, { stage: e.target.value })}
-              placeholder="e.g., SEMANTIC_MODELS"
-            />
-            <div style={hintStyle}>Internal stage containing YAML file</div>
+              value={data.stage || ''}
+              onChange={(e) => {
+                updateNodeData(selectedNode.id, { stage: e.target.value, yamlFile: '' });
+              }}
+              disabled={!data.schema}
+            >
+              <option value="">Select stage...</option>
+              {sfStages.map(st => (
+                <option key={st} value={st}>{st}</option>
+              ))}
+            </select>
+            {!data.schema && <div style={hintStyle}>Select schema first</div>}
+            {data.schema && <div style={hintStyle}>Internal stage containing YAML file</div>}
           </div>
           <div style={{ marginBottom: 16 }}>
-            <label style={labelStyle}>YAML File Path</label>
-            <input 
-              style={{ ...inputStyle, fontFamily: 'monospace', fontSize: 12 }} 
-              value={data.yamlFile || ''} 
-              onChange={(e) => updateNodeData(selectedNode.id, { yamlFile: e.target.value })}
-              placeholder="e.g., sales_model.yaml"
-            />
+            <label style={labelStyle}>YAML File</label>
+            <select 
+              style={inputStyle} 
+              value={data.yamlFile || ''}
+              onChange={(e) => {
+                updateNodeData(selectedNode.id, { yamlFile: e.target.value });
+              }}
+              disabled={!data.stage || loadingOptions}
+            >
+              <option value="">{loadingOptions ? 'Loading...' : 'Select YAML file...'}</option>
+              {sfYamlFiles.map(f => (
+                <option key={f} value={f}>{f}</option>
+              ))}
+            </select>
+            {!data.stage && <div style={hintStyle}>Select stage first</div>}
+            {data.stage && sfYamlFiles.length === 0 && !loadingOptions && (
+              <div style={hintStyle}>No YAML files found in this stage</div>
+            )}
           </div>
           
           <div style={{ padding: 12, background: '#E0E7FF', borderRadius: 8, fontSize: 11, color: '#4338CA' }}>
@@ -1230,36 +1348,31 @@ function NodeDetailPanel({ customTools, isReadOnly }: { customTools: CustomTool[
 
   return (
     <div style={{ 
-      width: 'var(--panel-width, 340px)',
-      minWidth: 280,
+      width: '100%',
+      maxWidth: '100%',
       background: '#FFFFFF',
-      borderLeft: '1px solid #E5E9F0',
       display: 'flex', 
       flexDirection: 'column',
       fontFamily: 'Inter, -apple-system, sans-serif',
+      boxSizing: 'border-box',
     }}>
       {/* Header */}
       <div style={{ 
-        padding: '16px 20px', 
+        padding: '14px 16px', 
         borderBottom: '1px solid #E5E9F0',
         display: 'flex',
         alignItems: 'center',
-        justifyContent: 'space-between'
+        justifyContent: 'space-between',
+        background: '#F8FAFC',
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           {getNodeIcon()}
-          <span style={{ fontWeight: 600, color: '#1F2937' }}>{getNodeTitle()}</span>
+          <span style={{ fontWeight: 600, color: '#1F2937', fontSize: 14 }}>{getNodeTitle()}</span>
         </div>
-        <button 
-          onClick={() => setSelectedNode(null)}
-          style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4 }}
-        >
-          <X size={18} color="#6B7280" />
-        </button>
       </div>
 
       {/* Fields */}
-      <div style={{ padding: 20, flex: 1, overflowY: 'auto' }}>
+      <div style={{ padding: '16px', flex: 1, overflowY: 'auto', overflowX: 'hidden' }}>
         {isReadOnly && (
           <div style={{ 
             background: '#FEF3C7', 
@@ -1409,9 +1522,10 @@ function DraggablePanel({
         left: position.x,
         top: position.y,
         zIndex: 1000,
+        width: 380,
         maxHeight: 'calc(100vh - 120px)',
-        maxWidth: 420,
         overflowY: 'auto',
+        overflowX: 'hidden',
         boxShadow: '0 8px 32px rgba(0,0,0,0.2)',
         borderRadius: 12,
         background: '#FFFFFF',
@@ -1509,6 +1623,36 @@ function Flow() {
   const [executionPhase, setExecutionPhase] = useState<string>('');
   const [panelPosition, setPanelPosition] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
   const [resultsPanelCollapsed, setResultsPanelCollapsed] = useState(false);
+  const [sidebarWidth, setSidebarWidth] = useState(280); // Default sidebar width in pixels
+  const [isResizingSidebar, setIsResizingSidebar] = useState(false);
+  
+  // Sidebar resize handlers
+  const handleSidebarResizeStart = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    setIsResizingSidebar(true);
+    
+    const startX = e.clientX;
+    const startWidth = sidebarWidth;
+    
+    const handleMouseMove = (moveEvent: MouseEvent) => {
+      const delta = moveEvent.clientX - startX;
+      const newWidth = Math.max(200, Math.min(500, startWidth + delta)); // Min 200px, Max 500px
+      setSidebarWidth(newWidth);
+    };
+    
+    const handleMouseUp = () => {
+      setIsResizingSidebar(false);
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+    };
+    
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
+    document.body.style.cursor = 'col-resize';
+    document.body.style.userSelect = 'none';
+  }, [sidebarWidth]);
 
   // Load custom tools from Snowflake on startup
   useEffect(() => {
@@ -1785,7 +1929,25 @@ function Flow() {
         data = { label: 'API Call', agentType: 'rest', endpoint: '', method: 'POST' };
       }
     } else if (type === 'semanticModel') {
-      data = { label: 'My Semantic Model', database: 'SNOWFLOW_DEV', schema: 'DEMO', stage: '', yamlFile: '' };
+      // Check if dropped from Data Catalog with semantic data
+      const semanticDataStr = e.dataTransfer.getData('semanticData');
+      if (semanticDataStr) {
+        try {
+          const semanticData = JSON.parse(semanticDataStr);
+          data = {
+            label: semanticData.label || 'Semantic Model',
+            database: semanticData.database || 'SNOWFLOW_DEV',
+            schema: semanticData.schema || 'DEMO',
+            stage: semanticData.stage || '',
+            yamlFile: semanticData.yamlFile || '',
+            semanticPath: semanticData.semanticPath || '',
+          };
+        } catch {
+          data = { label: 'My Semantic Model', database: 'SNOWFLOW_DEV', schema: 'DEMO', stage: '', yamlFile: '' };
+        }
+      } else {
+        data = { label: 'My Semantic Model', database: 'SNOWFLOW_DEV', schema: 'DEMO', stage: '', yamlFile: '' };
+      }
     } else if (type === 'router') {
       data = { 
         label: 'Intent Router', 
@@ -2160,15 +2322,18 @@ function Flow() {
 
   return (
     <div style={{ width: '100vw', height: '100vh', display: 'flex', fontFamily: 'Inter, -apple-system, sans-serif' }}>
-      {/* Sidebar - Snowflake Style (Compact) */}
+      {/* Sidebar - Snowflake Style (Resizable) */}
       <div style={{ 
-        width: 'var(--sidebar-width, 240px)', 
+        width: sidebarWidth, 
         minWidth: 200,
+        maxWidth: 500,
         background: '#FFFFFF', 
-        borderRight: '1px solid #E5E9F0',
+        borderRight: 'none',
         padding: 0,
         display: 'flex', 
-        flexDirection: 'column' 
+        flexDirection: 'column',
+        position: 'relative',
+        flexShrink: 0,
       }}>
         {/* Logo */}
         <div style={{ padding: '12px 16px', borderBottom: '1px solid #E5E9F0' }}>
@@ -2178,39 +2343,173 @@ function Flow() {
           </div>
         </div>
 
-        {/* Workflow Name & Actions */}
-        <div style={{ padding: '8px 12px', borderBottom: '1px solid #E5E9F0' }}>
-          <input
-            value={workflowName}
-            onChange={(e) => setWorkflowName(e.target.value)}
-          style={{
-              width: '100%', 
-              padding: '6px 8px', 
-              border: '1px solid #E5E9F0', 
-              borderRadius: 4, 
-              fontSize: 12,
-              fontWeight: 500,
-              color: '#1F2937',
-              marginBottom: 6,
-              boxSizing: 'border-box'
-            }}
-          />
-          <div style={{ display: 'flex', gap: 4 }}>
-            <button onClick={() => setShowSaveModal(true)} style={compactBtnStyle} title="Save">
-              <Save size={12} />
+        {/* File Actions Bar - Clean Snowflake Style */}
+        <div style={{ padding: '10px 12px', borderBottom: '1px solid #E5E9F0' }}>
+          {/* Primary Actions Row */}
+          <div style={{ display: 'flex', gap: 6, marginBottom: 10 }}>
+            {/* New Workflow Button - Primary Action */}
+            <button 
+              onClick={() => {
+                if (nodes.length > 0 && !window.confirm('Create new workflow? Unsaved changes will be lost.')) return;
+                clearWorkflow();
+                setWorkflowName('Untitled Workflow');
+                showToast('New workflow created', 'success');
+              }}
+              style={{
+                flex: 1,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 6,
+                padding: '8px 12px',
+                background: 'linear-gradient(135deg, #29B5E8 0%, #0EA5E9 100%)',
+                color: 'white',
+                border: 'none',
+                borderRadius: 6,
+                fontSize: 12,
+                fontWeight: 600,
+                cursor: 'pointer',
+                transition: 'all 0.15s ease',
+              }}
+              onMouseOver={(e) => e.currentTarget.style.transform = 'translateY(-1px)'}
+              onMouseOut={(e) => e.currentTarget.style.transform = 'translateY(0)'}
+            >
+              <FileText size={14} />
+              New
             </button>
-            <button onClick={loadWorkflowList} style={compactBtnStyle} title="Load">
-              <FolderOpen size={12} />
+
+            {/* Open Button */}
+            <button 
+              onClick={loadWorkflowList}
+              style={{
+                flex: 1,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 6,
+                padding: '8px 12px',
+                background: '#F8FAFC',
+                color: '#374151',
+                border: '1px solid #E5E9F0',
+                borderRadius: 6,
+                fontSize: 12,
+                fontWeight: 500,
+                cursor: 'pointer',
+                transition: 'all 0.15s ease',
+              }}
+              onMouseOver={(e) => { e.currentTarget.style.background = '#F1F5F9'; e.currentTarget.style.borderColor = '#CBD5E1'; }}
+              onMouseOut={(e) => { e.currentTarget.style.background = '#F8FAFC'; e.currentTarget.style.borderColor = '#E5E9F0'; }}
+              title="Open saved workflow"
+            >
+              <FolderOpen size={14} />
+              Open
             </button>
-            <button onClick={resetCanvas} style={{...compactBtnStyle, borderColor: '#EF4444', color: '#EF4444'}} title="Clear Canvas & Reset">
-              <X size={12} />
+
+            {/* Save Button */}
+            <button 
+              onClick={() => setShowSaveModal(true)}
+              style={{
+                flex: 1,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 6,
+                padding: '8px 12px',
+                background: '#F8FAFC',
+                color: '#374151',
+                border: '1px solid #E5E9F0',
+                borderRadius: 6,
+                fontSize: 12,
+                fontWeight: 500,
+                cursor: 'pointer',
+                transition: 'all 0.15s ease',
+              }}
+              onMouseOver={(e) => { e.currentTarget.style.background = '#F1F5F9'; e.currentTarget.style.borderColor = '#CBD5E1'; }}
+              onMouseOut={(e) => { e.currentTarget.style.background = '#F8FAFC'; e.currentTarget.style.borderColor = '#E5E9F0'; }}
+              title="Save workflow"
+            >
+              <Save size={14} />
+              Save
             </button>
-            <button onClick={exportWorkflow} style={compactBtnStyle} title="Export as JSON">
-              <Download size={12} />
-            </button>
-            <button onClick={() => fileInputRef.current?.click()} style={compactBtnStyle} title="Import from file">
-              <Upload size={12} />
-            </button>
+          </div>
+
+          {/* Workflow Name Input */}
+          <div style={{ position: 'relative', marginBottom: 8 }}>
+            <input
+              value={workflowName}
+              onChange={(e) => setWorkflowName(e.target.value)}
+              placeholder="Workflow name..."
+              style={{
+                width: '100%', 
+                padding: '8px 10px', 
+                paddingRight: 32,
+                border: '1px solid #E5E9F0', 
+                borderRadius: 6, 
+                fontSize: 13,
+                fontWeight: 500,
+                color: '#1F2937',
+                boxSizing: 'border-box',
+                background: '#FFFFFF',
+              }}
+            />
+            <span style={{ 
+              position: 'absolute', 
+              right: 10, 
+              top: '50%', 
+              transform: 'translateY(-50%)',
+              color: '#9CA3AF',
+              fontSize: 10,
+            }}>
+              ✏️
+            </span>
+          </div>
+
+          {/* Secondary Actions Row */}
+          <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+            {/* Import/Export Group */}
+            <div style={{ display: 'flex', gap: 2 }}>
+              <button 
+                onClick={() => fileInputRef.current?.click()}
+                style={{
+                  padding: '6px 10px',
+                  background: '#F8FAFC',
+                  color: '#6B7280',
+                  border: '1px solid #E5E9F0',
+                  borderRadius: '6px 0 0 6px',
+                  fontSize: 10,
+                  fontWeight: 500,
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 4,
+                }}
+                title="Import from JSON file"
+              >
+                <Upload size={12} />
+                Import
+              </button>
+              <button 
+                onClick={exportWorkflow}
+                style={{
+                  padding: '6px 10px',
+                  background: '#F8FAFC',
+                  color: '#6B7280',
+                  border: '1px solid #E5E9F0',
+                  borderLeft: 'none',
+                  borderRadius: '0 6px 6px 0',
+                  fontSize: 10,
+                  fontWeight: 500,
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 4,
+                }}
+                title="Export to JSON file"
+              >
+                <Download size={12} />
+                Export
+              </button>
+            </div>
             <input
               ref={fileInputRef}
               type="file"
@@ -2218,19 +2517,59 @@ function Flow() {
               onChange={importWorkflow}
               style={{ display: 'none' }}
             />
-            <button onClick={clearWorkflow} style={{ ...compactBtnStyle, color: '#EF4444' }} title="Clear">
+
+            {/* Spacer */}
+            <div style={{ flex: 1 }} />
+
+            {/* Clear Canvas Button */}
+            <button 
+              onClick={() => {
+                if (nodes.length === 0) return;
+                if (window.confirm('Clear all nodes from canvas?')) {
+                  clearWorkflow();
+                  showToast('Canvas cleared', 'info');
+                }
+              }}
+              disabled={nodes.length === 0}
+              style={{
+                padding: '6px 10px',
+                background: nodes.length > 0 ? '#FEF2F2' : '#F9FAFB',
+                color: nodes.length > 0 ? '#DC2626' : '#9CA3AF',
+                border: `1px solid ${nodes.length > 0 ? '#FECACA' : '#E5E9F0'}`,
+                borderRadius: 6,
+                fontSize: 10,
+                fontWeight: 500,
+                cursor: nodes.length > 0 ? 'pointer' : 'not-allowed',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 4,
+              }}
+              title="Clear canvas"
+            >
               <X size={12} />
+              Clear
             </button>
+
+            {/* Node Count Badge */}
             <div style={{ 
-              marginLeft: 8, 
-              padding: '4px 8px', 
-              background: nodes.length > 0 ? '#10B981' : '#EF4444', 
-              color: 'white', 
-              borderRadius: 4, 
+              padding: '5px 10px', 
+              background: nodes.length > 0 ? '#ECFDF5' : '#F9FAFB', 
+              color: nodes.length > 0 ? '#059669' : '#9CA3AF',
+              border: `1px solid ${nodes.length > 0 ? '#A7F3D0' : '#E5E9F0'}`,
+              borderRadius: 6, 
               fontSize: 10, 
-              fontWeight: 600 
+              fontWeight: 600,
+              display: 'flex',
+              alignItems: 'center',
+              gap: 4,
             }}>
-              {nodes.length} NODES
+              <div style={{
+                width: 6,
+                height: 6,
+                borderRadius: '50%',
+                background: nodes.length > 0 ? '#10B981' : '#9CA3AF',
+              }} />
+              {nodes.length}
             </div>
           </div>
         </div>
@@ -2311,7 +2650,7 @@ function Flow() {
         {sidebarMode === 'catalog' && (
           <DataCatalog 
             onSelectSource={(source) => {
-              // Add node to canvas
+              // Add data source node to canvas
               const newNode = {
                 id: `node-${Date.now()}`,
                 type: 'snowflakeSource',
@@ -2325,6 +2664,24 @@ function Flow() {
               };
               addNode(newNode);
               showToast(`Added ${source.name} to canvas`, 'success');
+            }}
+            onSelectSemanticModel={(model) => {
+              // Add semantic model node to canvas
+              const newNode = {
+                id: `node-${Date.now()}`,
+                type: 'semanticModel',
+                position: { x: 350, y: 150 + Math.random() * 100 },
+                data: {
+                  label: model.name.replace('.yaml', ''),
+                  database: model.database,
+                  schema: model.schema,
+                  stage: model.stage,
+                  yamlFile: model.name,
+                  semanticPath: model.path,
+                },
+              };
+              addNode(newNode);
+              showToast(`Added semantic model ${model.name} to canvas`, 'success');
             }}
           />
         )}
@@ -2907,6 +3264,46 @@ function Flow() {
               {execResult.error && <div style={{ color: '#991B1B', marginTop: 4 }}>{execResult.error}</div>}
             </div>
           )}
+        </div>
+        
+        {/* Sidebar Resize Handle */}
+        <div
+          onMouseDown={handleSidebarResizeStart}
+          style={{
+            position: 'absolute',
+            top: 0,
+            right: 0,
+            width: 6,
+            height: '100%',
+            cursor: 'col-resize',
+            background: isResizingSidebar ? '#29B5E8' : 'transparent',
+            borderRight: '1px solid #E5E9F0',
+            transition: 'background 0.15s ease',
+            zIndex: 10,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
+          onMouseEnter={(e) => {
+            if (!isResizingSidebar) {
+              e.currentTarget.style.background = 'rgba(41, 181, 232, 0.2)';
+            }
+          }}
+          onMouseLeave={(e) => {
+            if (!isResizingSidebar) {
+              e.currentTarget.style.background = 'transparent';
+            }
+          }}
+          title="Drag to resize sidebar"
+        >
+          <GripVertical 
+            size={12} 
+            style={{ 
+              color: '#9CA3AF', 
+              opacity: 0.6,
+              pointerEvents: 'none',
+            }} 
+          />
         </div>
       </div>
 

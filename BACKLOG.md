@@ -419,3 +419,37 @@ SnowFlow UI
 
 *Last updated: 2024-11-28*
 
+
+---
+
+## 📅 January 2026 Update
+
+### Recently Completed ✅
+
+- [x] **Resizable Sidebar** - Drag handle to adjust width (200-500px)
+- [x] **Security Audit** - All Python CVEs patched
+- [x] **GitHub Migration** - Moved to `abhisnowflaketestdev-sudo/snowflow`
+
+### Currently In Progress 🔄
+
+| Feature | Priority | Status | Notes |
+|---------|----------|--------|-------|
+| **Control Tower** | 🔴 P0 | Pending | Agent approval, marketplace, monitoring |
+| **UI Panel Fixes** | 🔴 P0 | Needs verification | Overflow, dropdowns |
+| **Dynamic Snowflake Dropdowns** | 🟡 P1 | Partially done | DB/Schema/Stage selectors |
+
+### Session Context (If Chat Lost)
+
+**User Context:**
+- Returning after 1 month break
+- Focus: Enterprise production readiness
+- Priority: Control Tower feature
+- GitHub: `abhisnowflaketestdev-sudo/snowflow`
+
+**Technical Context:**
+- Frontend running on port 5173
+- Backend running on port 8000
+- All security vulnerabilities patched
+- Resizable sidebar implemented
+
+*Last updated: 2026-01-09*

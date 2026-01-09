@@ -862,23 +862,35 @@ def create_output_node(node_config: Dict):
         
         # If we have multiple agent results, combine them
         agent_results = state.get('agent_results', [])
-        if agent_results and not state.get('results', {}).get('agent_response'):
+        existing_response = state.get('results', {}).get('agent_response')
+        
+        combined_response = ""
+        
+        if agent_results and not existing_response:
             # Combine agent results if not already aggregated
-            combined = "\n\n---\n\n".join([
+            combined_response = "\n\n---\n\n".join([
                 f"**{r.get('agent', 'Agent')}**:\n{r.get('response', '')}"
                 for r in agent_results
             ])
+            print(f"📤 Output '{label}': Aggregated {len(agent_results)} agent responses ({len(combined_response)} chars)")
+        elif existing_response:
+            combined_response = existing_response
+            print(f"📤 Output '{label}': Using existing response ({len(existing_response)} chars)")
+        else:
+            print(f"📤 Output '{label}': No agent results to aggregate")
+        
+        # IMPORTANT: Store results in shared state for the complete event
+        if combined_response:
+            set_shared_results('agent_response', combined_response)
+            set_shared_results('response', combined_response)
+        
             return {
                 'results': {
                     **state.get('results', {}),
-                    'agent_response': combined
-                },
-                'messages': [f"📤 Output '{label}' ready - aggregated {len(agent_results)} agent responses"],
-                'current_node': node_config['id']
-            }
-        
-        return {
-            'messages': [f"✅ Workflow complete - results sent to '{label}' ({output_type})"],
+                'agent_response': combined_response,
+                'response': combined_response
+            },
+            'messages': [f"📤 Output '{label}' ready" + (f" - {len(combined_response)} chars" if combined_response else "")],
             'current_node': node_config['id'],
             'executed_nodes': [node_config['id']]
         }
@@ -1500,7 +1512,7 @@ tables:
                         },
                         'messages': [f"{label}: Generated demo Cortex Analyst YAML"],
                         'current_node': node_config['id']
-                    }
+                }
         
         # Build transformation prompt based on target
         if target_format == 'snowflake':
@@ -1621,11 +1633,18 @@ Output ONLY valid YAML, no explanation or markdown code blocks."""
 
 
 def create_file_output_node(node_config: Dict):
-    """Create a file output node that prepares content for download"""
+    """Create a file output node that prepares content for download and optionally writes to Snowflake stage"""
     def file_output_node(state: WorkflowState) -> Dict:
         data = node_config.get('data', {})
         label = data.get('label', 'File Output')
         output_format = data.get('outputFormat', 'yaml')
+        
+        # Stage write configuration
+        write_to_stage = data.get('writeToStage', False)
+        stage_database = data.get('stageDatabase', '')
+        stage_schema = data.get('stageSchema', '')
+        stage_name = data.get('stageName', '')
+        stage_filename = data.get('stageFilename', f'output.{output_format}')
         
         print(f"\n📥 FILE OUTPUT: {label}")
         print(f"   Format: {output_format}")
@@ -1644,16 +1663,55 @@ def create_file_output_node(node_config: Dict):
         else:
             print(f"   ⚠️ No content to output")
         
+        # Stage write result
+        stage_write_status = None
+        stage_write_message = None
+        
+        # Optionally write to Snowflake stage
+        if write_to_stage and stage_database and stage_schema and stage_name and content:
+            print(f"   📤 Writing to Snowflake stage: @{stage_database}.{stage_schema}.{stage_name}/{stage_filename}")
+            try:
+                from snowflake_client import snowflake_client
+                result = snowflake_client.write_to_stage(
+                    content=content,
+                    database=stage_database,
+                    schema=stage_schema,
+                    stage=stage_name,
+                    filename=stage_filename
+                )
+                if result.get('success'):
+                    stage_write_status = 'success'
+                    stage_write_message = result.get('message', 'Successfully uploaded')
+                    print(f"   ✅ {stage_write_message}")
+                else:
+                    stage_write_status = 'error'
+                    stage_write_message = result.get('error', 'Unknown error')
+                    print(f"   ❌ Failed: {stage_write_message}")
+            except Exception as e:
+                stage_write_status = 'error'
+                stage_write_message = str(e)
+                print(f"   ❌ Exception: {e}")
+        
         # Get multi-agent summary
         multi_agent_summary = results.get('multi_agent_summary', 'Single agent workflow')
         extraction_agent = results.get('extraction_agent', 'N/A')
         transformation_agent = results.get('transformation_agent', 'N/A')
+        
+        # Build stage info for response
+        stage_info = ""
+        if write_to_stage and stage_write_status:
+            if stage_write_status == 'success':
+                stage_info = f"\n\n### ☁️ Snowflake Stage Upload\n- **Status:** ✅ Success\n- **Location:** `@{stage_database}.{stage_schema}.{stage_name}/{stage_filename}`"
+            else:
+                stage_info = f"\n\n### ☁️ Snowflake Stage Upload\n- **Status:** ❌ Failed\n- **Error:** {stage_write_message}"
         
         return {
             'results': {
                 **results,
                 'output_content': content,
                 'output_format': output_format,
+                'stage_write_status': stage_write_status,
+                'stage_write_message': stage_write_message,
                 'agent_response': f"""## Schema Migration Complete! 🎉
 
 ### Multi-Agent Orchestration Summary
@@ -1663,7 +1721,7 @@ def create_file_output_node(node_config: Dict):
 
 ### Output Details
 - **Format:** {output_format.upper()}
-- **Size:** {len(content)} characters
+- **Size:** {len(content)} characters{stage_info}
 
 ---
 
@@ -1869,8 +1927,9 @@ def create_semantic_model_node(node_config: Dict):
         stage = data.get('stage', '')
         yaml_file = data.get('yamlFile', '')
         
-        semantic_path = ""
-        if database and schema and stage and yaml_file:
+        # Use semanticPath from Data Catalog if available, otherwise construct it
+        semantic_path = data.get('semanticPath', '')
+        if not semantic_path and database and schema and stage and yaml_file:
             semantic_path = f"@{database}.{schema}.{stage}/{yaml_file}"
         
         print(f"📊 SEMANTIC VIEW LOADED: {label}" + (f" from {yaml_file}" if yaml_file else ""))
@@ -2538,11 +2597,14 @@ async def execute_workflow_streaming(nodes: List[Dict], edges: List[Dict], promp
                             yield {'type': 'node_completed', 'node_id': out_id}
                             executed.append(out_id)
                     
+                    # Merge shared results with final state results
+                    stored_results = get_shared_results()
+                    final_results = {**final_state.get('results', {}), **stored_results}
                     yield {
                         'type': 'complete',
                         'success': True,
                         'messages': final_state.get('messages', []),
-                        'results': final_state.get('results', {}),
+                        'results': final_results,
                         'executed_nodes': executed,
                         'simulated_nodes': final_state.get('simulated_nodes', [])
                     }

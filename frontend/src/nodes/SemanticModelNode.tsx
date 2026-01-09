@@ -20,6 +20,7 @@ export interface SemanticModelData {
   schema: string;
   stage: string;           // Stage where YAML is stored
   yamlFile: string;        // Path to YAML file in stage
+  semanticPath?: string;   // Full stage path (e.g., @DB.SCHEMA.STAGE/file.yaml)
   
   // Model metadata (read from YAML or manually set)
   description?: string;
@@ -64,13 +65,16 @@ export const SemanticModelNode = ({ data, selected }: { data: SemanticModelData;
       
       {/* Model location */}
       <div style={{ marginTop: 10, padding: 8, background: '#F5F7FA', borderRadius: 6, fontSize: 11, color: '#6B7280' }}>
-        {data.stage && data.yamlFile ? (
-          <>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-              <FileJson size={12} />
-              <span style={{ fontFamily: 'monospace', fontSize: 10 }}>@{data.stage}/{data.yamlFile}</span>
-            </div>
-          </>
+        {data.semanticPath ? (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+            <FileJson size={12} />
+            <span style={{ fontFamily: 'monospace', fontSize: 9, wordBreak: 'break-all' }}>{data.semanticPath}</span>
+          </div>
+        ) : data.stage && data.yamlFile ? (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+            <FileJson size={12} />
+            <span style={{ fontFamily: 'monospace', fontSize: 10 }}>@{data.database}.{data.schema}.{data.stage}/{data.yamlFile}</span>
+          </div>
         ) : (
           <div style={{ fontStyle: 'italic' }}>Configure YAML location →</div>
         )}
@@ -96,6 +100,7 @@ export const SemanticModelNode = ({ data, selected }: { data: SemanticModelData;
     </div>
   );
 };
+
 
 
 
