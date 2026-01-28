@@ -8,10 +8,14 @@ interface ExternalAgentNodeData {
   method?: 'GET' | 'POST' | 'PUT';
   authType?: 'none' | 'bearer' | 'api_key' | 'oauth';
   provider?: string;
+  authToken?: string;
+  apiKey?: string;
+  apiKeyHeader?: string;
 }
 
 const agentConfig: Record<string, { icon: any; label: string; color: string; bgColor: string }> = {
-  rest: { icon: Globe, label: 'REST API', color: '#EF4444', bgColor: '#FEE2E2' },
+  // Use the same naming as the left Components list
+  rest: { icon: Globe, label: 'Custom API', color: '#EF4444', bgColor: '#FEE2E2' },
   mcp: { icon: Webhook, label: 'MCP Agent', color: '#8B5CF6', bgColor: '#EDE9FE' },
   webhook: { icon: Webhook, label: 'Webhook', color: '#F59E0B', bgColor: '#FEF3C7' },
   copilot: { icon: Sparkles, label: 'Microsoft Copilot', color: '#0078D4', bgColor: '#E1F0FF' },
@@ -23,7 +27,7 @@ const agentConfig: Record<string, { icon: any; label: string; color: string; bgC
 // Preset configurations for common external agents
 export const externalAgentPresets = {
   copilot: {
-    label: 'Copilot Agent',
+    label: 'Microsoft Copilot',
     agentType: 'copilot',
     endpoint: 'https://graph.microsoft.com/v1.0/me/chat/messages',
     method: 'POST',
@@ -33,7 +37,7 @@ export const externalAgentPresets = {
     description: 'Microsoft Copilot for M365 - access emails, calendar, Teams, documents'
   },
   openai: {
-    label: 'GPT-4 Agent',
+    label: 'OpenAI GPT',
     agentType: 'openai',
     endpoint: 'https://api.openai.com/v1/chat/completions',
     method: 'POST',
@@ -43,7 +47,7 @@ export const externalAgentPresets = {
     description: 'OpenAI GPT-4 for general reasoning and complex tasks'
   },
   salesforce: {
-    label: 'Einstein Agent',
+    label: 'Salesforce Einstein',
     agentType: 'salesforce',
     endpoint: 'https://api.salesforce.com/einstein/predictions',
     method: 'POST',
@@ -52,7 +56,7 @@ export const externalAgentPresets = {
     description: 'Salesforce Einstein for CRM insights and predictions'
   },
   servicenow: {
-    label: 'ServiceNow Agent',
+    label: 'ServiceNow',
     agentType: 'servicenow',
     endpoint: 'https://instance.service-now.com/api/now/table/incident',
     method: 'POST',
@@ -65,12 +69,22 @@ export const externalAgentPresets = {
 export const ExternalAgentNode = ({ data, selected }: { data: ExternalAgentNodeData; selected?: boolean }) => {
   const config = agentConfig[data.agentType] || agentConfig.rest;
   const Icon = config.icon;
+  const needsEndpoint = Boolean(data.endpoint && data.endpoint.trim());
+  const needsCreds =
+    data.authType === 'bearer' ? !(data.authToken && data.authToken.trim()) :
+    data.authType === 'api_key' ? !(data.apiKey && data.apiKey.trim()) :
+    data.authType === 'oauth' ? !(data.authToken && data.authToken.trim()) :
+    false;
+  const status =
+    !needsEndpoint ? { dot: '#EF4444', text: 'Not configured' } :
+    needsCreds ? { dot: '#F59E0B', text: 'Missing credentials' } :
+    { dot: '#94A3B8', text: 'Configured (not verified)' };
 
   return (
     <div 
       style={{
-        background: '#FFFFFF',
-        border: selected ? `2px solid ${config.color}` : '1px solid #E5E9F0',
+        background: 'rgb(var(--surface))',
+        border: selected ? `2px solid ${config.color}` : '1px solid rgb(var(--border))',
         borderRadius: 10,
         padding: 14,
         width: 240,
@@ -78,7 +92,7 @@ export const ExternalAgentNode = ({ data, selected }: { data: ExternalAgentNodeD
         boxShadow: selected ? `0 4px 12px ${config.color}40` : '0 2px 8px rgba(0,0,0,0.08)',
       }}
     >
-      <Handle type="target" position={Position.Left} style={{ background: config.color, width: 10, height: 10, border: '2px solid white' }} />
+      <Handle type="target" position={Position.Left} style={{ background: config.color, width: 10, height: 10, border: '2px solid rgb(var(--handle-border))' }} />
       
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
@@ -97,12 +111,12 @@ export const ExternalAgentNode = ({ data, selected }: { data: ExternalAgentNodeD
           <div style={{ fontSize: 9, fontWeight: 600, color: config.color, textTransform: 'uppercase', letterSpacing: 0.5 }}>
             {config.label}
           </div>
-          <div style={{ fontSize: 14, fontWeight: 600, color: '#1F2937' }}>{data.label}</div>
+          <div style={{ fontSize: 14, fontWeight: 600, color: 'rgb(var(--fg))' }}>{data.label}</div>
         </div>
       </div>
       
       {/* Endpoint info */}
-      <div style={{ padding: 10, background: '#F8FAFC', borderRadius: 8, fontSize: 11 }}>
+      <div style={{ padding: 10, background: 'rgb(var(--surface-2))', border: '1px solid rgb(var(--border))', borderRadius: 8, fontSize: 11 }}>
         {data.endpoint ? (
           <>
             <div style={{ display: 'flex', gap: 6, alignItems: 'center', marginBottom: 6 }}>
@@ -132,30 +146,29 @@ export const ExternalAgentNode = ({ data, selected }: { data: ExternalAgentNodeD
             </div>
           </>
         ) : (
-          <div style={{ color: '#9CA3AF', fontStyle: 'italic' }}>Configure endpoint →</div>
+          <div style={{ color: 'rgb(var(--muted))', fontStyle: 'italic' }}>Configure endpoint →</div>
         )}
       </div>
 
-      {/* Provider badge */}
-      {data.provider && (
-        <div style={{ 
-          marginTop: 8, 
-          fontSize: 10, 
-          color: '#6B7280',
-          display: 'flex',
-          alignItems: 'center',
-          gap: 4
-        }}>
-          <span style={{ 
-            width: 6, 
-            height: 6, 
-            borderRadius: '50%', 
-            background: '#10B981',
-            display: 'inline-block'
-          }} />
-          {data.provider} Connected
-        </div>
-      )}
+      {/* Status badge (never claims "connected" unless we truly verify) */}
+      <div style={{ 
+        marginTop: 8, 
+        fontSize: 10, 
+        color: 'rgb(var(--fg-muted))',
+        display: 'flex',
+        alignItems: 'center',
+        gap: 6
+      }}>
+        <span style={{ 
+          width: 6, 
+          height: 6, 
+          borderRadius: '50%', 
+          background: status.dot,
+          display: 'inline-block'
+        }} />
+        <span style={{ fontWeight: 600, color: 'rgb(var(--fg))' }}>{data.provider || config.label}</span>
+        <span style={{ color: 'rgb(var(--fg-muted))' }}>— {status.text}</span>
+      </div>
       
       <Handle type="source" position={Position.Right} style={{ background: config.color, width: 10, height: 10, border: '2px solid white' }} />
     </div>

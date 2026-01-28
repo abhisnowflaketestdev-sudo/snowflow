@@ -1,0 +1,66 @@
+name: retail_ops_inventory_demo
+description: Retail operations semantic model (inventory risk, perishable watchlist, store replenishment)
+
+tables:
+  - name: retail_inventory_risk
+    description: Daily inventory snapshots enriched with store + product attributes and a stock risk status
+    base_table:
+      database: SNOWFLOW_DEMO
+      schema: RETAIL
+      table: VW_RETAIL_INVENTORY_RISK
+    dimensions:
+      - name: store_name
+        synonyms: [store, branch]
+        description: Store name
+        expr: STORE_NAME
+        data_type: VARCHAR
+      - name: region
+        synonyms: [area, geography]
+        description: Store region
+        expr: REGION
+        data_type: VARCHAR
+      - name: product_name
+        synonyms: [sku, item]
+        description: Product name
+        expr: PRODUCT_NAME
+        data_type: VARCHAR
+      - name: product_category
+        synonyms: [category]
+        description: Product category
+        expr: PRODUCT_CATEGORY
+        data_type: VARCHAR
+      - name: is_perishable
+        synonyms: [perishable]
+        description: Whether the product is perishable
+        expr: IS_PERISHABLE
+        data_type: BOOLEAN
+      - name: stock_status
+        synonyms: [risk, status]
+        description: Stock status bucket (OK, WATCH, REORDER)
+        expr: STOCK_STATUS
+        data_type: VARCHAR
+    time_dimensions:
+      - name: snapshot_date
+        synonyms: [date, day]
+        description: Inventory snapshot date
+        expr: SNAPSHOT_DATE
+        data_type: DATE
+    measures:
+      - name: stock_on_hand
+        synonyms: [soh]
+        description: Total stock on hand
+        expr: SUM(STOCK_ON_HAND)
+        data_type: NUMBER
+        default_aggregation: sum
+      - name: stock_in_transit
+        synonyms: [in_transit]
+        description: Total stock in transit
+        expr: SUM(STOCK_IN_TRANSIT)
+        data_type: NUMBER
+        default_aggregation: sum
+      - name: reorder_items
+        synonyms: [reorder_count]
+        description: Count of items in REORDER status
+        expr: SUM(IFF(STOCK_STATUS = 'REORDER', 1, 0))
+        data_type: NUMBER
+        default_aggregation: sum

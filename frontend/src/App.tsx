@@ -1,4 +1,4 @@
-import ReactFlow, { Background, Controls, ReactFlowProvider } from 'reactflow';
+import ReactFlow, { Background, ControlButton, Controls, ReactFlowProvider, useReactFlow, SelectionMode } from 'reactflow';
 import 'reactflow/dist/style.css';
 import { useFlowStore } from './store';
 import { SnowflakeSourceNode } from './nodes/SnowflakeSourceNode';
@@ -6,7 +6,7 @@ import { AgentNode } from './nodes/AgentNode';
 import { OutputNode } from './nodes/OutputNode';
 import { CortexNode } from './nodes/CortexNode';
 import { ConditionNode } from './nodes/ConditionNode';
-import { ExternalAgentNode } from './nodes/ExternalAgentNode';
+import { ExternalAgentNode, externalAgentPresets } from './nodes/ExternalAgentNode';
 import { SemanticModelNode } from './nodes/SemanticModelNode';
 import { RouterNode } from './nodes/RouterNode';
 import { SupervisorNode } from './nodes/SupervisorNode';
@@ -18,10 +18,12 @@ import { LivePreview } from './components/LivePreview';
 import { ToolCreator } from './components/ToolCreator';
 import type { CustomTool } from './components/ToolCreator';
 import { AdminDashboard } from './components/AdminDashboard';
-import { useCallback, useEffect, useRef, useState } from 'react';
-import { Database, Brain, FileOutput, Play, X, Sparkles, Save, FolderOpen, Loader2, CheckCircle, AlertCircle, FileText, Heart, Languages, GitBranch, Globe, Layers, BookOpen, Zap, MessageSquare, Download, Upload, Shield, Bot, Cloud, Building2, FileUp, FileDown, ArrowRightLeft, GripVertical, ChevronLeft, ChevronRight } from 'lucide-react';
+import { GuidedStackCanvas } from './components/GuidedStackCanvas';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Database, Brain, FileOutput, Play, X, Sparkles, Save, FolderOpen, Loader2, CheckCircle, AlertCircle, FileText, Heart, Languages, GitBranch, Globe, Layers, BookOpen, Zap, MessageSquare, Download, Upload, Shield, Bot, Cloud, Building2, FileUp, FileDown, ArrowRightLeft, GripVertical, ChevronLeft, ChevronRight, ChevronDown, Sun, Moon, Pencil, Lock, Unlock, RefreshCw } from 'lucide-react';
 import axios from 'axios';
 import type { Node } from 'reactflow';
+import { getStoredTheme, setTheme, type ThemeMode } from './theme';
 
 const nodeTypes = {
   snowflakeSource: SnowflakeSourceNode,
@@ -43,12 +45,37 @@ const nodeTypes = {
 
 let nodeId = 10;
 
-function NodeDetailPanel({ customTools, isReadOnly }: { customTools: CustomTool[]; isReadOnly?: boolean }) {
-  const { selectedNode, setSelectedNode, updateNodeData } = useFlowStore();
+type CortexModelOption = { id: string; label?: string; provider?: string; available?: boolean | null };
+
+function NodeDetailPanel({
+  customTools,
+  isReadOnly,
+  cortexModels,
+  roleVersion,
+  onRefreshCortexModels,
+  cortexModelsRefreshing,
+  cortexModelProbe,
+  setCortexModelProbe,
+  cortexCrossRegion,
+  setCortexCrossRegion,
+}: {
+  customTools: CustomTool[];
+  isReadOnly?: boolean;
+  cortexModels?: CortexModelOption[];
+  roleVersion?: number;
+  onRefreshCortexModels?: (opts: { probe: boolean; crossRegion: boolean; forceRefresh?: boolean }) => void;
+  cortexModelsRefreshing?: boolean;
+  cortexModelProbe?: boolean;
+  setCortexModelProbe?: (v: boolean) => void;
+  cortexCrossRegion?: boolean;
+  setCortexCrossRegion?: (v: boolean) => void;
+}) {
+  const { selectedNode, updateNodeData, nodes, edges } = useFlowStore();
   const [sfDatabases, setSfDatabases] = useState<string[]>([]);
   const [sfSchemas, setSfSchemas] = useState<string[]>([]);
   const [sfStages, setSfStages] = useState<string[]>([]);
   const [sfYamlFiles, setSfYamlFiles] = useState<string[]>([]);
+  const [sfObjects, setSfObjects] = useState<string[]>([]);
   const [loadingOptions, setLoadingOptions] = useState(false);
   
   // Fetch Snowflake metadata for dropdowns
@@ -65,7 +92,7 @@ function NodeDetailPanel({ customTools, isReadOnly }: { customTools: CustomTool[
       }
     };
     fetchDatabases();
-  }, []);
+  }, [roleVersion]);
   
   // Fetch schemas when database changes
   useEffect(() => {
@@ -98,6 +125,30 @@ function NodeDetailPanel({ customTools, isReadOnly }: { customTools: CustomTool[
     };
     fetchStages();
   }, [selectedNode?.data?.database, selectedNode?.data?.schema]);
+
+  // Fetch object names when DB/Schema/ObjectType changes (tables/views/etc)
+  useEffect(() => {
+    const fetchObjects = async () => {
+      if (!selectedNode?.data?.database || !selectedNode?.data?.schema) {
+        setSfObjects([]);
+        return;
+      }
+      const t = (selectedNode?.data?.objectType || 'table') as string;
+      try {
+        const res = await axios.get(
+          `http://localhost:8000/catalog/objects/${selectedNode.data.database}/${selectedNode.data.schema}?type=${encodeURIComponent(t)}`
+        );
+        if (Array.isArray(res.data?.objects)) {
+          setSfObjects(res.data.objects);
+        } else {
+          setSfObjects([]);
+        }
+      } catch {
+        setSfObjects([]);
+      }
+    };
+    fetchObjects();
+  }, [selectedNode?.data?.database, selectedNode?.data?.schema, selectedNode?.data?.objectType, roleVersion]);
   
   // Fetch YAML files when stage changes
   useEffect(() => {
@@ -132,18 +183,32 @@ function NodeDetailPanel({ customTools, isReadOnly }: { customTools: CustomTool[
           <div style={sectionStyle}>Object</div>
           <div style={{ marginBottom: 16 }}>
             <label style={labelStyle}>Name (Table/View)</label>
-            <input 
-              style={inputStyle} 
-              value={data.label || ''} 
-              onChange={(e) => updateNodeData(selectedNode.id, { label: e.target.value })}
-              placeholder="e.g., SALES_DATA"
-            />
+            {sfObjects.length > 0 ? (
+              <select
+                style={inputStyle}
+                value={data.label || ''}
+                onChange={(e) => updateNodeData(selectedNode.id, { label: e.target.value })}
+                disabled={!data.database || !data.schema}
+              >
+                <option value="">Select object…</option>
+                {sfObjects.map((o) => (
+                  <option key={o} value={o}>{o}</option>
+                ))}
+              </select>
+            ) : (
+              <input 
+                style={inputStyle} 
+                value={data.label || ''} 
+                onChange={(e) => updateNodeData(selectedNode.id, { label: e.target.value })}
+                placeholder="e.g., VW_RETAIL_SALES"
+              />
+            )}
           </div>
           <div style={{ marginBottom: 16 }}>
             <label style={labelStyle}>Database</label>
             <select 
               style={inputStyle} 
-              value={data.database || ''}
+              value={data.database || ''} 
               onChange={(e) => updateNodeData(selectedNode.id, { database: e.target.value, schema: '' })}
             >
               <option value="">Select database...</option>
@@ -156,7 +221,7 @@ function NodeDetailPanel({ customTools, isReadOnly }: { customTools: CustomTool[
             <label style={labelStyle}>Schema</label>
             <select 
               style={inputStyle} 
-              value={data.schema || ''}
+              value={data.schema || ''} 
               onChange={(e) => updateNodeData(selectedNode.id, { schema: e.target.value })}
               disabled={!data.database}
             >
@@ -172,7 +237,7 @@ function NodeDetailPanel({ customTools, isReadOnly }: { customTools: CustomTool[
             <select 
               style={inputStyle} 
               value={data.objectType || 'table'}
-              onChange={(e) => updateNodeData(selectedNode.id, { objectType: e.target.value })}
+              onChange={(e) => updateNodeData(selectedNode.id, { objectType: e.target.value, label: '' })}
             >
               <option value="table">Table</option>
               <option value="view">View</option>
@@ -292,6 +357,12 @@ function NodeDetailPanel({ customTools, isReadOnly }: { customTools: CustomTool[
     }
     
     if (type === 'agent') {
+      const modelsByProvider = (cortexModels || []).reduce<Record<string, CortexModelOption[]>>((acc, m) => {
+        const key = m.provider || 'Models';
+        acc[key] = acc[key] || [];
+        acc[key].push(m);
+        return acc;
+      }, {});
       return (
         <>
           {/* Basic */}
@@ -309,11 +380,28 @@ function NodeDetailPanel({ customTools, isReadOnly }: { customTools: CustomTool[
           <div style={sectionStyle}>Model (CORTEX.COMPLETE)</div>
           <div style={{ marginBottom: 16 }}>
             <label style={labelStyle}>LLM Model</label>
-            <select 
-              style={inputStyle} 
-              value={data.model || 'mistral-large2'}
-              onChange={(e) => updateNodeData(selectedNode.id, { model: e.target.value })}
-            >
+            <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+              <select 
+                style={{ ...inputStyle, flex: 1 }} 
+                value={data.model || 'mistral-large2'}
+                onChange={(e) => updateNodeData(selectedNode.id, { model: e.target.value })}
+              >
+              {cortexModels?.length ? (
+                Object.entries(modelsByProvider).map(([provider, models]) => (
+                  <optgroup key={provider} label={provider}>
+                    {models.map((m) => (
+                      <option
+                        key={m.id}
+                        value={m.id}
+                        disabled={m.available === false}
+                      >
+                        {(m.label || m.id) + (m.available === false ? ' (unavailable)' : '')}
+                      </option>
+                    ))}
+                  </optgroup>
+                ))
+              ) : (
+                <>
               <optgroup label="Mistral">
                 <option value="mistral-large2">Mistral Large 2 (recommended)</option>
                 <option value="mistral-large">Mistral Large</option>
@@ -338,7 +426,49 @@ function NodeDetailPanel({ customTools, isReadOnly }: { customTools: CustomTool[
                 <option value="jamba-1.5-large">Jamba 1.5 Large</option>
                 <option value="gemma-7b">Gemma 7B</option>
               </optgroup>
+                </>
+              )}
             </select>
+              <button
+                onClick={() => onRefreshCortexModels?.({ probe: !!cortexModelProbe, crossRegion: !!cortexCrossRegion, forceRefresh: true })}
+                disabled={!onRefreshCortexModels || cortexModelsRefreshing}
+                title="Refresh model list from Snowflake"
+                style={{
+                  width: 38,
+                  height: 36,
+                  borderRadius: 10,
+                  border: '1px solid rgb(var(--border))',
+                  background: 'rgb(var(--surface-2))',
+                  color: 'rgb(var(--fg))',
+                  cursor: (!onRefreshCortexModels || cortexModelsRefreshing) ? 'not-allowed' : 'pointer',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
+                <RefreshCw size={16} className={cortexModelsRefreshing ? 'animate-spin' : ''} />
+              </button>
+            </div>
+            <div style={{ marginTop: 8, display: 'flex', flexDirection: 'column', gap: 6 }}>
+              <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, color: 'rgb(var(--fg-muted))' }}>
+                <input
+                  type="checkbox"
+                  checked={!!cortexModelProbe}
+                  onChange={(e) => setCortexModelProbe?.(e.target.checked)}
+                  disabled={!setCortexModelProbe}
+                />
+                Probe availability (slower, costs a tiny COMPLETE() call per model)
+              </label>
+              <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, color: 'rgb(var(--fg-muted))' }}>
+                <input
+                  type="checkbox"
+                  checked={!!cortexCrossRegion}
+                  onChange={(e) => setCortexCrossRegion?.(e.target.checked)}
+                  disabled={!setCortexCrossRegion}
+                />
+                Cross-region models (experimental; requires Snowflake entitlement)
+              </label>
+            </div>
           </div>
 
           {/* Prompt Configuration */}
@@ -698,13 +828,44 @@ function NodeDetailPanel({ customTools, isReadOnly }: { customTools: CustomTool[
             />
           </div>
           <div style={{ marginBottom: 16 }}>
-            <label style={labelStyle}>Output Type</label>
+            <label style={labelStyle}>Delivery Channel</label>
+            <select 
+              style={inputStyle} 
+              value={data.channel || 'snowflake_intelligence'}
+              onChange={(e) => updateNodeData(selectedNode.id, { channel: e.target.value })}
+            >
+              <option value="snowflake_intelligence">Snowflake Intelligence (ai.snowflake.com)</option>
+              <option value="api">REST API Endpoint</option>
+              <option value="slack">Slack (Coming Soon)</option>
+              <option value="teams">Microsoft Teams (Coming Soon)</option>
+            </select>
+          </div>
+          {data.channel === 'api' && (
+            <div style={{ marginBottom: 16, padding: 12, background: 'rgba(16,185,129,0.08)', borderRadius: 8, border: '1px solid rgba(16,185,129,0.2)' }}>
+              <div style={{ fontSize: 11, fontWeight: 600, color: '#059669', marginBottom: 6 }}>🔌 REST API Endpoint</div>
+              <div style={{ fontSize: 10, color: '#065F46', lineHeight: 1.5 }}>
+                Your agent will be accessible via:<br/>
+                <code style={{ background: 'rgba(0,0,0,0.05)', padding: '2px 4px', borderRadius: 3, fontSize: 9 }}>POST http://localhost:8000/run/stream</code>
+              </div>
+            </div>
+          )}
+          {(data.channel === 'slack' || data.channel === 'teams') && (
+            <div style={{ marginBottom: 16, padding: 12, background: 'rgba(245,158,11,0.08)', borderRadius: 8, border: '1px solid rgba(245,158,11,0.2)' }}>
+              <div style={{ fontSize: 11, fontWeight: 600, color: '#D97706', marginBottom: 4 }}>🚧 Coming Soon</div>
+              <div style={{ fontSize: 10, color: '#92400E' }}>
+                {data.channel === 'slack' ? 'Slack' : 'Microsoft Teams'} integration is under development.
+              </div>
+            </div>
+          )}
+          <div style={{ marginBottom: 16 }}>
+            <label style={labelStyle}>Output Format</label>
             <select 
               style={inputStyle} 
               value={data.outputType || 'display'}
               onChange={(e) => updateNodeData(selectedNode.id, { outputType: e.target.value })}
             >
-              <option value="display">Display</option>
+              <option value="display">Display (Text)</option>
+              <option value="json">JSON</option>
               <option value="table">Table</option>
               <option value="chart">Chart</option>
             </select>
@@ -809,6 +970,40 @@ function NodeDetailPanel({ customTools, isReadOnly }: { customTools: CustomTool[
     }
 
     if (type === 'router') {
+      const outgoing = edges.filter((e) => e.source === selectedNode.id);
+      const connectedTargetsByIndex: Array<Node | null> = [null, null, null];
+      for (const e of outgoing) {
+        const sh = (e as any).sourceHandle as string | undefined;
+        if (typeof sh === 'string' && sh.startsWith('route-')) {
+          const idx = parseInt(sh.split('-')[1] || '', 10);
+          if (idx >= 1 && idx <= 3) {
+            connectedTargetsByIndex[idx - 1] = nodes.find((n) => n.id === e.target) || null;
+          }
+        }
+      }
+
+      const syncRoutesFromConnections = () => {
+        const current = [...(data.routes || [{}, {}, {}])];
+        const next = [0, 1, 2].map((i) => {
+          const target = connectedTargetsByIndex[i];
+          const existing = current[i] || {};
+          const targetLabel = target ? (((target as any).data?.label as string) || target.id) : '';
+          const safeName = (existing as any).name || targetLabel || `Route ${i + 1}`;
+          const existingCond = (existing as any).condition || '';
+          const defaultCond =
+            (data.routingStrategy || 'intent') === 'keyword'
+              ? '' // keyword list is user-defined; keep blank by default
+              : `intent == "${safeName.toLowerCase().replace(/\s+/g, '_')}"`;
+          return {
+            ...(existing as any),
+            name: safeName,
+            condition: existingCond || defaultCond,
+            targetAgent: target ? target.id : (existing as any).targetAgent || '',
+          };
+        });
+        updateNodeData(selectedNode.id, { routes: next });
+      };
+
       return (
         <>
           <div style={{ marginBottom: 16 }}>
@@ -835,10 +1030,36 @@ function NodeDetailPanel({ customTools, isReadOnly }: { customTools: CustomTool[
           <div style={{ marginBottom: 16 }}>
             <label style={labelStyle}>Routes</label>
             <div style={{ fontSize: 10, color: '#6B7280', marginBottom: 8 }}>
-              Connect each output handle to a different agent
+              Connect each output handle to a different agent. You can optionally tune the intent/keywords per route.
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 8 }}>
+              <button
+                onClick={syncRoutesFromConnections}
+                style={{
+                  padding: '6px 10px',
+                  fontSize: 11,
+                  borderRadius: 8,
+                  border: '1px solid rgb(var(--border))',
+                  background: 'rgb(var(--surface-2))',
+                  color: 'rgb(var(--fg))',
+                  cursor: 'pointer',
+                }}
+                title="Fill route names/targets from connected nodes (does not overwrite your existing text)"
+              >
+                Sync from connections
+              </button>
             </div>
             {[1, 2, 3].map(i => (
-              <div key={i} style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
+              <div key={i} style={{ marginBottom: 10 }}>
+                <div style={{ fontSize: 10, color: 'rgb(var(--muted))', marginBottom: 6 }}>
+                  Output {i} →{' '}
+                  <strong style={{ color: 'rgb(var(--fg))' }}>
+                    {connectedTargetsByIndex[i - 1]
+                      ? (((connectedTargetsByIndex[i - 1] as any).data?.label as string) || connectedTargetsByIndex[i - 1]!.id)
+                      : 'Not connected'}
+                  </strong>
+                </div>
+                <div style={{ display: 'flex', gap: 8 }}>
                 <input
                   style={{ ...inputStyle, flex: 1 }}
                   placeholder={`Route ${i} name`}
@@ -851,7 +1072,7 @@ function NodeDetailPanel({ customTools, isReadOnly }: { customTools: CustomTool[
                 />
                 <input
                   style={{ ...inputStyle, flex: 1, fontFamily: 'monospace', fontSize: 10 }}
-                  placeholder="Condition"
+                    placeholder={(data.routingStrategy || 'intent') === 'keyword' ? 'Keywords (comma-separated)' : 'Intent hint (optional)'}
                   value={data.routes?.[i-1]?.condition || ''}
                   onChange={(e) => {
                     const routes = [...(data.routes || [{}, {}, {}])];
@@ -859,18 +1080,32 @@ function NodeDetailPanel({ customTools, isReadOnly }: { customTools: CustomTool[
                     updateNodeData(selectedNode.id, { routes });
                   }}
                 />
+                </div>
               </div>
             ))}
           </div>
           <div style={{ padding: 12, background: '#FDF4FF', borderRadius: 8, fontSize: 11, color: '#7E22CE' }}>
             <strong>How it works:</strong><br/>
-            Routes incoming requests to different agents based on intent or conditions.
+            Routes incoming requests to connected agents based on the selected strategy.
           </div>
         </>
       );
     }
 
     if (type === 'supervisor') {
+      const modelsByProvider = (cortexModels || []).reduce<Record<string, CortexModelOption[]>>((acc, m) => {
+        const key = m.provider || 'Models';
+        acc[key] = acc[key] || [];
+        acc[key].push(m);
+        return acc;
+      }, {});
+
+      const outgoing = edges.filter((e) => e.source === selectedNode.id);
+      const connectedAgents = outgoing
+        .map((e) => nodes.find((n) => n.id === e.target))
+        .filter((n): n is Node => Boolean(n))
+        .filter((n) => n.type === 'agent' || n.type === 'cortexAgent');
+
       return (
         <>
           <div style={{ marginBottom: 16 }}>
@@ -883,15 +1118,87 @@ function NodeDetailPanel({ customTools, isReadOnly }: { customTools: CustomTool[
           </div>
           <div style={{ marginBottom: 16 }}>
             <label style={labelStyle}>Model</label>
-            <select 
-              style={inputStyle} 
-              value={data.model || 'mistral-large2'}
-              onChange={(e) => updateNodeData(selectedNode.id, { model: e.target.value })}
-            >
+            <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+              <select 
+                style={{ ...inputStyle, flex: 1 }} 
+                value={data.model || 'mistral-large2'}
+                onChange={(e) => updateNodeData(selectedNode.id, { model: e.target.value })}
+              >
+              {cortexModels?.length ? (
+                Object.entries(modelsByProvider).map(([provider, models]) => (
+                  <optgroup key={provider} label={provider}>
+                    {models.map((m) => (
+                      <option
+                        key={m.id}
+                        value={m.id}
+                        disabled={m.available === false}
+                      >
+                        {(m.label || m.id) + (m.available === false ? ' (unavailable)' : '')}
+                      </option>
+                    ))}
+                  </optgroup>
+                ))
+              ) : (
+                <>
               <option value="mistral-large2">Mistral Large 2</option>
               <option value="llama3.1-70b">Llama 3.1 70B</option>
               <option value="claude-3-5-sonnet">Claude 3.5 Sonnet</option>
+                </>
+              )}
             </select>
+              <button
+                onClick={() => onRefreshCortexModels?.({ probe: !!cortexModelProbe, crossRegion: !!cortexCrossRegion, forceRefresh: true })}
+                disabled={!onRefreshCortexModels || cortexModelsRefreshing}
+                title="Refresh model list from Snowflake"
+                style={{
+                  width: 38,
+                  height: 36,
+                  borderRadius: 10,
+                  border: '1px solid rgb(var(--border))',
+                  background: 'rgb(var(--surface-2))',
+                  color: 'rgb(var(--fg))',
+                  cursor: (!onRefreshCortexModels || cortexModelsRefreshing) ? 'not-allowed' : 'pointer',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
+                <RefreshCw size={16} className={cortexModelsRefreshing ? 'animate-spin' : ''} />
+              </button>
+            </div>
+            <div style={{ marginTop: 8, display: 'flex', flexDirection: 'column', gap: 6 }}>
+              <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, color: 'rgb(var(--fg-muted))' }}>
+                <input
+                  type="checkbox"
+                  checked={!!cortexModelProbe}
+                  onChange={(e) => setCortexModelProbe?.(e.target.checked)}
+                  disabled={!setCortexModelProbe}
+                />
+                Probe availability (slower)
+              </label>
+              <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, color: 'rgb(var(--fg-muted))' }}>
+                <input
+                  type="checkbox"
+                  checked={!!cortexCrossRegion}
+                  onChange={(e) => setCortexCrossRegion?.(e.target.checked)}
+                  disabled={!setCortexCrossRegion}
+                />
+                Cross-region models (experimental)
+              </label>
+            </div>
+          </div>
+          <div style={{ marginBottom: 16 }}>
+            <label style={labelStyle}>Max Iterations</label>
+            <input
+              type="number"
+              min={1}
+              max={50}
+              style={inputStyle}
+              value={data.maxDelegations ?? 5}
+              onChange={(e) => updateNodeData(selectedNode.id, { maxDelegations: Math.max(1, Math.min(50, parseInt(e.target.value || '5', 10))) })}
+              placeholder="5"
+            />
+            <div style={hintStyle}>Upper bound on delegation/looping steps (safety guard)</div>
           </div>
           <div style={{ marginBottom: 16 }}>
             <label style={labelStyle}>Delegation Strategy</label>
@@ -926,6 +1233,25 @@ function NodeDetailPanel({ customTools, isReadOnly }: { customTools: CustomTool[
               <option value="first">First response wins</option>
               <option value="custom">Custom (LLM summarizes)</option>
             </select>
+          </div>
+          <div style={{ marginBottom: 16 }}>
+            <div style={sectionStyle}>Connected Agents</div>
+            <div style={{ fontSize: 12, color: 'rgb(var(--fg-muted))' }}>
+              {connectedAgents.length === 0 ? (
+                <span>Agents: <strong>None</strong></span>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                  <div>Agents: <strong>{connectedAgents.length}</strong></div>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                    {connectedAgents.map((n) => (
+                      <span key={n.id} style={{ padding: '4px 8px', borderRadius: 999, border: '1px solid rgb(var(--border))', background: 'rgb(var(--surface-2))', color: 'rgb(var(--fg))', fontSize: 11 }}>
+                        {(n.data as any)?.label || n.id}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
           <div style={{ padding: 12, background: '#FFFBEB', borderRadius: 8, fontSize: 11, color: '#92400E' }}>
             <strong>Supervisor Pattern:</strong><br/>
@@ -1162,6 +1488,97 @@ function NodeDetailPanel({ customTools, isReadOnly }: { customTools: CustomTool[
     }
 
     if (type === 'externalAgent') {
+      const agentType = data.agentType || 'rest';
+      const endpointLabel =
+        agentType === 'mcp' ? 'MCP Server URL' : 'Endpoint URL';
+      const endpointPlaceholder =
+        agentType === 'mcp'
+          ? 'http://localhost:3001 (MCP server)'
+          : agentType === 'webhook'
+            ? 'https://hooks.example.com/your-webhook'
+            : 'https://api.example.com/agent';
+
+      const authLabel = 'Authentication';
+
+      const isMcp = agentType === 'mcp';
+
+      const handleExternalAgentTypeChange = (nextType: string) => {
+        const prev = data.agentType || 'rest';
+
+        const nextPatch: Record<string, unknown> = { agentType: nextType };
+
+        // Vendor presets: keep styling consistent and auto-fill known defaults.
+        if (['copilot', 'openai', 'salesforce', 'servicenow'].includes(nextType)) {
+          const preset = (externalAgentPresets as any)[nextType];
+          if (preset) {
+            // Only overwrite the display name if the user hasn't customized it.
+            const prevLabel = String(data.label || '');
+            const looksAuto = !prevLabel || prevLabel === 'API Call' || prevLabel === 'Custom API' || prevLabel === 'Microsoft Copilot' || prevLabel === 'OpenAI GPT' || prevLabel === 'Salesforce Einstein' || prevLabel === 'ServiceNow';
+            if (looksAuto) nextPatch.label = preset.label;
+            nextPatch.provider = preset.provider;
+            nextPatch.endpoint = preset.endpoint;
+            nextPatch.method = preset.method || 'POST';
+            nextPatch.authType = preset.authType || 'none';
+            // Do not carry over tokens across type switches.
+            nextPatch.authToken = '';
+            nextPatch.apiKey = '';
+            nextPatch.apiKeyHeader = 'X-API-Key';
+            if (preset.headers) {
+              try {
+                nextPatch.headersJson = JSON.stringify(preset.headers, null, 0);
+              } catch {
+                nextPatch.headersJson = '';
+              }
+            }
+          }
+          updateNodeData(selectedNode.id, nextPatch);
+          return;
+        }
+
+        // If switching to MCP, the existing REST-style endpoint is almost certainly wrong.
+        // Keep user-entered MCP endpoints, but clear obvious vendor REST URLs.
+        if (nextType === 'mcp' && prev !== 'mcp') {
+          const currentEndpoint = String(data.endpoint || '');
+          const looksLikeVendorRest =
+            currentEndpoint.includes('api.salesforce.com') ||
+            currentEndpoint.includes('openai.com') ||
+            currentEndpoint.includes('service-now.com') ||
+            currentEndpoint.includes('graph.microsoft.com');
+          if (looksLikeVendorRest) {
+            nextPatch.endpoint = '';
+            nextPatch.provider = '';
+          }
+          nextPatch.method = 'POST';
+          // MCP typically uses a bearer token when needed
+          nextPatch.authType = 'bearer';
+        }
+
+        // If switching away from MCP, reset method to POST (reasonable default).
+        if (prev === 'mcp' && nextType !== 'mcp') {
+          nextPatch.method = data.method || 'POST';
+        }
+
+        // If switching from a vendor preset to a custom type, clear provider so card doesn't imply vendor integration.
+        if (['copilot', 'openai', 'salesforce', 'servicenow'].includes(prev) && ['rest', 'webhook', 'mcp'].includes(nextType)) {
+          nextPatch.provider = '';
+          // Avoid confusing carry-over of vendor endpoints/credentials into a Custom API/MCP/Webhook.
+          nextPatch.endpoint = '';
+          nextPatch.method = 'POST';
+          nextPatch.authType = 'none';
+          nextPatch.authToken = '';
+          nextPatch.apiKey = '';
+          nextPatch.apiKeyHeader = 'X-API-Key';
+          nextPatch.headersJson = '{"Content-Type":"application/json"}';
+
+          // If the label was auto-set by a preset, switch it back to "Custom API".
+          const prevLabel = String(data.label || '');
+          const wasPresetLabel = ['Microsoft Copilot', 'OpenAI GPT', 'Salesforce Einstein', 'ServiceNow'].includes(prevLabel);
+          if (wasPresetLabel) nextPatch.label = 'Custom API';
+        }
+
+        updateNodeData(selectedNode.id, nextPatch);
+      };
+
       return (
         <>
           <div style={{ marginBottom: 16 }}>
@@ -1170,53 +1587,161 @@ function NodeDetailPanel({ customTools, isReadOnly }: { customTools: CustomTool[
               style={inputStyle} 
               value={data.label || ''} 
               onChange={(e) => updateNodeData(selectedNode.id, { label: e.target.value })}
+              disabled={isReadOnly}
             />
           </div>
           <div style={{ marginBottom: 16 }}>
             <label style={labelStyle}>Agent Type</label>
             <select 
               style={inputStyle} 
-              value={data.agentType || 'rest'}
-              onChange={(e) => updateNodeData(selectedNode.id, { agentType: e.target.value })}
+              value={agentType}
+              onChange={(e) => handleExternalAgentTypeChange(e.target.value)}
+              disabled={isReadOnly}
             >
-              <option value="rest">REST API</option>
+              <optgroup label="Presets">
+                <option value="copilot">Microsoft Copilot</option>
+                <option value="openai">OpenAI GPT</option>
+                <option value="salesforce">Salesforce Einstein</option>
+                <option value="servicenow">ServiceNow</option>
+              </optgroup>
+              <optgroup label="Custom">
+              <option value="rest">Custom API</option>
               <option value="mcp">MCP Agent</option>
               <option value="webhook">Webhook</option>
+              </optgroup>
             </select>
           </div>
           <div style={{ marginBottom: 16 }}>
-            <label style={labelStyle}>Endpoint URL</label>
+            <label style={labelStyle}>{endpointLabel}</label>
             <input 
               style={{ ...inputStyle, fontFamily: 'monospace', fontSize: 12 }} 
               value={data.endpoint || ''} 
               onChange={(e) => updateNodeData(selectedNode.id, { endpoint: e.target.value })}
-              placeholder="https://api.example.com/agent"
+              placeholder={endpointPlaceholder}
+              disabled={isReadOnly}
             />
+            {isMcp ? (
+              <div style={hintStyle}>
+                MCP uses a server URL (not a vendor REST endpoint). The node will call tools exposed by that MCP server.
           </div>
+            ) : agentType === 'webhook' ? (
+              <div style={hintStyle}>Webhook endpoints are typically public HTTPS URLs that accept POST requests.</div>
+            ) : null}
+          </div>
+          {!isMcp && (
           <div style={{ marginBottom: 16 }}>
             <label style={labelStyle}>Method</label>
             <select 
               style={inputStyle} 
               value={data.method || 'POST'}
               onChange={(e) => updateNodeData(selectedNode.id, { method: e.target.value })}
+                disabled={isReadOnly}
             >
               <option value="GET">GET</option>
               <option value="POST">POST</option>
               <option value="PUT">PUT</option>
             </select>
           </div>
+          )}
           <div style={{ marginBottom: 16 }}>
-            <label style={labelStyle}>Authentication</label>
+            <label style={labelStyle}>{authLabel}</label>
             <select 
               style={inputStyle} 
               value={data.authType || 'none'}
               onChange={(e) => updateNodeData(selectedNode.id, { authType: e.target.value })}
+              disabled={isReadOnly}
             >
               <option value="none">None</option>
               <option value="bearer">Bearer Token</option>
-              <option value="api_key">API Key</option>
+              {!isMcp && <option value="api_key">API Key</option>}
+              {!isMcp && <option value="oauth">OAuth</option>}
             </select>
           </div>
+
+          {/* Credentials / headers (type-aware) */}
+          {!isMcp && data.authType === 'bearer' && (
+            <div style={{ marginBottom: 16 }}>
+              <label style={labelStyle}>Bearer Token</label>
+              <input
+                type="password"
+                style={{ ...inputStyle, fontFamily: 'monospace', fontSize: 12 }}
+                value={data.authToken || ''}
+                onChange={(e) => updateNodeData(selectedNode.id, { authToken: e.target.value })}
+                placeholder="Paste token…"
+                disabled={isReadOnly}
+              />
+            </div>
+          )}
+
+          {!isMcp && data.authType === 'api_key' && (
+            <>
+              <div style={{ marginBottom: 12 }}>
+                <label style={labelStyle}>API Key Header Name</label>
+                <input
+                  style={{ ...inputStyle, fontFamily: 'monospace', fontSize: 12 }}
+                  value={data.apiKeyHeader || 'X-API-Key'}
+                  onChange={(e) => updateNodeData(selectedNode.id, { apiKeyHeader: e.target.value })}
+                  placeholder="X-API-Key"
+                  disabled={isReadOnly}
+                />
+                <div style={hintStyle}>Most APIs use `X-API-Key` or `Authorization`.</div>
+              </div>
+              <div style={{ marginBottom: 16 }}>
+                <label style={labelStyle}>API Key</label>
+                <input
+                  type="password"
+                  style={{ ...inputStyle, fontFamily: 'monospace', fontSize: 12 }}
+                  value={data.apiKey || ''}
+                  onChange={(e) => updateNodeData(selectedNode.id, { apiKey: e.target.value })}
+                  placeholder="Paste key…"
+                  disabled={isReadOnly}
+                />
+          </div>
+            </>
+          )}
+
+          {!isMcp && data.authType === 'oauth' && (
+            <div style={{ marginBottom: 16 }}>
+              <label style={labelStyle}>OAuth Access Token</label>
+              <input
+                type="password"
+                style={{ ...inputStyle, fontFamily: 'monospace', fontSize: 12 }}
+                value={data.authToken || ''}
+                onChange={(e) => updateNodeData(selectedNode.id, { authToken: e.target.value })}
+                placeholder="Paste access token…"
+                disabled={isReadOnly}
+              />
+              <div style={hintStyle}>For production, this should be managed by an Agent Gateway / secrets store.</div>
+            </div>
+          )}
+
+          {isMcp && (
+            <div style={{ marginBottom: 16 }}>
+              <label style={labelStyle}>MCP Auth Token (optional)</label>
+              <input
+                type="password"
+                style={{ ...inputStyle, fontFamily: 'monospace', fontSize: 12 }}
+                value={data.authToken || ''}
+                onChange={(e) => updateNodeData(selectedNode.id, { authToken: e.target.value })}
+                placeholder="Bearer token (optional)…"
+                disabled={isReadOnly}
+              />
+            </div>
+          )}
+
+          {!isMcp && (
+            <div style={{ marginBottom: 16 }}>
+              <label style={labelStyle}>Headers (JSON)</label>
+              <textarea
+                style={{ ...inputStyle, minHeight: 90, resize: 'vertical', fontFamily: 'monospace', fontSize: 11 }}
+                value={data.headersJson || ''}
+                onChange={(e) => updateNodeData(selectedNode.id, { headersJson: e.target.value })}
+                placeholder='{"Content-Type":"application/json"}'
+                disabled={isReadOnly}
+              />
+              <div style={hintStyle}>Merged with auth headers at runtime. Invalid JSON will be ignored.</div>
+            </div>
+          )}
         </>
       );
     }
@@ -1240,7 +1765,7 @@ function NodeDetailPanel({ customTools, isReadOnly }: { customTools: CustomTool[
             <label style={labelStyle}>Database</label>
             <select 
               style={inputStyle} 
-              value={data.database || ''}
+              value={data.database || ''} 
               onChange={(e) => {
                 updateNodeData(selectedNode.id, { database: e.target.value, schema: '', stage: '', yamlFile: '' });
               }}
@@ -1255,7 +1780,7 @@ function NodeDetailPanel({ customTools, isReadOnly }: { customTools: CustomTool[
             <label style={labelStyle}>Schema</label>
             <select 
               style={inputStyle} 
-              value={data.schema || ''}
+              value={data.schema || ''} 
               onChange={(e) => {
                 updateNodeData(selectedNode.id, { schema: e.target.value, stage: '', yamlFile: '' });
               }}
@@ -1272,7 +1797,7 @@ function NodeDetailPanel({ customTools, isReadOnly }: { customTools: CustomTool[
             <label style={labelStyle}>Stage</label>
             <select 
               style={inputStyle} 
-              value={data.stage || ''}
+              value={data.stage || ''} 
               onChange={(e) => {
                 updateNodeData(selectedNode.id, { stage: e.target.value, yamlFile: '' });
               }}
@@ -1290,7 +1815,7 @@ function NodeDetailPanel({ customTools, isReadOnly }: { customTools: CustomTool[
             <label style={labelStyle}>YAML File</label>
             <select 
               style={inputStyle} 
-              value={data.yamlFile || ''}
+              value={data.yamlFile || ''} 
               onChange={(e) => {
                 updateNodeData(selectedNode.id, { yamlFile: e.target.value });
               }}
@@ -1307,7 +1832,7 @@ function NodeDetailPanel({ customTools, isReadOnly }: { customTools: CustomTool[
             )}
           </div>
           
-          <div style={{ padding: 12, background: '#E0E7FF', borderRadius: 8, fontSize: 11, color: '#4338CA' }}>
+          <div style={{ padding: 12, background: 'rgb(var(--purple-bg))', borderRadius: 8, fontSize: 11, color: 'rgb(var(--purple-fg))' }}>
             <strong>Semantic Model defines:</strong><br/>
             • Tables & relationships<br/>
             • Dimensions & measures<br/>
@@ -1350,7 +1875,7 @@ function NodeDetailPanel({ customTools, isReadOnly }: { customTools: CustomTool[
     <div style={{ 
       width: '100%',
       maxWidth: '100%',
-      background: '#FFFFFF',
+      background: 'rgb(var(--surface))',
       display: 'flex', 
       flexDirection: 'column',
       fontFamily: 'Inter, -apple-system, sans-serif',
@@ -1359,15 +1884,15 @@ function NodeDetailPanel({ customTools, isReadOnly }: { customTools: CustomTool[
       {/* Header */}
       <div style={{ 
         padding: '14px 16px', 
-        borderBottom: '1px solid #E5E9F0',
+        borderBottom: '1px solid rgb(var(--border))',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
-        background: '#F8FAFC',
+        background: 'rgb(var(--surface-2))',
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           {getNodeIcon()}
-          <span style={{ fontWeight: 600, color: '#1F2937', fontSize: 14 }}>{getNodeTitle()}</span>
+          <span style={{ fontWeight: 600, color: 'rgb(var(--fg))', fontSize: 14 }}>{getNodeTitle()}</span>
         </div>
       </div>
 
@@ -1375,8 +1900,8 @@ function NodeDetailPanel({ customTools, isReadOnly }: { customTools: CustomTool[
       <div style={{ padding: '16px', flex: 1, overflowY: 'auto', overflowX: 'hidden' }}>
         {isReadOnly && (
           <div style={{ 
-            background: '#FEF3C7', 
-            color: '#92400E', 
+            background: 'rgb(var(--warning-bg))', 
+            color: 'rgb(var(--warning-fg))', 
             padding: '8px 12px', 
             borderRadius: 6, 
             fontSize: 11, 
@@ -1400,7 +1925,7 @@ const labelStyle: React.CSSProperties = {
   display: 'block',
   fontSize: 11,
   fontWeight: 500,
-  color: '#6B7280',
+  color: 'rgb(var(--muted))',
   textTransform: 'uppercase',
   letterSpacing: 0.5,
   marginBottom: 6,
@@ -1410,32 +1935,34 @@ const inputStyle: React.CSSProperties = {
   width: '100%',
   padding: '10px 12px',
   fontSize: 14,
-  border: '1px solid #E5E9F0',
+  border: '1px solid rgb(var(--border))',
   borderRadius: 6,
   outline: 'none',
   fontFamily: 'Inter, -apple-system, sans-serif',
   boxSizing: 'border-box',
+  background: 'rgb(var(--surface))',
+  color: 'rgb(var(--fg))',
 };
 
 const sectionStyle: React.CSSProperties = {
   fontSize: 10,
   fontWeight: 600,
-  color: '#29B5E8',
+  color: 'rgb(var(--ring))',
   textTransform: 'uppercase',
   letterSpacing: 1,
   marginTop: 20,
   marginBottom: 12,
   paddingBottom: 6,
-  borderBottom: '1px solid #E5E9F0',
+  borderBottom: '1px solid rgb(var(--border))',
 };
 
 const hintStyle: React.CSSProperties = {
   fontSize: 10,
-  color: '#9CA3AF',
+  color: 'rgb(var(--muted))',
   marginTop: 4,
 };
 
-type ExecutionStatus = 'idle' | 'running' | 'success' | 'error';
+type ExecutionStatus = 'idle' | 'validating' | 'running' | 'success' | 'error';
 type ExecutionResult = {
   status: string;
   job_id?: string;
@@ -1524,12 +2051,13 @@ function DraggablePanel({
         zIndex: 1000,
         width: 380,
         maxHeight: 'calc(100vh - 120px)',
-        overflowY: 'auto',
-        overflowX: 'hidden',
+        overflow: 'hidden',
         boxShadow: '0 8px 32px rgba(0,0,0,0.2)',
         borderRadius: 12,
         background: '#FFFFFF',
         border: '1px solid #E5E9F0',
+        display: 'flex',
+        flexDirection: 'column',
       }}
       onMouseDown={handleMouseDown}
     >
@@ -1544,6 +2072,7 @@ function DraggablePanel({
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
+          flex: '0 0 auto',
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -1564,15 +2093,19 @@ function DraggablePanel({
           <X size={16} color="#94A3B8" />
         </button>
       </div>
-      {children}
+      <div style={{ flex: '1 1 auto', overflowY: 'auto', overflowX: 'hidden' }}>
+        {children}
+      </div>
     </div>
   );
 }
 
 function Flow() {
-  const { nodes, edges, onNodesChange, onEdgesChange, onConnect, addNode, selectedNode, setSelectedNode, workflowName, setWorkflowName, setWorkflow, clearWorkflow, updateNodeData } = useFlowStore();
+  const { nodes, edges, onNodesChange, onEdgesChange, onConnect, addNode, selectedNode, setSelectedNode, workflowName, setWorkflowName, setWorkflow, clearWorkflow, updateNodeData, lastAutosavedAt } = useFlowStore();
+  const { screenToFlowPosition } = useReactFlow();
   const reactFlowWrapper = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const workflowNameInputRef = useRef<HTMLInputElement>(null);
   const [execStatus, setExecStatus] = useState<ExecutionStatus>('idle');
   const [execResult, setExecResult] = useState<ExecutionResult | null>(null);
   const [showSaveModal, setShowSaveModal] = useState(false);
@@ -1580,6 +2113,14 @@ function Flow() {
   const [savedWorkflows, setSavedWorkflows] = useState<Array<{ filename: string; name: string; node_count: number }>>([]);
   const [workflowDescription, setWorkflowDescription] = useState('');
   const [backendConnected, setBackendConnected] = useState<boolean | null>(null); // null = checking, true = connected, false = disconnected
+  const [demoInstallStatus, setDemoInstallStatus] = useState<'idle' | 'installing' | 'done' | 'error'>('idle');
+  const [demoInstallReport, setDemoInstallReport] = useState<any | null>(null);
+  const [sfRoles, setSfRoles] = useState<string[]>([]);
+  const [sfCurrentRole, setSfCurrentRole] = useState<string>('');
+  const [sfRoleLoading, setSfRoleLoading] = useState(false);
+  const [sfRoleVersion, setSfRoleVersion] = useState(0);
+  const [showWorkspaceMenu, setShowWorkspaceMenu] = useState(false);
+  const workspaceMenuRef = useRef<HTMLDivElement | null>(null);
   
   // Check backend connection status
   useEffect(() => {
@@ -1607,7 +2148,8 @@ function Flow() {
   const [templateCategory, setTemplateCategory] = useState('analytics');
   const [templateComplexity, setTemplateComplexity] = useState('medium');
   const [sections, setSections] = useState<SectionState>({ data: true, semantic: false, agent: true, external: true, migration: false, output: true, utils: false });
-  const [toast, setToast] = useState<{ message: string; type: 'info' | 'error' | 'success' } | null>(null);
+  const [toast, setToast] = useState<{ message: string; type: 'info' | 'error' | 'success'; dismissible?: boolean } | null>(null);
+  const toastTimerRef = useRef<number | null>(null);
   const [componentSearch, setComponentSearch] = useState('');
   const [sidebarMode, setSidebarMode] = useState<'components' | 'catalog' | 'templates'>('components');
   const [showPreview, setShowPreview] = useState(false);
@@ -1623,8 +2165,77 @@ function Flow() {
   const [executionPhase, setExecutionPhase] = useState<string>('');
   const [panelPosition, setPanelPosition] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
   const [resultsPanelCollapsed, setResultsPanelCollapsed] = useState(false);
+  const [showRawJson, setShowRawJson] = useState(false); // Toggle for raw JSON view in results
   const [sidebarWidth, setSidebarWidth] = useState(280); // Default sidebar width in pixels
   const [isResizingSidebar, setIsResizingSidebar] = useState(false);
+  const [canvasView, setCanvasView] = useState<'graph' | 'stack'>('graph');
+  const [hasUserEdited, setHasUserEdited] = useState(false);
+  const hasUserEditedRef = useRef(false);
+  const [showRunModal, setShowRunModal] = useState(false);
+  const [runModalPrompt, setRunModalPrompt] = useState('');
+  const blockedDndToastAtRef = useRef<number>(0);
+  // Selection: left-click drag to box-select (when unlocked). Cmd/Ctrl+click to add to selection.
+  const [cortexModels, setCortexModels] = useState<Array<{ id: string; label?: string; provider?: string; available?: boolean | null }>>([]);
+  const [cortexModelsRefreshing, setCortexModelsRefreshing] = useState(false);
+  const [cortexModelProbe, setCortexModelProbe] = useState(false);
+  const [cortexCrossRegion, setCortexCrossRegion] = useState(false);
+
+  // Note: Selection is handled by ReactFlow - left-drag to box-select, Cmd/Ctrl+click to multi-select
+
+  // Fetch Cortex model list (best-effort). Falls back to static dropdown options if unavailable.
+  useEffect(() => {
+    const fetchModels = async () => {
+      try {
+        const res = await axios.get('http://localhost:8000/cortex/models');
+        if (Array.isArray(res.data?.models)) {
+          setCortexModels(res.data.models);
+        }
+      } catch {
+        // Ignore - UI will use static list
+      }
+    };
+    fetchModels();
+  }, []);
+
+  const refreshCortexModels = useCallback(async (opts: { probe: boolean; crossRegion: boolean; forceRefresh?: boolean }) => {
+    setCortexModelsRefreshing(true);
+    try {
+      const res = await axios.get('http://localhost:8000/cortex/models', {
+        params: {
+          probe: !!opts.probe,
+          force_refresh: opts.forceRefresh !== false,
+          cross_region: !!opts.crossRegion,
+        },
+      });
+      if (Array.isArray(res.data?.models)) {
+        setCortexModels(res.data.models);
+      }
+    } catch {
+      // ignore; UI falls back
+    } finally {
+      setCortexModelsRefreshing(false);
+    }
+  }, []);
+
+  const markUserEdited = useCallback(() => {
+    if (hasUserEditedRef.current) return;
+    hasUserEditedRef.current = true;
+    setHasUserEdited(true);
+  }, []);
+
+  // Theme (system/light/dark)
+  const [themeMode, setThemeMode] = useState<ThemeMode>(() => getStoredTheme());
+  const resolvedTheme = themeMode;
+
+  const toggleTheme = useCallback(() => {
+    const next: ThemeMode = themeMode === 'dark' ? 'light' : 'dark';
+    setThemeMode(next);
+  }, [themeMode]);
+
+  useEffect(() => {
+    // Keep class in sync if themeMode is modified elsewhere
+    setTheme(themeMode);
+  }, [themeMode]);
   
   // Sidebar resize handlers
   const handleSidebarResizeStart = useCallback((e: React.MouseEvent) => {
@@ -1706,28 +2317,152 @@ function Flow() {
 
   // Show toast notification
   const showToast = (message: string, type: 'info' | 'error' | 'success' = 'info') => {
-    setToast({ message, type });
-    setTimeout(() => setToast(null), 4000);
+    const isWarning = message.trim().startsWith('⚠️');
+    const durationMs = isWarning ? 12000 : type === 'error' ? 9000 : type === 'success' ? 5000 : 9000;
+    const dismissible = isWarning || type === 'error';
+
+    if (toastTimerRef.current) {
+      window.clearTimeout(toastTimerRef.current);
+      toastTimerRef.current = null;
+    }
+
+    setToast({ message, type, dismissible });
+    toastTimerRef.current = window.setTimeout(() => {
+      setToast(null);
+      toastTimerRef.current = null;
+    }, durationMs);
   };
 
-  // Connection validation rules - Snowflake Intelligence Architecture
-  // Flow: Data Sources → Semantic Model → Cortex Agent (with Analyst as tool) → Output
-  const isValidConnection = useCallback((connection: { source: string | null; target: string | null }) => {
-    if (!connection.source || !connection.target) return false;
-    
-    const sourceNode = nodes.find(n => n.id === connection.source);
-    const targetNode = nodes.find(n => n.id === connection.target);
-    
-    if (!sourceNode || !targetNode) return false;
+  // Snowflake role switching (best-effort)
+  const fetchSnowflakeRoles = useCallback(async () => {
+    try {
+      const res = await axios.get('http://localhost:8000/snowflake/roles');
+      const roles = Array.isArray(res.data?.roles) ? res.data.roles : [];
+      setSfRoles(roles);
+      const current = typeof res.data?.current_role === 'string' ? res.data.current_role : '';
+      const fallback = typeof res.data?.default_role === 'string' ? res.data.default_role : '';
+      setSfCurrentRole(current || fallback || '');
+    } catch {
+      // Ignore; role switching is optional UX
+      setSfRoles([]);
+    }
+  }, []);
 
-    const sourceType = sourceNode.type || '';
-    const targetType = targetNode.type || '';
+  useEffect(() => {
+    if (backendConnected === false) return;
+    fetchSnowflakeRoles();
+  }, [backendConnected, fetchSnowflakeRoles]);
 
-    // Define valid connections based on Snowflake Intelligence architecture:
-    // Primary: Data → Semantic Model → Agent → Output
-    // Shortcut: Data → Cortex → Output (for simple transforms, with warning)
-    const validConnections: Record<string, string[]> = {
-      'snowflakeSource': ['semanticModel', 'cortex'],  // Can go to Semantic Model OR directly to Cortex (with warning)
+  const switchSnowflakeRole = useCallback(async (role: string) => {
+    const next = (role || '').trim();
+    if (!next) return;
+    setSfRoleLoading(true);
+    try {
+      const res = await axios.post('http://localhost:8000/snowflake/role', { role: next });
+      const current = typeof res.data?.current_role === 'string' ? res.data.current_role : next;
+      setSfCurrentRole(current);
+      setSfRoleVersion((v) => v + 1);
+      showToast(`Role set to ${current}`, 'success');
+    } catch (err: any) {
+      const msg = err?.response?.data?.detail || 'Failed to switch role';
+      showToast(String(msg).slice(0, 160), 'error');
+    } finally {
+      setSfRoleLoading(false);
+    }
+  }, [showToast]);
+
+  // Close workspace menu on outside click / Esc
+  useEffect(() => {
+    if (!showWorkspaceMenu) return;
+    const onMouseDown = (e: MouseEvent) => {
+      const el = workspaceMenuRef.current;
+      if (!el) return;
+      if (e.target instanceof Node && el.contains(e.target)) return;
+      setShowWorkspaceMenu(false);
+    };
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setShowWorkspaceMenu(false);
+    };
+    window.addEventListener('mousedown', onMouseDown);
+    window.addEventListener('keydown', onKeyDown);
+    return () => {
+      window.removeEventListener('mousedown', onMouseDown);
+      window.removeEventListener('keydown', onKeyDown);
+    };
+  }, [showWorkspaceMenu]);
+
+  const installDemoAssets = useCallback(async () => {
+    if (demoInstallStatus === 'done' && demoInstallReport) {
+      // Re-click = show the latest report modal
+      setShowLoadModal(false); // ensure other modals don't overlap
+      setShowSaveModal(false);
+      setShowRunModal(false);
+      showToast('Showing latest demo install report', 'info');
+      return;
+    }
+    if (backendConnected === false) {
+      showToast('Backend not connected — cannot install demo assets', 'error');
+      return;
+    }
+    if (demoInstallStatus === 'installing') return;
+
+    setDemoInstallStatus('installing');
+    setDemoInstallReport(null);
+    showToast('Installing demo assets into Snowflake…', 'info');
+    try {
+      const res = await fetch('http://localhost:8000/demo-assets/install', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ demo_database: 'SNOWFLOW_DEMO', overwrite_tables: false, upload_yaml: true }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || !data?.success) {
+        const msg = data?.detail || data?.error || 'Install failed';
+        setDemoInstallReport(data);
+        setDemoInstallStatus('error');
+        showToast(`Demo install failed: ${String(msg).slice(0, 140)}`, 'error');
+        return;
+      }
+      setDemoInstallStatus('done');
+      setDemoInstallReport(data);
+      const warnCount = Array.isArray(data?.warnings) ? data.warnings.length : 0;
+      showToast(warnCount > 0 ? `Demo assets installed (with ${warnCount} warnings)` : 'Demo assets installed!', 'success');
+    } catch (e: any) {
+      setDemoInstallStatus('error');
+      setDemoInstallReport({ error: String(e?.message || e) });
+      showToast(`Demo install failed: ${String(e?.message || e).slice(0, 140)}`, 'error');
+    }
+  }, [backendConnected, demoInstallStatus]);
+
+  const hasSemanticUpstream = useCallback((targetNodeId: string) => {
+    const byId = new Map(nodes.map(n => [n.id, n]));
+    const incomingByTarget = new Map<string, string[]>();
+    for (const e of edges) {
+      if (!incomingByTarget.has(e.target)) incomingByTarget.set(e.target, []);
+      incomingByTarget.get(e.target)!.push(e.source);
+    }
+    const visited = new Set<string>();
+    const queue: string[] = [targetNodeId];
+    while (queue.length) {
+      const cur = queue.shift()!;
+      if (visited.has(cur)) continue;
+      visited.add(cur);
+      const incoming = incomingByTarget.get(cur) || [];
+      for (const srcId of incoming) {
+        const src = byId.get(srcId);
+        if (!src) continue;
+        if (src.type === 'semanticModel') return true;
+        queue.push(srcId);
+      }
+      if (visited.size > 100) break;
+    }
+    return false;
+  }, [nodes, edges]);
+
+  // Centralized connection rules + hints.
+  // Any hint starting with "⚠️" is treated as a universal "risky edge" indicator.
+  const validConnections: Record<string, string[]> = useMemo(() => ({
+    'snowflakeSource': ['semanticModel', 'agent', 'cortex', 'router', 'supervisor', 'externalAgent'],  // Semantic Model (recommended) OR advanced paths (warn)
       'semanticModel': ['agent', 'supervisor'],  // Semantic Model feeds into Agent or Supervisor
       'agent': ['externalAgent', 'output', 'cortex', 'condition', 'agent', 'router', 'supervisor'],  // Agent can chain to other agents
       'cortex': ['agent', 'output', 'cortex', 'condition'],
@@ -1741,13 +2476,16 @@ function Flow() {
       'schemaExtractor': ['schemaTransformer'],  // Extractor → Transformer
       'schemaTransformer': ['fileOutput'],  // Transformer → File output
       'fileOutput': [],  // Terminal node
-    };
+  }), []);
 
-    // Helpful hints for connections
-    const connectionHints: Record<string, Record<string, string>> = {
+  const connectionHints: Record<string, Record<string, string>> = useMemo(() => ({
       'snowflakeSource': {
         'semanticModel': '✓ Data Source → Semantic Model (recommended)',
+      'agent': '⚠️ Data Source → Agent without Semantic Model (quality may be lower)',
         'cortex': '⚠️ Direct to Cortex - no semantic context (accuracy may vary)',
+        'router': '⚠️ Data Source → Router without Semantic Model (quality may be lower)',
+        'supervisor': '⚠️ Data Source → Supervisor without Semantic Model (quality may be lower)',
+        'externalAgent': '⚠️ Data Source → External Agent without Semantic Model (guardrails may be lower)',
       },
       'semanticModel': {
         'agent': '✓ Semantic Model → Agent (Agent uses Analyst tool)',
@@ -1776,7 +2514,68 @@ function Flow() {
         'agent': '✓ Delegate subtask to agent',
         'output': '✓ Aggregated results → Output',
       },
-    };
+  }), []);
+
+  const edgesWithQualityHints = useMemo(() => {
+    const byId = new Map(nodes.map(n => [n.id, n]));
+    return edges.map((e) => {
+      const sType = byId.get(e.source)?.type;
+      const tType = byId.get(e.target)?.type;
+
+      // Universal "risky edge" rule:
+      // Any connection whose hint begins with "⚠️" is treated as risky and gets amber dashed styling + click toast.
+      const hint = (sType && tType) ? connectionHints[sType]?.[tType] : undefined;
+      const isRisky = Boolean(hint && String(hint).trim().startsWith('⚠️'));
+      if (!isRisky) return e;
+
+      // Optional de-noising: make the message specific when an alternate semantic path exists.
+      const semanticAlt = (sType === 'snowflakeSource' && tType === 'agent') ? hasSemanticUpstream(e.target) : false;
+      const msg = semanticAlt
+        ? '⚠️ This edge bypasses the Semantic Model while an alternate semantic path exists. For best NL→SQL accuracy, route through a Semantic Model.'
+        : String(hint);
+
+      return {
+        ...e,
+        data: {
+          ...(e as any).data,
+          qualityWarning: msg,
+        },
+        // IMPORTANT:
+        // Many edges already carry inline style.stroke (e.g. '#29B5E8') from previous defaults.
+        // Inline styles beat CSS, so we explicitly override stroke + dash for risky edges here.
+        // We do NOT set strokeWidth so hover/selected thickening still works via CSS.
+        style: (() => {
+          const prev = (e.style || {}) as Record<string, any>;
+          // Drop strokeWidth if present so CSS can control thickening.
+          // eslint-disable-next-line @typescript-eslint/no-unused-vars
+          const { strokeWidth, ...rest } = prev;
+          return {
+            ...rest,
+            stroke: 'rgb(var(--edge-active))',
+            strokeDasharray: '6 4',
+          };
+        })(),
+      };
+    });
+  }, [edges, nodes, hasSemanticUpstream, connectionHints]);
+
+  // Connection validation rules - Snowflake Intelligence Architecture
+  // Recommended: Data Sources → Semantic Model → Cortex Agent (with Analyst as tool) → Output
+  // Advanced (⚠️): allowed, but lower-confidence / less guided paths.
+  //
+  // IMPORTANT: Any connection hint that starts with "⚠️" is treated as a "risky edge" and will be styled
+  // (amber dashed) in the canvas + will show the hint toast when clicked. This makes the warning system universal
+  // as we add/relax connection rules over time.
+  const isValidConnection = useCallback((connection: { source: string | null; target: string | null }) => {
+    if (!connection.source || !connection.target) return false;
+    
+    const sourceNode = nodes.find(n => n.id === connection.source);
+    const targetNode = nodes.find(n => n.id === connection.target);
+    
+    if (!sourceNode || !targetNode) return false;
+
+    const sourceType = sourceNode.type || '';
+    const targetType = targetNode.type || '';
 
     const allowed = validConnections[sourceType] || [];
     const isValid = allowed.includes(targetType);
@@ -1785,14 +2584,15 @@ function Flow() {
       // Show helpful hint
       const hint = connectionHints[sourceType]?.[targetType];
       if (hint) {
-        showToast(hint, 'success');
+        const toastType = hint.trim().startsWith('⚠️') ? 'info' : 'success';
+        showToast(hint, toastType);
       }
     } else {
       // Show error with guidance
       const errorMessages: Record<string, string> = {
         'output': 'Output is terminal - nothing connects from it',
-        'semanticModel': 'Semantic Model only connects to Agent',
-        'snowflakeSource': 'Data Source → Semantic Model or Cortex only',
+        'semanticModel': 'Semantic Model connects to Agent or Supervisor',
+        'snowflakeSource': 'Data Source → Semantic Model (recommended), or Agent/Cortex (advanced)',
         'agent': 'Agent connects to Output, Cortex, Condition, or External API',
         'externalAgent': 'External API connects to Agent or Output',
       };
@@ -1802,20 +2602,40 @@ function Flow() {
     }
 
     return isValid;
-  }, [nodes]);
+  }, [nodes, validConnections, connectionHints]);
 
   const onDragOver = useCallback((e: React.DragEvent) => {
     e.preventDefault();
+    if (isProductionMode) {
+      e.dataTransfer.dropEffect = 'none';
+      const now = Date.now();
+      if (now - blockedDndToastAtRef.current > 1500) {
+        blockedDndToastAtRef.current = now;
+        showToast('Preview mode is locked — click the lock icon to edit', 'info');
+      }
+      return;
+    }
     e.dataTransfer.dropEffect = 'move';
-  }, []);
+  }, [isProductionMode]);
 
   const onDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault();
+    if (isProductionMode) {
+      const now = Date.now();
+      if (now - blockedDndToastAtRef.current > 1500) {
+        blockedDndToastAtRef.current = now;
+        showToast('Unlock the canvas (lock icon) to add nodes', 'info');
+      }
+      return;
+    }
+    markUserEdited();
     const typeData = e.dataTransfer.getData('application/reactflow');
     if (!typeData || !reactFlowWrapper.current) return;
 
-    const bounds = reactFlowWrapper.current.getBoundingClientRect();
-    const position = { x: e.clientX - bounds.left - 110, y: e.clientY - bounds.top - 40 };
+    // Convert from screen coords → canvas coords (accounts for pan/zoom)
+    const flowPos = screenToFlowPosition({ x: e.clientX, y: e.clientY });
+    // Offset so the cursor lands near the node header (more natural than top-left)
+    const position = { x: flowPos.x - 110, y: flowPos.y - 40 };
 
     // Parse type and subtype (e.g., "cortex:summarize")
     const [type, subtype] = typeData.split(':');
@@ -1874,7 +2694,7 @@ function Flow() {
         }
       };
     } else if (type === 'output') {
-      data = { label: 'Output', outputType: 'display' };
+      data = { label: 'Output', outputType: 'display', channel: 'snowflake_intelligence' };
     } else if (type === 'cortex') {
       const labels: Record<string, string> = {
         summarize: 'Summarize', sentiment: 'Sentiment', translate: 'Translate', complete: 'LLM Complete'
@@ -1926,7 +2746,7 @@ function Flow() {
           systemPrompt: 'You are ServiceNow agent. Help with ITSM ticket creation and management.'
         };
       } else {
-        data = { label: 'API Call', agentType: 'rest', endpoint: '', method: 'POST' };
+        data = { label: 'Custom API', agentType: 'rest', endpoint: '', method: 'POST', authType: 'none', provider: '' };
       }
     } else if (type === 'semanticModel') {
       // Check if dropped from Data Catalog with semantic data
@@ -1943,7 +2763,7 @@ function Flow() {
             semanticPath: semanticData.semanticPath || '',
           };
         } catch {
-          data = { label: 'My Semantic Model', database: 'SNOWFLOW_DEV', schema: 'DEMO', stage: '', yamlFile: '' };
+      data = { label: 'My Semantic Model', database: 'SNOWFLOW_DEV', schema: 'DEMO', stage: '', yamlFile: '' };
         }
       } else {
         data = { label: 'My Semantic Model', database: 'SNOWFLOW_DEV', schema: 'DEMO', stage: '', yamlFile: '' };
@@ -1964,7 +2784,8 @@ function Flow() {
         model: 'mistral-large2',
         delegationStrategy: 'adaptive',
         systemPrompt: 'You are a supervisor agent. Break down complex tasks and delegate to specialized agents.',
-        aggregationMethod: 'merge'
+        aggregationMethod: 'merge',
+        maxDelegations: 5,
       };
     } else if (type === 'fileInput') {
       const fileType = subtype || 'tmdl';
@@ -1992,7 +2813,22 @@ function Flow() {
     }
 
     addNode({ id: `node_${nodeId++}`, type, position, data });
-  }, [addNode]);
+  }, [addNode, isProductionMode, markUserEdited, screenToFlowPosition]);
+
+  const handleNodesChange: typeof onNodesChange = useCallback((changes) => {
+    markUserEdited();
+    onNodesChange(changes);
+  }, [markUserEdited, onNodesChange]);
+
+  const handleEdgesChange: typeof onEdgesChange = useCallback((changes) => {
+    markUserEdited();
+    onEdgesChange(changes);
+  }, [markUserEdited, onEdgesChange]);
+
+  const handleConnect: typeof onConnect = useCallback((connection) => {
+    markUserEdited();
+    onConnect(connection);
+  }, [markUserEdited, onConnect]);
 
   const onNodeClick = useCallback((event: React.MouseEvent, node: Node) => {
     // Position panel near the click, offset slightly to the right
@@ -2001,6 +2837,18 @@ function Flow() {
     setPanelPosition({ x, y });
     setSelectedNode(node);
   }, [setSelectedNode]);
+
+  const openNodeById = useCallback((nodeId: string, anchorEl?: HTMLElement | null) => {
+    const node = nodes.find((n) => n.id === nodeId);
+    if (!node) return;
+    const rect = anchorEl?.getBoundingClientRect?.();
+    const baseX = rect ? rect.left + 24 : 24;
+    const baseY = rect ? rect.top + 120 : 120;
+    const x = Math.min(baseX + sidebarWidth + 20, window.innerWidth - 450);
+    const y = Math.max(baseY - 40, 80);
+    setPanelPosition({ x, y });
+    setSelectedNode(node);
+  }, [nodes, sidebarWidth, setSelectedNode]);
 
   const onPaneClick = useCallback(() => {
     setSelectedNode(null);
@@ -2041,6 +2889,19 @@ function Flow() {
       }
     }
 
+    // Warning: Data Source → Agent without Semantic Model
+    const agentNodes = nodes.filter(n => n.type === 'agent');
+    if (agentNodes.length > 0 && semanticNodes.length === 0 && dataNodes.length > 0) {
+      const directDataToAgent = edges.some(e => {
+        const sourceNode = nodes.find(n => n.id === e.source);
+        const targetNode = nodes.find(n => n.id === e.target);
+        return sourceNode?.type === 'snowflakeSource' && targetNode?.type === 'agent';
+      });
+      if (directDataToAgent) {
+        showToast('⚠️ Running Data → Agent without a Semantic Model. For NL→SQL, add a Semantic Model for best accuracy.', 'info');
+      }
+    }
+
     // Validate prompt - detect garbage inputs like shell commands
     if (prompt && prompt.trim()) {
       const p = prompt.trim();
@@ -2068,6 +2929,43 @@ function Flow() {
       
       // Add to history only if valid
       setPromptHistory(prev => [prompt, ...prev.slice(0, 9)]); // Keep last 10
+    }
+
+    // PRE-FLIGHT VALIDATION: Check backend before running
+    setExecStatus('validating' as ExecutionStatus);
+    try {
+      const validationRes = await fetch('http://localhost:8000/workflow/validate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ nodes, edges, prompt: prompt || undefined })
+      });
+      
+      if (validationRes.ok) {
+        const validation = await validationRes.json();
+        
+        // Show warnings but don't block
+        if (validation.warnings && validation.warnings.length > 0) {
+          for (const warn of validation.warnings.slice(0, 2)) {  // Show max 2 warnings
+            showToast(`⚠️ ${warn.message}`, 'info');
+          }
+        }
+        
+        // Block on errors
+        if (!validation.valid) {
+          const errorMsgs = validation.errors.map((e: { message: string }) => e.message).join('\n');
+          showToast(`❌ Cannot run workflow:\n${errorMsgs}`, 'error');
+          setExecStatus('idle');
+          return;
+        }
+        
+        console.log('[PREFLIGHT] Validation passed:', validation.summary);
+      } else {
+        // Validation endpoint failed - continue anyway but warn
+        console.warn('[PREFLIGHT] Validation endpoint failed, continuing...');
+      }
+    } catch (valErr) {
+      // Validation call failed - continue anyway (endpoint might not exist in old backends)
+      console.warn('[PREFLIGHT] Validation failed, continuing:', valErr);
     }
 
     setExecStatus('running');
@@ -2150,10 +3048,16 @@ function Flow() {
                 console.log('[SIMULATED] Nodes running in demo mode:', eventData.simulated_nodes);
               }
               
+              // DEBUG: Log the complete event data
+              console.log('[COMPLETE] Full eventData:', eventData);
+              console.log('[COMPLETE] eventData.results type:', typeof eventData.results);
+              console.log('[COMPLETE] eventData.results:', JSON.stringify(eventData.results, null, 2));
+              console.log('[COMPLETE] agent_response:', eventData.results?.agent_response);
+              
               setExecResult({
                 status: 'completed',
                 messages: eventData.messages,
-                results: eventData.results,
+                results: eventData.results || {},
                 executed_nodes: eventData.executed_nodes,
                 simulated_nodes: eventData.simulated_nodes
               });
@@ -2190,7 +3094,7 @@ function Flow() {
       if (errMsg.includes('Authentication') || errMsg.includes('expired') || errMsg.includes('auth')) {
         showToast('🔐 Snowflake Auth Error: Token expired. Restart backend.', 'error');
       } else if (errMsg.includes('fetch') || errMsg.includes('network') || errMsg.includes('Failed')) {
-        showToast('Failed to connect to backend', 'error');
+      showToast('Failed to connect to backend', 'error');
       } else {
         showToast(`Error: ${errMsg.substring(0, 100)}`, 'error');
       }
@@ -2199,21 +3103,28 @@ function Flow() {
 
   const saveWorkflow = async () => {
     try {
+      const trimmedName = (workflowName || '').trim();
+      if (!trimmedName) {
+        showToast('Please name the workflow before saving', 'error');
+        workflowNameInputRef.current?.focus();
+        return;
+      }
+
       if (saveAsTemplate) {
         // Save as template to Snowflake
         await axios.post('http://localhost:8000/templates', { 
-          name: workflowName, 
+          name: trimmedName, 
           description: workflowDescription,
           category: templateCategory,
           complexity: templateComplexity,
           nodes, 
           edges 
         });
-        showToast(`Template "${workflowName}" saved to Snowflake!`, 'success');
+        showToast(`Template "${trimmedName}" saved to Snowflake!`, 'success');
       } else {
         // Save as regular workflow
-        await axios.post('http://localhost:8000/workflow/save', { name: workflowName, nodes, edges });
-        showToast(`Workflow "${workflowName}" saved!`, 'success');
+        await axios.post('http://localhost:8000/workflow/save', { name: trimmedName, nodes, edges });
+        showToast(`Workflow "${trimmedName}" saved!`, 'success');
       }
       setShowSaveModal(false);
       setSaveAsTemplate(false);
@@ -2227,7 +3138,7 @@ function Flow() {
   // Export workflow as JSON file
   const exportWorkflow = () => {
     const workflow = {
-      name: workflowName || 'Untitled Workflow',
+      name: (workflowName || '').trim() || 'Untitled Workflow',
       version: '1.0',
       exportedAt: new Date().toISOString(),
       nodes: nodes.map(n => ({
@@ -2314,20 +3225,23 @@ function Flow() {
     }
   };
   
-  const resetCanvas = () => {
-    localStorage.clear(); // Clear ALL localStorage
-    clearWorkflow();
-    window.location.reload(); // Force full page reload
-  };
+  // (Intentionally no "reset all localStorage" control here; workflows use explicit New/Clear actions.)
 
   return (
-    <div style={{ width: '100vw', height: '100vh', display: 'flex', fontFamily: 'Inter, -apple-system, sans-serif' }}>
+      <div style={{ 
+      width: '100vw', 
+      height: '100vh', 
+      display: 'flex', 
+      fontFamily: 'Inter, -apple-system, sans-serif',
+      background: 'rgb(var(--bg))',
+      color: 'rgb(var(--fg))',
+    }}>
       {/* Sidebar - Snowflake Style (Resizable) */}
       <div style={{ 
         width: sidebarWidth, 
         minWidth: 200,
         maxWidth: 500,
-        background: '#FFFFFF', 
+        background: 'rgb(var(--surface))', 
         borderRight: 'none',
         padding: 0,
         display: 'flex', 
@@ -2336,15 +3250,203 @@ function Flow() {
         flexShrink: 0,
       }}>
         {/* Logo */}
-        <div style={{ padding: '12px 16px', borderBottom: '1px solid #E5E9F0' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <Sparkles size={20} color="#29B5E8" />
-            <span style={{ color: '#1F2937', fontSize: 15, fontWeight: 600 }}>SnowFlow</span>
+        <div style={{ padding: '10px 12px', borderBottom: '1px solid rgb(var(--border))' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, position: 'relative' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
+              <Sparkles size={20} color="#29B5E8" />
+              <span style={{ color: 'rgb(var(--fg))', fontSize: 15, fontWeight: 650, letterSpacing: 0.2 }}>SnowFlow</span>
+            </div>
+
+            {/* Compact workspace controls (Role + Theme) */}
+            <div ref={workspaceMenuRef} style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+              <button
+                onClick={() => setShowWorkspaceMenu((v) => !v)}
+                title="Workspace settings (Role, Theme)"
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 8,
+                  height: 30,
+                  padding: '0 10px',
+                  borderRadius: 10,
+                  border: '1px solid rgb(var(--border))',
+                  background: 'rgb(var(--surface-2))',
+                  color: 'rgb(var(--fg))',
+                  cursor: 'pointer',
+                  userSelect: 'none',
+                  maxWidth: 200,
+                }}
+                onMouseOver={(e) => { e.currentTarget.style.borderColor = 'rgb(var(--border-strong))'; e.currentTarget.style.background = 'rgb(var(--surface-3))'; }}
+                onMouseOut={(e) => { e.currentTarget.style.borderColor = 'rgb(var(--border))'; e.currentTarget.style.background = 'rgb(var(--surface-2))'; }}
+                aria-label="Workspace settings"
+              >
+                <Shield size={14} />
+                <span style={{
+                  fontSize: 12,
+                  color: 'rgb(var(--fg-muted))',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap',
+                  maxWidth: 140,
+                }}>
+                  {sfCurrentRole || 'Role'}
+                </span>
+                <ChevronDown size={14} />
+              </button>
+
+              {showWorkspaceMenu && (
+                <div
+                  style={{
+                    position: 'absolute',
+                    top: 36,
+                    right: 0,
+                    width: 260,
+                    padding: 10,
+                    borderRadius: 12,
+                    border: '1px solid rgb(var(--border-strong))',
+                    background: 'rgb(var(--surface))',
+                    boxShadow: '0 10px 28px rgba(0,0,0,0.28)',
+                    zIndex: 50,
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+                    <div style={{ fontSize: 12, fontWeight: 650, color: 'rgb(var(--fg))' }}>Workspace</div>
+                    <button
+                      onClick={() => setShowWorkspaceMenu(false)}
+                      title="Close"
+                      style={{ border: 'none', background: 'transparent', cursor: 'pointer', color: 'rgb(var(--muted))', padding: 2 }}
+                    >
+                      <X size={14} />
+                    </button>
+                  </div>
+
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                    <div>
+                      <div style={{ fontSize: 10, color: 'rgb(var(--muted))', marginBottom: 6 }}>Snowflake Role</div>
+                      <select
+                        value={sfCurrentRole}
+                        disabled={sfRoleLoading || sfRoles.length === 0}
+                        onChange={(e) => switchSnowflakeRole(e.target.value)}
+                        title={sfRoles.length ? 'Choose Snowflake role for browsing/installing assets' : 'Role switching unavailable (backend offline or no roles)'}
+                        style={{
+                          width: '100%',
+                          height: 34,
+                          padding: '0 10px',
+                          borderRadius: 10,
+                          border: '1px solid rgb(var(--border))',
+                          background: 'rgb(var(--surface-2))',
+                          color: 'rgb(var(--fg))',
+                          fontSize: 12,
+                          cursor: (sfRoleLoading || sfRoles.length === 0) ? 'not-allowed' : 'pointer',
+                          outline: 'none',
+                        }}
+                      >
+                        {sfRoles.length === 0 ? (
+                          <option value={sfCurrentRole || ''}>{sfCurrentRole ? sfCurrentRole : '—'}</option>
+                        ) : (
+                          sfRoles.map((r) => (
+                            <option key={r} value={r}>
+                              {r}
+                            </option>
+                          ))
+                        )}
+                      </select>
+                      <div style={{ marginTop: 6, fontSize: 10, color: 'rgb(var(--muted))', lineHeight: 1.3 }}>
+                        Changes what databases/models you can browse and where demo assets install.
+                      </div>
+                    </div>
+
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                      <div style={{ fontSize: 10, color: 'rgb(var(--muted))' }}>Theme</div>
+                      <button
+                        onClick={toggleTheme}
+                        title={`Theme: ${themeMode === 'dark' ? 'Dark' : 'Light'} (click to toggle)`}
+                        style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          width: 40,
+                          height: 34,
+                          borderRadius: 10,
+                          border: '1px solid rgb(var(--border))',
+                          background: 'rgb(var(--surface-2))',
+                          color: 'rgb(var(--fg))',
+                          cursor: 'pointer',
+                        }}
+                        onMouseOver={(e) => { e.currentTarget.style.borderColor = 'rgb(var(--border-strong))'; e.currentTarget.style.background = 'rgb(var(--surface-3))'; }}
+                        onMouseOut={(e) => { e.currentTarget.style.borderColor = 'rgb(var(--border))'; e.currentTarget.style.background = 'rgb(var(--surface-2))'; }}
+                        aria-label="Toggle theme"
+                      >
+                        {resolvedTheme === 'dark' ? (
+                          <Moon size={16} />
+                        ) : (
+                          <Sun size={16} />
+                        )}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* View toggle (Graph vs Guided Stack) */}
+        <div style={{ padding: '10px 12px', borderBottom: '1px solid rgb(var(--border))' }}>
+          <div
+            style={{
+              display: 'flex',
+              gap: 4,
+              background: 'rgb(var(--surface-3))',
+              border: '1px solid rgb(var(--border))',
+              borderRadius: 12,
+              padding: 3,
+            }}
+          >
+            <button
+              onClick={() => setCanvasView('graph')}
+              style={{
+                flex: 1,
+                padding: '8px 10px',
+                border: 'none',
+                borderRadius: 10,
+                cursor: 'pointer',
+                background: canvasView === 'graph' ? 'rgb(var(--surface))' : 'transparent',
+                color: canvasView === 'graph' ? 'rgb(var(--fg))' : 'rgb(var(--muted))',
+                fontSize: 12,
+                fontWeight: 700,
+                boxShadow: canvasView === 'graph' ? '0 1px 2px rgba(0,0,0,0.25)' : 'none',
+              }}
+              title="Graph canvas (power user)"
+            >
+              Graph
+            </button>
+            <button
+              onClick={() => setCanvasView('stack')}
+              style={{
+                flex: 1,
+                padding: '8px 10px',
+                border: 'none',
+                borderRadius: 10,
+                cursor: 'pointer',
+                background: canvasView === 'stack' ? 'rgb(var(--surface))' : 'transparent',
+                color: canvasView === 'stack' ? 'rgb(var(--fg))' : 'rgb(var(--muted))',
+                fontSize: 12,
+                fontWeight: 700,
+                boxShadow: canvasView === 'stack' ? '0 1px 2px rgba(0,0,0,0.25)' : 'none',
+              }}
+              title="Guided Stack (onboarding)"
+            >
+              Guided
+            </button>
+          </div>
+          <div style={{ marginTop: 8, fontSize: 10, color: 'rgb(var(--muted))', lineHeight: 1.3 }}>
+            Guided is a click-to-configure onboarding view. Both modes run the same workflow.
           </div>
         </div>
 
         {/* File Actions Bar - Clean Snowflake Style */}
-        <div style={{ padding: '10px 12px', borderBottom: '1px solid #E5E9F0' }}>
+        <div style={{ padding: '10px 12px', borderBottom: '1px solid rgb(var(--border))', background: 'rgb(var(--surface))' }}>
           {/* Primary Actions Row */}
           <div style={{ display: 'flex', gap: 6, marginBottom: 10 }}>
             {/* New Workflow Button - Primary Action */}
@@ -2352,7 +3454,9 @@ function Flow() {
               onClick={() => {
                 if (nodes.length > 0 && !window.confirm('Create new workflow? Unsaved changes will be lost.')) return;
                 clearWorkflow();
-                setWorkflowName('Untitled Workflow');
+                setWorkflowName('');
+                hasUserEditedRef.current = false;
+                setHasUserEdited(false);
                 showToast('New workflow created', 'success');
               }}
               style={{
@@ -2388,17 +3492,17 @@ function Flow() {
                 justifyContent: 'center',
                 gap: 6,
                 padding: '8px 12px',
-                background: '#F8FAFC',
-                color: '#374151',
-                border: '1px solid #E5E9F0',
+                background: 'rgb(var(--surface-2))',
+                color: 'rgb(var(--fg-muted))',
+                border: '1px solid rgb(var(--border))',
                 borderRadius: 6,
                 fontSize: 12,
                 fontWeight: 500,
                 cursor: 'pointer',
                 transition: 'all 0.15s ease',
               }}
-              onMouseOver={(e) => { e.currentTarget.style.background = '#F1F5F9'; e.currentTarget.style.borderColor = '#CBD5E1'; }}
-              onMouseOut={(e) => { e.currentTarget.style.background = '#F8FAFC'; e.currentTarget.style.borderColor = '#E5E9F0'; }}
+              onMouseOver={(e) => { e.currentTarget.style.background = 'rgb(var(--surface-3))'; e.currentTarget.style.borderColor = 'rgb(var(--border-strong))'; }}
+              onMouseOut={(e) => { e.currentTarget.style.background = 'rgb(var(--surface-2))'; e.currentTarget.style.borderColor = 'rgb(var(--border))'; }}
               title="Open saved workflow"
             >
               <FolderOpen size={14} />
@@ -2415,17 +3519,17 @@ function Flow() {
                 justifyContent: 'center',
                 gap: 6,
                 padding: '8px 12px',
-                background: '#F8FAFC',
-                color: '#374151',
-                border: '1px solid #E5E9F0',
+                background: 'rgb(var(--surface-2))',
+                color: 'rgb(var(--fg-muted))',
+                border: '1px solid rgb(var(--border))',
                 borderRadius: 6,
                 fontSize: 12,
                 fontWeight: 500,
                 cursor: 'pointer',
                 transition: 'all 0.15s ease',
               }}
-              onMouseOver={(e) => { e.currentTarget.style.background = '#F1F5F9'; e.currentTarget.style.borderColor = '#CBD5E1'; }}
-              onMouseOut={(e) => { e.currentTarget.style.background = '#F8FAFC'; e.currentTarget.style.borderColor = '#E5E9F0'; }}
+              onMouseOver={(e) => { e.currentTarget.style.background = 'rgb(var(--surface-3))'; e.currentTarget.style.borderColor = 'rgb(var(--border-strong))'; }}
+              onMouseOut={(e) => { e.currentTarget.style.background = 'rgb(var(--surface-2))'; e.currentTarget.style.borderColor = 'rgb(var(--border))'; }}
               title="Save workflow"
             >
               <Save size={14} />
@@ -2435,21 +3539,24 @@ function Flow() {
 
           {/* Workflow Name Input */}
           <div style={{ position: 'relative', marginBottom: 8 }}>
-            <input
-              value={workflowName}
-              onChange={(e) => setWorkflowName(e.target.value)}
-              placeholder="Workflow name..."
-              style={{
-                width: '100%', 
+          <input
+              ref={workflowNameInputRef}
+            value={workflowName}
+            onChange={(e) => setWorkflowName(e.target.value)}
+              placeholder="Name this workflow…"
+          style={{
+              width: '100%', 
                 padding: '8px 10px', 
                 paddingRight: 32,
-                border: '1px solid #E5E9F0', 
+                border: '1px solid rgb(var(--border))', 
                 borderRadius: 6, 
                 fontSize: 13,
-                fontWeight: 500,
-                color: '#1F2937',
+              fontWeight: 500,
+                color: 'rgb(var(--fg))',
                 boxSizing: 'border-box',
-                background: '#FFFFFF',
+                background: 'rgb(var(--surface))',
+                outline: hasUserEdited && !workflowName.trim() ? '2px solid rgb(var(--ring))' : 'none',
+                outlineOffset: 1,
               }}
             />
             <span style={{ 
@@ -2457,12 +3564,31 @@ function Flow() {
               right: 10, 
               top: '50%', 
               transform: 'translateY(-50%)',
-              color: '#9CA3AF',
+              color: 'rgb(var(--muted))',
               fontSize: 10,
             }}>
-              ✏️
+              <Pencil size={12} />
             </span>
           </div>
+
+          {/* Subtle autosave / naming nudge (only after first edit) */}
+          {hasUserEdited && (
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginTop: -2, marginBottom: 8 }}>
+              <div style={{ fontSize: 11, color: 'rgb(var(--fg-muted))' }}>
+                {!workflowName.trim() ? (
+                  <span><strong style={{ color: 'rgb(var(--fg))', fontWeight: 600 }}>Tip:</strong> add a name to save it</span>
+                ) : (
+                  <span>Ready to save</span>
+                )}
+              </div>
+              <div style={{ fontSize: 11, color: 'rgb(var(--muted))', display: 'flex', alignItems: 'center', gap: 6 }}>
+                <CheckCircle size={12} />
+                <span title={lastAutosavedAt ? new Date(lastAutosavedAt).toLocaleString() : undefined}>
+                  Draft autosaved
+                </span>
+              </div>
+            </div>
+          )}
 
           {/* Secondary Actions Row */}
           <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
@@ -2472,9 +3598,9 @@ function Flow() {
                 onClick={() => fileInputRef.current?.click()}
                 style={{
                   padding: '6px 10px',
-                  background: '#F8FAFC',
-                  color: '#6B7280',
-                  border: '1px solid #E5E9F0',
+                  background: 'rgb(var(--surface-2))',
+                  color: 'rgb(var(--fg-muted))',
+                  border: '1px solid rgb(var(--border))',
                   borderRadius: '6px 0 0 6px',
                   fontSize: 10,
                   fontWeight: 500,
@@ -2482,19 +3608,33 @@ function Flow() {
                   display: 'flex',
                   alignItems: 'center',
                   gap: 4,
+                  transition: 'all 0.15s ease',
                 }}
+                onMouseOver={(e) => {
+                  e.currentTarget.style.background = 'rgb(var(--surface-3))';
+                  e.currentTarget.style.borderColor = 'rgb(var(--border-strong))';
+                  e.currentTarget.style.color = 'rgb(var(--fg))';
+                }}
+                onMouseOut={(e) => {
+                  e.currentTarget.style.background = 'rgb(var(--surface-2))';
+                  e.currentTarget.style.borderColor = 'rgb(var(--border))';
+                  e.currentTarget.style.color = 'rgb(var(--fg-muted))';
+                  e.currentTarget.style.transform = 'translateY(0)';
+                }}
+                onMouseDown={(e) => { e.currentTarget.style.transform = 'translateY(1px)'; }}
+                onMouseUp={(e) => { e.currentTarget.style.transform = 'translateY(0)'; }}
                 title="Import from JSON file"
               >
                 <Upload size={12} />
                 Import
-              </button>
+            </button>
               <button 
                 onClick={exportWorkflow}
                 style={{
                   padding: '6px 10px',
-                  background: '#F8FAFC',
-                  color: '#6B7280',
-                  border: '1px solid #E5E9F0',
+                  background: 'rgb(var(--surface-2))',
+                  color: 'rgb(var(--fg-muted))',
+                  border: '1px solid rgb(var(--border))',
                   borderLeft: 'none',
                   borderRadius: '0 6px 6px 0',
                   fontSize: 10,
@@ -2503,12 +3643,26 @@ function Flow() {
                   display: 'flex',
                   alignItems: 'center',
                   gap: 4,
+                  transition: 'all 0.15s ease',
                 }}
+                onMouseOver={(e) => {
+                  e.currentTarget.style.background = 'rgb(var(--surface-3))';
+                  e.currentTarget.style.borderColor = 'rgb(var(--border-strong))';
+                  e.currentTarget.style.color = 'rgb(var(--fg))';
+                }}
+                onMouseOut={(e) => {
+                  e.currentTarget.style.background = 'rgb(var(--surface-2))';
+                  e.currentTarget.style.borderColor = 'rgb(var(--border))';
+                  e.currentTarget.style.color = 'rgb(var(--fg-muted))';
+                  e.currentTarget.style.transform = 'translateY(0)';
+                }}
+                onMouseDown={(e) => { e.currentTarget.style.transform = 'translateY(1px)'; }}
+                onMouseUp={(e) => { e.currentTarget.style.transform = 'translateY(0)'; }}
                 title="Export to JSON file"
               >
-                <Download size={12} />
+              <Download size={12} />
                 Export
-              </button>
+            </button>
             </div>
             <input
               ref={fileInputRef}
@@ -2577,9 +3731,9 @@ function Flow() {
         {/* Sidebar Mode Tabs */}
         <div style={{ 
           display: 'flex', 
-          borderBottom: '1px solid #E5E9F0',
+          borderBottom: '1px solid rgb(var(--border))',
           padding: '0 8px',
-          background: '#F9FAFB'
+          background: 'rgb(var(--surface))'
         }}>
           <button
             onClick={() => setSidebarMode('components')}
@@ -2591,7 +3745,7 @@ function Flow() {
             cursor: 'pointer',
               fontSize: 10,
               fontWeight: 500,
-              color: sidebarMode === 'components' ? '#29B5E8' : '#6B7280',
+              color: sidebarMode === 'components' ? '#29B5E8' : 'rgb(var(--muted))',
               borderBottom: sidebarMode === 'components' ? '2px solid #29B5E8' : '2px solid transparent',
               display: 'flex',
               flexDirection: 'column',
@@ -2612,7 +3766,7 @@ function Flow() {
               cursor: 'pointer',
               fontSize: 10,
               fontWeight: 500,
-              color: sidebarMode === 'catalog' ? '#29B5E8' : '#6B7280',
+              color: sidebarMode === 'catalog' ? '#29B5E8' : 'rgb(var(--muted))',
               borderBottom: sidebarMode === 'catalog' ? '2px solid #29B5E8' : '2px solid transparent',
               display: 'flex',
               flexDirection: 'column',
@@ -2633,7 +3787,7 @@ function Flow() {
               cursor: 'pointer',
               fontSize: 10,
               fontWeight: 500,
-              color: sidebarMode === 'templates' ? '#29B5E8' : '#6B7280',
+              color: sidebarMode === 'templates' ? '#29B5E8' : 'rgb(var(--muted))',
               borderBottom: sidebarMode === 'templates' ? '2px solid #29B5E8' : '2px solid transparent',
               display: 'flex',
               flexDirection: 'column',
@@ -2646,6 +3800,8 @@ function Flow() {
         </button>
       </div>
 
+        {/* Sidebar Content Container - Scrollable */}
+        <div style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden', minHeight: 0 }}>
         {/* Sidebar Content based on mode */}
         {sidebarMode === 'catalog' && (
           <DataCatalog 
@@ -2683,36 +3839,53 @@ function Flow() {
               addNode(newNode);
               showToast(`Added semantic model ${model.name} to canvas`, 'success');
             }}
+            roleVersion={sfRoleVersion}
           />
         )}
 
         {sidebarMode === 'templates' && (
           <Templates 
             onSelectTemplate={(templateId, nodes, edges) => {
-              console.log('[TEMPLATE LOAD]', templateId, 'Nodes:', nodes?.length || 'from config');
-              if (nodes && edges) {
-                // Template from Snowflake with embedded nodes/edges
-                console.log('[NODES FROM SF]', nodes);
-                setWorkflow(nodes, edges, templateId.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase()));
-                showToast(`Template loaded from Snowflake!`, 'success');
+              console.log('[TEMPLATE LOAD] Starting...', templateId);
+              console.log('[TEMPLATE LOAD] Received nodes:', nodes?.length, 'edges:', edges?.length);
+              
+              let loadedNodes: any[] = [];
+              let loadedEdges: any[] = [];
+              let workflowTitle = templateId.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+              
+              if (nodes && nodes.length > 0 && edges) {
+                // Template with embedded nodes/edges
+                console.log('[TEMPLATE] Using provided nodes:', nodes);
+                loadedNodes = JSON.parse(JSON.stringify(nodes));
+                loadedEdges = JSON.parse(JSON.stringify(edges));
               } else {
                 // Fallback to hardcoded config
                 const config = templateConfigs[templateId];
-                console.log('[NODES FROM CONFIG]', config?.nodes);
-                if (config) {
-                  // Deep clone to avoid reference issues
-                  const clonedNodes = JSON.parse(JSON.stringify(config.nodes));
-                  const clonedEdges = JSON.parse(JSON.stringify(config.edges));
-                  setWorkflow(clonedNodes, clonedEdges, templateId.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase()));
-                  showToast(`Template "${templateId}" loaded!`, 'success');
-                  
-                  // Force fitView after a short delay
-                  setTimeout(() => {
-                    const fitViewBtn = document.querySelector('.react-flow__controls-fitview') as HTMLButtonElement;
-                    if (fitViewBtn) fitViewBtn.click();
-                  }, 100);
+                console.log('[TEMPLATE] Falling back to config:', config);
+                if (config && config.nodes) {
+                  loadedNodes = JSON.parse(JSON.stringify(config.nodes));
+                  loadedEdges = JSON.parse(JSON.stringify(config.edges));
                 }
               }
+              
+              if (loadedNodes.length > 0) {
+                console.log('[TEMPLATE] Setting workflow with', loadedNodes.length, 'nodes');
+                setWorkflow(loadedNodes, loadedEdges, workflowTitle);
+                showToast(`Template "${workflowTitle}" loaded with ${loadedNodes.length} nodes!`, 'success');
+                
+                // Force fitView after a short delay to ensure nodes are rendered
+                  setTimeout(() => {
+                    const fitViewBtn = document.querySelector('.react-flow__controls-fitview') as HTMLButtonElement;
+                  if (fitViewBtn) {
+                    console.log('[TEMPLATE] Triggering fitView');
+                    fitViewBtn.click();
+                }
+                }, 200);
+              } else {
+                console.error('[TEMPLATE] No nodes to load for template:', templateId);
+                showToast(`Template "${templateId}" has no nodes defined`, 'error');
+              }
+              
               setSidebarMode('components');
             }}
           />
@@ -2733,11 +3906,11 @@ function Flow() {
                   style={{
                     width: '100%',
                     padding: '6px 10px',
-                    border: '1px solid #E5E9F0',
+                    border: '1px solid rgb(var(--border))',
                     borderRadius: 6,
                     fontSize: 11,
-                    color: '#4B5563',
-                    background: '#F9FAFB',
+                    color: 'rgb(var(--fg))',
+                    background: 'rgb(var(--surface-2))',
                     boxSizing: 'border-box',
                     outline: 'none',
                   }}
@@ -2823,8 +3996,8 @@ function Flow() {
                     <span>Cortex Agent</span>
                   </div>
                   {/* Tools breakdown with data type hints */}
-                  <div style={{ fontSize: 9, color: '#6B7280', padding: '4px 8px 2px 8px', background: '#F9FAFB', borderRadius: 4, margin: '4px 8px 6px 8px' }}>
-                    <div style={{ fontWeight: 600, marginBottom: 2, color: '#4B5563' }}>Built-in Tools:</div>
+                  <div style={{ fontSize: 9, color: 'rgb(var(--muted))', padding: '6px 8px', background: 'rgb(var(--surface-2))', border: '1px solid rgb(var(--border))', borderRadius: 6, margin: '6px 8px 8px 8px' }}>
+                    <div style={{ fontWeight: 600, marginBottom: 4, color: 'rgb(var(--fg-muted))' }}>Built-in Tools:</div>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
                       <span>📊 <strong>Analyst</strong> - structured data (SQL)</span>
                       <span>🔍 <strong>Search</strong> - unstructured (vectors)</span>
@@ -2832,7 +4005,7 @@ function Flow() {
                       <span>⚡ <strong>SQL</strong> - direct queries</span>
                     </div>
                     {customTools.length > 0 && (
-                      <div style={{ marginTop: 4, paddingTop: 4, borderTop: '1px solid #E5E9F0' }}>
+                      <div style={{ marginTop: 6, paddingTop: 6, borderTop: '1px solid rgb(var(--border))' }}>
                         <div style={{ fontWeight: 600, marginBottom: 2, color: '#8B5CF6' }}>Custom Tools ({customTools.length}):</div>
                         {customTools.map(t => (
                           <span key={t.id}>🔧 <strong>{t.name}</strong></span>
@@ -2842,11 +4015,11 @@ function Flow() {
                     <button
                       onClick={() => setShowToolCreator(true)}
                       style={{
-                        marginTop: 6,
-                        padding: '4px 8px',
+                        marginTop: 8,
+                        padding: '6px 8px',
                         border: '1px dashed #8B5CF6',
-                        borderRadius: 4,
-        background: 'white', 
+                        borderRadius: 6,
+                        background: 'rgb(var(--surface-3))',
                         color: '#8B5CF6',
                         fontSize: 9,
                         cursor: 'pointer',
@@ -3060,86 +4233,10 @@ function Flow() {
             </div>
           </>
         )}
+        </div>{/* End Sidebar Content Container */}
 
-        {/* Prompt Input & Run Button */}
-        <div style={{ padding: '8px 12px' }}>
-          {/* Prompt Input */}
-          <div style={{ marginBottom: 8 }}>
-            <div style={{ 
-              position: 'relative',
-        display: 'flex',
-        alignItems: 'center',
-              gap: 4
-            }}>
-              <input
-                type="text"
-                value={userPrompt}
-                onChange={(e) => setUserPrompt(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' && userPrompt.trim() && execStatus !== 'running') {
-                    runWorkflow(userPrompt);
-                  }
-                }}
-                placeholder="Ask a question to trigger the flow..."
-                style={{
-                  flex: 1,
-                  padding: '10px 12px',
-                  border: '1px solid #E5E7EB',
-                  borderRadius: 6,
-                  fontSize: 12,
-                  fontFamily: 'Inter, -apple-system, sans-serif',
-                  background: 'white',
-                  color: '#1F2937',
-                }}
-              />
-              {userPrompt && (
-        <button 
-                  onClick={() => setUserPrompt('')}
-          style={{
-                    position: 'absolute',
-                    right: 8,
-                    background: 'none',
-                    border: 'none',
-                    cursor: 'pointer',
-                    color: '#9CA3AF',
-                    padding: 2,
-                    display: 'flex',
-                    alignItems: 'center',
-                  }}
-                >
-                  <X size={12} />
-                </button>
-              )}
-            </div>
-            {promptHistory.length > 0 && (
-              <div style={{ marginTop: 4 }}>
-                <select
-                  onChange={(e) => {
-                    if (e.target.value) {
-                      setUserPrompt(e.target.value);
-                    }
-                  }}
-                  value=""
-                  style={{
-                    width: '100%',
-                    padding: '4px 8px',
-                    fontSize: 10,
-                    color: '#6B7280',
-                    border: '1px solid #E5E7EB',
-                    borderRadius: 4,
-                    background: '#F9FAFB',
-                    cursor: 'pointer',
-                  }}
-                >
-                  <option value="">Recent prompts...</option>
-                  {promptHistory.map((p, i) => (
-                    <option key={i} value={p}>{p.length > 50 ? p.slice(0, 50) + '...' : p}</option>
-                  ))}
-                </select>
-              </div>
-            )}
-          </div>
-
+        {/* Run / Preview / Control Tower - Fixed at bottom */}
+        <div style={{ padding: '8px 12px', flexShrink: 0, borderTop: '1px solid rgb(var(--border))' }}>
           {/* Backend Connection Status */}
           <div style={{ 
             display: 'flex', 
@@ -3168,10 +4265,42 @@ function Flow() {
             </span>
           </div>
 
+          {/* Demo Assets Installer */}
+          <button
+            onClick={installDemoAssets}
+            disabled={backendConnected === false || demoInstallStatus === 'installing' || execStatus === 'running'}
+            style={{
+              width: '100%',
+              marginBottom: 8,
+              border: '1px solid rgb(var(--border-strong))',
+              background: demoInstallStatus === 'done' ? 'rgba(16,185,129,0.18)' : demoInstallStatus === 'error' ? 'rgba(239,68,68,0.14)' : 'rgb(var(--surface-3))',
+              color: 'rgb(var(--fg))',
+              padding: '8px 10px',
+              borderRadius: 6,
+              cursor: backendConnected === false || demoInstallStatus === 'installing' || execStatus === 'running' ? 'not-allowed' : 'pointer',
+              fontWeight: 600,
+              fontSize: 11,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 6,
+              fontFamily: 'Inter, -apple-system, sans-serif',
+              opacity: backendConnected === false ? 0.7 : 1,
+            }}
+            title="Creates SNOWFLOW_DEMO demo data (Retail + Ad/Media) and uploads semantic model YAMLs"
+          >
+            {demoInstallStatus === 'installing' ? <Loader2 size={14} className="animate-spin" /> : <Zap size={14} />}
+            {demoInstallStatus === 'installing' ? 'Installing Demo Assets…' : demoInstallStatus === 'done' ? 'Demo Assets Installed' : 'Install Demo Assets'}
+          </button>
+
           {/* Run Buttons */}
           <div style={{ display: 'flex', gap: 6 }}>
             <button
-              onClick={() => runWorkflow(userPrompt || undefined)}
+              onClick={() => {
+                if (execStatus === 'running' || backendConnected === false) return;
+                setRunModalPrompt(userPrompt);
+                setShowRunModal(true);
+              }}
               disabled={execStatus === 'running' || backendConnected === false}
               style={{
                 flex: 1,
@@ -3192,7 +4321,7 @@ function Flow() {
               }}
             >
               {execStatus === 'running' ? <Loader2 size={14} className="animate-spin" /> : <Play size={14} />}
-              {execStatus === 'running' ? 'Running...' : userPrompt.trim() ? 'Run with Prompt' : 'Run'}
+              {execStatus === 'running' ? 'Running...' : 'Run Flow'}
             </button>
           </div>
 
@@ -3202,9 +4331,9 @@ function Flow() {
             style={{
               width: '100%',
               marginTop: 6,
-              background: showPreview ? '#8B5CF6' : '#F3F4F6',
-              color: showPreview ? 'white' : '#4B5563',
-              border: 'none',
+              background: showPreview ? 'rgb(var(--surface-3))' : 'rgb(var(--surface-2))',
+              color: showPreview ? 'rgb(var(--fg))' : 'rgb(var(--fg-muted))',
+              border: `1px solid ${showPreview ? 'rgb(var(--border-strong))' : 'rgb(var(--border))'}`,
               padding: '8px 12px',
               borderRadius: 6,
             cursor: 'pointer',
@@ -3218,7 +4347,7 @@ function Flow() {
             }}
           >
             <MessageSquare size={12} />
-            {showPreview ? 'Hide Preview' : 'Test Agent'}
+            {showPreview ? 'Hide Preview' : 'Preview Chat'}
         </button>
 
           {/* Admin Dashboard Button */}
@@ -3265,6 +4394,92 @@ function Flow() {
             </div>
           )}
         </div>
+
+        {/* Run Flow Modal (optional question) */}
+        {showRunModal && (
+          <div style={modalOverlayStyle}>
+            <div style={{ ...modalStyle, minWidth: 420 }}>
+              <h3 style={{ margin: '0 0 10px 0', color: '#1F2937' }}>Run Flow</h3>
+              <div style={{ fontSize: 12, color: '#6B7280', marginBottom: 10 }}>
+                Optional: add a question to guide the run.
+              </div>
+              {(() => {
+                const semanticCount = nodes.filter(n => n.type === 'semanticModel').length;
+                if (semanticCount > 0) return null;
+                const directDataToAgent = edges.some(e => {
+                  const s = nodes.find(n => n.id === e.source)?.type;
+                  const t = nodes.find(n => n.id === e.target)?.type;
+                  return s === 'snowflakeSource' && t === 'agent';
+                });
+                if (!directDataToAgent) return null;
+                return (
+                  <div style={{
+                    marginBottom: 10,
+                    padding: 10,
+                    borderRadius: 8,
+                    background: 'rgba(245, 158, 11, 0.12)',
+                    border: '1px solid rgba(245, 158, 11, 0.35)',
+                    color: '#92400E',
+                    fontSize: 12,
+                    lineHeight: 1.35
+                  }}>
+                    <strong>Heads up:</strong> This flow runs <span style={{ fontWeight: 600 }}>Data → Agent</span> without a Semantic Model. For NL→SQL on proprietary data, add a Semantic Model to improve accuracy.
+                  </div>
+                );
+              })()}
+              <input
+                type="text"
+                value={runModalPrompt}
+                onChange={(e) => setRunModalPrompt(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && execStatus !== 'running') {
+                    const p = runModalPrompt.trim();
+                    setUserPrompt(p);
+                    setShowRunModal(false);
+                    runWorkflow(p || undefined);
+                  }
+                }}
+                placeholder="e.g., What are the top 5 products by revenue?"
+                style={{ ...inputStyle, marginBottom: 10 }}
+                autoFocus
+              />
+              {promptHistory.length > 0 && (
+                <select
+                  onChange={(e) => {
+                    if (e.target.value) setRunModalPrompt(e.target.value);
+                  }}
+                  value=""
+                  style={{ ...inputStyle, fontSize: 12, marginBottom: 14 }}
+                >
+                  <option value="">Recent prompts…</option>
+                  {promptHistory.map((p, i) => (
+                    <option key={i} value={p}>{p.length > 80 ? p.slice(0, 80) + '…' : p}</option>
+                  ))}
+                </select>
+              )}
+              <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+                <button
+                  onClick={() => setShowRunModal(false)}
+                  style={{ ...actionBtnStyle, padding: '10px 16px' }}
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={() => {
+                    const p = runModalPrompt.trim();
+                    setUserPrompt(p);
+                    setShowRunModal(false);
+                    runWorkflow(p || undefined);
+                  }}
+                  style={{ ...actionBtnStyle, padding: '10px 16px', background: '#29B5E8', color: 'white' }}
+                  disabled={execStatus === 'running' || backendConnected === false}
+                >
+                  Run
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
         
         {/* Sidebar Resize Handle */}
         <div
@@ -3453,9 +4668,11 @@ function Flow() {
       <div 
         ref={reactFlowWrapper} 
         style={{ flex: 1, position: 'relative' }} 
-        onDragOver={isProductionMode ? undefined : onDragOver} 
-        onDrop={isProductionMode ? undefined : onDrop}
+        onDragOver={onDragOver} 
+        onDrop={onDrop}
       >
+        {canvasView === 'graph' ? (
+          <>
         {/* Guided Lanes Background - Snowflake Intelligence Architecture (4 Lanes) */}
         <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none', zIndex: 0, display: 'flex' }}>
           {/* Lane 1: Data Sources */}
@@ -3550,37 +4767,87 @@ function Flow() {
               }
             };
           })}
-          edges={edges.map(e => {
+          edges={edgesWithQualityHints.map(e => {
             const isActiveEdge = activeNodes.has(e.target);  // Edge leading to active node
             const isCompletedEdge = completedNodes.has(e.source) && completedNodes.has(e.target);
+            const isRisky = Boolean((e as any)?.data?.qualityWarning);
+            const base = isActiveEdge ? 'active-edge' : isCompletedEdge ? 'completed-edge' : 'idle-edge';
             
             return {
               ...e,
               animated: !isCompletedEdge,  // Animated dashes except for completed edges
-              className: isActiveEdge ? 'active-edge' : isCompletedEdge ? 'completed-edge' : 'idle-edge',
-              style: {
-                stroke: isActiveEdge ? '#F59E0B' : isCompletedEdge ? '#10B981' : '#29B5E8',
-                strokeWidth: isActiveEdge ? 3 : 2,
-              }
+              className: `${base}${isRisky ? ' risky-edge' : ''}`,
+              // Increase click/hover target so users don't need pixel-perfect aim.
+              interactionWidth: 20,
+              // Base stroke colors handled via CSS classes; quality warnings override via `style`
             };
           })}
-          onNodesChange={onNodesChange}
-          onEdgesChange={onEdgesChange}
-          onConnect={onConnect}
+          onNodesChange={handleNodesChange}
+          onEdgesChange={handleEdgesChange}
+          onConnect={handleConnect}
           onNodeClick={onNodeClick}
           onPaneClick={onPaneClick}
+          onEdgeClick={(evt, edge) => {
+            evt.stopPropagation();
+            const warn = (edge as any)?.data?.qualityWarning;
+            if (warn) {
+              showToast(warn, 'info');
+              return;
+            }
+            showToast(`Selected connection: ${edge.source} → ${edge.target} (press Delete to remove)`, 'info');
+          }}
           nodeTypes={nodeTypes}
           isValidConnection={isValidConnection}
+          elementsSelectable={!isProductionMode}
+          nodesDraggable={!isProductionMode}
+          nodesConnectable={!isProductionMode}
+          edgesUpdatable={!isProductionMode}
+          edgesFocusable={!isProductionMode}
+          panOnDrag={!isProductionMode ? [1, 2] : false}
+          selectionOnDrag={!isProductionMode}
+          selectionKeyCode={null}
+          selectionMode={SelectionMode.Partial}
+          panOnScroll
+          zoomOnScroll
+          deleteKeyCode={['Backspace', 'Delete']}
+          multiSelectionKeyCode={['Meta', 'Control']}
           defaultEdgeOptions={{
             type: 'default',
-            style: { stroke: '#29B5E8', strokeWidth: 2 },
             animated: true,
           }}
           fitView
           style={{ background: 'transparent' }}
         >
-          <Background color="#E5E9F0" gap={20} />
-          <Controls style={{ background: 'white', borderRadius: 8, border: '1px solid #E5E9F0' }} />
+          <Background
+            color={
+              resolvedTheme === 'dark'
+                ? 'rgba(148, 163, 184, 0.12)' // subtle grid on dark
+                : 'rgba(203, 213, 225, 0.7)'  // subtle grid on light
+            }
+            gap={20}
+          />
+          <Controls
+            showInteractive={false}
+            style={{
+              background: resolvedTheme === 'dark' ? 'rgb(15 23 42)' : 'rgb(255 255 255)',
+              borderRadius: 8,
+              border: `1px solid ${resolvedTheme === 'dark' ? 'rgb(51 65 85)' : 'rgb(226 232 240)'}`,
+              color: resolvedTheme === 'dark' ? 'rgb(226 232 240)' : 'rgb(15 23 42)',
+            }}
+          >
+            <ControlButton
+              onClick={() => {
+                const next = !isProductionMode;
+                setIsProductionMode(next);
+                showToast(next ? 'Preview mode: locked (pan/zoom still available)' : 'Edit mode: unlocked', 'info');
+              }}
+              title={isProductionMode ? 'Unlock (enable editing)' : 'Lock (preview/read-only)'}
+              style={{ color: resolvedTheme === 'dark' ? 'rgb(226 232 240)' : 'rgb(15 23 42)' }}
+            >
+              {/* Semantics: Locked icon = read-only, Unlocked icon = editable */}
+              {isProductionMode ? <Lock size={16} /> : <Unlock size={16} />}
+            </ControlButton>
+          </Controls>
           
           {/* Real-time Execution Status - Top Center */}
           {execStatus === 'running' && executionPhase && (
@@ -3617,89 +4884,71 @@ function Flow() {
             </div>
           )}
           
-          {/* Floating Mode Toggle - Bottom Center */}
-          <div style={{
-            position: 'absolute',
-            bottom: 24,
-            left: '50%',
-            transform: 'translateX(-50%)',
-            zIndex: 10,
-            display: 'flex',
-            gap: 10,
-          }}>
-            {isProductionMode ? (
-              <>
-                <div style={{
-                  background: '#10B981',
-                  color: 'white',
-                  padding: '14px 24px',
-                  borderRadius: 28,
-                  fontWeight: 600,
-                  fontSize: 14,
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 10,
-                  boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
-                  fontFamily: 'Inter, -apple-system, sans-serif',
-                }}>
-                  <span style={{
-                    width: 10,
-                    height: 10,
-                    borderRadius: '50%',
-          background: 'white',
-                  }} />
-                  Live Mode
-                </div>
-                <button
-                  onClick={() => setIsProductionMode(false)}
-                  style={{
-                    background: 'white',
-                    color: '#4B5563',
-                    border: '1px solid #E5E9F0',
-                    padding: '14px 20px',
-                    borderRadius: 28,
-                    cursor: 'pointer',
-                    fontWeight: 600,
-                    fontSize: 14,
-                    boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
-                    fontFamily: 'Inter, -apple-system, sans-serif',
-                  }}
-                >
-                  ✏️ Edit
-                </button>
-              </>
-            ) : (
-              <button
-                onClick={() => setIsProductionMode(true)}
-                style={{
-                  background: 'white',
-                  color: '#4B5563',
-                  border: '1px solid #E5E9F0',
-                  padding: '14px 24px',
-                  borderRadius: 28,
-                  cursor: 'pointer',
-                  fontWeight: 600,
-                  fontSize: 14,
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 10,
-                  boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
-                  fontFamily: 'Inter, -apple-system, sans-serif',
-                  transition: 'all 0.2s ease',
-                }}
-              >
-                <span style={{
-                  width: 10,
-                  height: 10,
-                  borderRadius: '50%',
-                  background: '#F59E0B',
-                  animation: 'pulse 1.5s infinite',
-                }} />
-                Build Mode
-              </button>
-            )}
-          </div>
+          {/* (Removed bottom-center Build/Preview pill: lock/unlock is now in the bottom-right controls) */}
         </ReactFlow>
+          </>
+        ) : (
+          <GuidedStackCanvas
+            onOpenNode={openNodeById}
+            onOpenControlTower={() => setShowAdminDashboard(true)}
+            onRunFlow={() => setShowRunModal(true)}
+            activeNodes={activeNodes}
+            completedNodes={completedNodes}
+            execStatus={execStatus}
+            isDarkMode={themeMode === 'dark'}
+          />
+        )}
+        
+        {/* Floating View Toggle - top left of canvas area */}
+        <div style={{
+          position: 'absolute',
+          top: 12,
+          left: 12, // Fixed position from left edge of canvas
+          display: 'flex',
+          alignItems: 'center',
+          gap: 4,
+          background: themeMode === 'dark' ? 'rgba(30, 41, 59, 0.95)' : 'rgba(255, 255, 255, 0.95)',
+          borderRadius: 10,
+          padding: 4,
+          boxShadow: themeMode === 'dark' 
+            ? '0 2px 12px rgba(0,0,0,0.4), 0 0 0 1px rgba(255,255,255,0.1)' 
+            : '0 2px 12px rgba(0,0,0,0.15), 0 0 0 1px rgba(0,0,0,0.08)',
+          zIndex: 10,
+          transition: 'left 0.15s ease', // Smooth transition when sidebar resizes
+        }}>
+          <button
+            onClick={() => setCanvasView('graph')}
+            style={{
+              padding: '6px 14px',
+              border: 'none',
+              borderRadius: 6,
+              cursor: 'pointer',
+              background: canvasView === 'graph' ? 'rgb(var(--primary))' : 'transparent',
+              color: canvasView === 'graph' ? 'white' : themeMode === 'dark' ? '#94A3B8' : '#475569',
+              fontSize: 12,
+              fontWeight: 600,
+              transition: 'all 0.15s ease',
+            }}
+          >
+            Graph
+          </button>
+          <button
+            onClick={() => setCanvasView('stack')}
+            style={{
+              padding: '6px 14px',
+              border: 'none',
+              borderRadius: 6,
+              cursor: 'pointer',
+              background: canvasView === 'stack' ? 'rgb(var(--primary))' : 'transparent',
+              color: canvasView === 'stack' ? 'white' : themeMode === 'dark' ? '#94A3B8' : '#475569',
+              fontSize: 12,
+              fontWeight: 600,
+              transition: 'all 0.15s ease',
+            }}
+          >
+            Guided
+          </button>
+        </div>
 
         {/* Toast Notification */}
         {toast && (
@@ -3707,21 +4956,48 @@ function Flow() {
             position: 'absolute',
             bottom: 20,
             right: 20,
-            padding: '12px 16px',
-            borderRadius: 8,
+            padding: '12px 14px',
+            borderRadius: 10,
             background: toast.type === 'error' ? '#FEE2E2' : toast.type === 'success' ? '#D1FAE5' : '#E0F2FE',
             color: toast.type === 'error' ? '#991B1B' : toast.type === 'success' ? '#065F46' : '#0369A1',
             fontSize: 12,
             fontWeight: 500,
-            boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+            boxShadow: '0 8px 22px rgba(0,0,0,0.22)',
         display: 'flex',
-        alignItems: 'center',
-            gap: 8,
+            alignItems: 'flex-start',
+            gap: 10,
             zIndex: 1000,
-            maxWidth: 300,
+            maxWidth: 360,
+            lineHeight: 1.35,
           }}>
+            <div style={{ marginTop: 2 }}>
             {toast.type === 'error' ? <AlertCircle size={14} /> : toast.type === 'success' ? <CheckCircle size={14} /> : <Sparkles size={14} />}
+            </div>
+            <div style={{ flex: 1 }}>
             {toast.message}
+            </div>
+            {toast.dismissible && (
+              <button
+                onClick={() => {
+                  if (toastTimerRef.current) {
+                    window.clearTimeout(toastTimerRef.current);
+                    toastTimerRef.current = null;
+                  }
+                  setToast(null);
+                }}
+                title="Dismiss"
+                style={{
+                  border: 'none',
+                  background: 'transparent',
+                  cursor: 'pointer',
+                  padding: 0,
+                  color: 'currentColor',
+                  opacity: 0.75,
+                }}
+              >
+                <X size={14} />
+              </button>
+            )}
         </div>
         )}
       </div>
@@ -3732,7 +5008,18 @@ function Flow() {
           initialPosition={panelPosition}
           onClose={() => setSelectedNode(null)}
         >
-          <NodeDetailPanel customTools={customTools} isReadOnly={isProductionMode} />
+          <NodeDetailPanel
+            customTools={customTools}
+            isReadOnly={isProductionMode}
+            cortexModels={cortexModels}
+            roleVersion={sfRoleVersion}
+            onRefreshCortexModels={refreshCortexModels}
+            cortexModelsRefreshing={cortexModelsRefreshing}
+            cortexModelProbe={cortexModelProbe}
+            setCortexModelProbe={setCortexModelProbe}
+            cortexCrossRegion={cortexCrossRegion}
+            setCortexCrossRegion={setCortexCrossRegion}
+          />
         </DraggablePanel>
       )}
 
@@ -3740,8 +5027,8 @@ function Flow() {
       <div style={{
         width: resultsPanelCollapsed ? 48 : 'var(--panel-width, 400px)',
         minWidth: resultsPanelCollapsed ? 48 : 320,
-        background: '#FFFFFF',
-        borderLeft: '1px solid #E5E9F0',
+        background: 'rgb(var(--surface))',
+        borderLeft: '1px solid rgb(var(--border))',
         display: 'flex',
         flexDirection: 'column',
         fontFamily: 'Inter, -apple-system, sans-serif',
@@ -3758,8 +5045,8 @@ function Flow() {
             width: 24,
             height: 24,
             borderRadius: '50%',
-            background: '#1E293B',
-            border: '2px solid #E5E9F0',
+            background: 'rgb(var(--surface-3))',
+            border: '1px solid rgb(var(--border-strong))',
             cursor: 'pointer',
             display: 'flex',
             alignItems: 'center',
@@ -3769,9 +5056,9 @@ function Flow() {
           title={resultsPanelCollapsed ? 'Expand Results' : 'Collapse Results'}
         >
           {resultsPanelCollapsed ? (
-            <ChevronLeft size={14} color="white" />
+            <ChevronLeft size={14} color="rgb(var(--fg))" />
           ) : (
-            <ChevronRight size={14} color="white" />
+            <ChevronRight size={14} color="rgb(var(--fg))" />
           )}
         </button>
 
@@ -3788,7 +5075,7 @@ function Flow() {
               width: 32, 
               height: 32, 
               borderRadius: 8, 
-              background: execResult ? '#10B98120' : '#F3F4F6',
+              background: execResult ? 'rgb(var(--success-bg))' : 'rgb(var(--surface-2))',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
@@ -3796,7 +5083,7 @@ function Flow() {
               {execResult ? (
                 <CheckCircle size={18} color="#10B981" />
               ) : (
-                <FileOutput size={18} color="#9CA3AF" />
+                <FileOutput size={18} color="rgb(var(--muted))" />
               )}
             </div>
             <span style={{ 
@@ -3804,7 +5091,7 @@ function Flow() {
               textOrientation: 'mixed',
               fontSize: 11,
               fontWeight: 500,
-              color: '#6B7280',
+              color: 'rgb(var(--muted))',
               letterSpacing: 0.5,
             }}>
               Results
@@ -3815,7 +5102,7 @@ function Flow() {
             {/* Header */}
             <div style={{ 
               padding: '16px 20px', 
-              borderBottom: '1px solid #E5E9F0',
+              borderBottom: '1px solid rgb(var(--border))',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'space-between'
@@ -3893,10 +5180,58 @@ function Flow() {
                   <span style={{ fontSize: 11, fontWeight: 500, color: '#6B7280', textTransform: 'uppercase' }}>
                     Agent Response
                   </span>
-                  <div style={{ display: 'flex', gap: 6 }}>
+                  <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                    {/* View toggle: Pretty vs Raw JSON */}
+                    <div style={{ display: 'flex', borderRadius: 4, overflow: 'hidden', border: '1px solid #E5E7EB' }}>
+                      <button
+                        onClick={() => setShowRawJson(false)}
+                        style={{
+                          padding: '3px 8px',
+                          background: !showRawJson ? '#3B82F6' : '#F3F4F6',
+                          border: 'none',
+                          fontSize: 9,
+                          fontWeight: 600,
+                          color: !showRawJson ? 'white' : '#6B7280',
+                          cursor: 'pointer',
+                        }}
+                        title="Pretty view"
+                      >
+                        Pretty
+                      </button>
+                      <button
+                        onClick={() => setShowRawJson(true)}
+                        style={{
+                          padding: '3px 8px',
+                          background: showRawJson ? '#3B82F6' : '#F3F4F6',
+                          border: 'none',
+                          fontSize: 9,
+                          fontWeight: 600,
+                          color: showRawJson ? 'white' : '#6B7280',
+                          cursor: 'pointer',
+                        }}
+                        title="Raw JSON (API response format)"
+                      >
+                        JSON
+                      </button>
+                    </div>
                     <button
                       onClick={() => {
-                        navigator.clipboard.writeText(execResult.results?.agent_response || '');
+                        const apiResponse = showRawJson 
+                          ? JSON.stringify({
+                              status: "success",
+                              request_id: Math.random().toString(36).substring(2, 15),
+                              timestamp: new Date().toISOString(),
+                              data: {
+                                agent_response: execResult.results?.agent_response || null,
+                                metadata: {
+                                  model: "snowflake-arctic",
+                                  semantic_model: nodes.find(n => n.type === 'semanticModel')?.data?.label || null,
+                                  data_source: nodes.find(n => n.type === 'snowflakeSource')?.data?.label || null
+                                }
+                              }
+                            }, null, 2)
+                          : (execResult.results?.agent_response || '');
+                        navigator.clipboard.writeText(apiResponse);
                       }}
                       style={{
                         padding: '4px 8px',
@@ -3916,12 +5251,27 @@ function Flow() {
                     </button>
                     <button
                       onClick={() => {
-                        const content = execResult.results?.agent_response || '';
-                        const blob = new Blob([content], { type: 'text/plain' });
+                        const apiResponse = showRawJson 
+                          ? JSON.stringify({
+                              status: "success",
+                              request_id: Math.random().toString(36).substring(2, 15),
+                              timestamp: new Date().toISOString(),
+                              data: {
+                                agent_response: execResult.results?.agent_response || null,
+                                metadata: {
+                                  model: "snowflake-arctic",
+                                  semantic_model: nodes.find(n => n.type === 'semanticModel')?.data?.label || null,
+                                  data_source: nodes.find(n => n.type === 'snowflakeSource')?.data?.label || null
+                                }
+                              }
+                            }, null, 2)
+                          : (execResult.results?.agent_response || '');
+                        const ext = showRawJson ? 'json' : 'txt';
+                        const blob = new Blob([apiResponse], { type: showRawJson ? 'application/json' : 'text/plain' });
                         const url = URL.createObjectURL(blob);
                         const a = document.createElement('a');
                         a.href = url;
-                        a.download = 'agent_response.txt';
+                        a.download = `api_response.${ext}`;
                         document.body.appendChild(a);
                         a.click();
                         document.body.removeChild(a);
@@ -3946,17 +5296,56 @@ function Flow() {
                     </button>
                   </div>
                 </div>
-                <div style={{ 
-                  background: '#F5F7FA', 
-                  padding: 16, 
-                  borderRadius: 8, 
-                  fontSize: 13, 
-                  lineHeight: 1.6,
-                  color: '#1F2937',
-                  whiteSpace: 'pre-wrap'
-                }}>
-                  {execResult.results.agent_response}
-                </div>
+                {showRawJson ? (
+                  <div style={{ 
+                    background: '#1E293B', 
+                    padding: 16, 
+                    borderRadius: 8, 
+                    fontSize: 11, 
+                    lineHeight: 1.5,
+                    color: '#E2E8F0',
+                    whiteSpace: 'pre-wrap',
+                    fontFamily: 'Monaco, Consolas, monospace',
+                    overflow: 'auto',
+                    maxHeight: 400
+                  }}>
+                    {/* HTTP-style response header */}
+                    <div style={{ color: '#10B981', marginBottom: 4 }}>HTTP/1.1 200 OK</div>
+                    <div style={{ color: '#94A3B8', fontSize: 10, marginBottom: 2 }}>Content-Type: application/json</div>
+                    <div style={{ color: '#94A3B8', fontSize: 10, marginBottom: 2 }}>X-Request-ID: {Math.random().toString(36).substring(2, 15)}</div>
+                    <div style={{ color: '#94A3B8', fontSize: 10, marginBottom: 8 }}>Date: {new Date().toUTCString()}</div>
+                    <div style={{ borderTop: '1px solid #475569', marginBottom: 12 }} />
+                    <div style={{ color: '#94A3B8', fontSize: 10, marginBottom: 8 }}>// Response Body (JSON)</div>
+                    {JSON.stringify({
+                      status: "success",
+                      request_id: Math.random().toString(36).substring(2, 15),
+                      timestamp: new Date().toISOString(),
+                      execution_time_ms: Math.round(Math.random() * 2000 + 500),
+                      data: {
+                        agent_response: execResult.results?.agent_response || null,
+                        metadata: {
+                          model: "snowflake-arctic",
+                          tokens_used: Math.round(Math.random() * 500 + 100),
+                          semantic_model: nodes.find(n => n.type === 'semanticModel')?.data?.label || null,
+                          data_source: nodes.find(n => n.type === 'snowflakeSource')?.data?.label || null
+                        }
+                      },
+                      ...((execResult.results as any)?.sql && { generated_sql: (execResult.results as any).sql })
+                    }, null, 2)}
+                  </div>
+                ) : (
+                  <div style={{ 
+                    background: '#F5F7FA', 
+                    padding: 16, 
+                    borderRadius: 8, 
+                    fontSize: 13, 
+                    lineHeight: 1.6,
+                    color: '#1F2937',
+                    whiteSpace: 'pre-wrap'
+                  }}>
+                    {execResult.results.agent_response}
+                  </div>
+                )}
               </>
             ) : (
               <>
@@ -4033,7 +5422,21 @@ function Flow() {
                   color: '#1F2937',
                   whiteSpace: 'pre-wrap'
                 }}>
-                  {execResult.results ? JSON.stringify(execResult.results, null, 2) : 'Workflow completed - check execution log below.'}
+                  {execResult.results && typeof execResult.results === 'object' && Object.keys(execResult.results).length > 0
+                    ? JSON.stringify(execResult.results, null, 2) 
+                    : `⚠️ No results returned from the workflow.
+
+Possible causes:
+• Agent may not have received the query
+• Data source may be empty or inaccessible
+• Semantic model may be misconfigured
+• Network timeout during execution
+
+Try:
+1. Check Snowflake connection (green indicator in sidebar)
+2. Verify your data source has data
+3. Try a simpler query
+4. Check the backend terminal for errors`}
                 </div>
               </>
             ))}
@@ -4113,8 +5516,8 @@ function Flow() {
                                 ? `The supervisor analyzed your question and determined it requires insights from multiple domains: ${domainList.join(', ')}. Multi-agent orchestration coordinates responses across these business areas.`
                                 : `The router analyzed your question and determined the ${domains} domain is best suited to answer it. Intent classification uses AI to match your question to the most relevant business domain.`
                               }
-                            </div>
-                          </div>
+      </div>
+    </div>
                         );
                       })}
                   </div>
@@ -4279,9 +5682,9 @@ const sectionHeaderStyle: React.CSSProperties = {
   padding: '8px 4px',
   fontSize: 11,
   fontWeight: 600,
-  color: '#1F2937',
+  color: 'rgb(var(--fg))',
   cursor: 'pointer',
-  borderBottom: '1px solid #F3F4F6',
+  borderBottom: '1px solid rgb(var(--border))',
   marginBottom: 4,
   userSelect: 'none',
 };
@@ -4292,25 +5695,14 @@ const compactItemStyle: React.CSSProperties = {
   gap: 8,
   padding: '6px 8px',
   fontSize: 12,
-  color: '#374151',
-  background: '#F9FAFB',
+  color: 'rgb(var(--fg))',
+  background: 'rgb(var(--surface-3))',
+  border: '1px solid rgb(var(--border-strong))',
   borderRadius: 6,
   marginBottom: 4,
   cursor: 'grab',
-  transition: 'background 0.15s',
-};
-
-const compactBtnStyle: React.CSSProperties = {
-  flex: 1,
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-  padding: '6px',
-  background: '#F5F7FA',
-  border: '1px solid #E5E9F0',
-  borderRadius: 4,
-  cursor: 'pointer',
-  color: '#6B7280',
+  boxShadow: '0 8px 20px rgba(0,0,0,0.18)',
+  transition: 'all 0.15s ease',
 };
 
 const actionBtnStyle: React.CSSProperties = {

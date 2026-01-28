@@ -1,0 +1,88 @@
+name: ad_media_kpis_demo
+description: Advertising KPI semantic model for quick exec demos (daily KPI rollups by channel/industry)
+
+tables:
+  - name: ad_daily_kpis
+    description: Daily KPI rollup for ad performance (CTR/CPC/CPM/CPA/ROAS)
+    base_table:
+      database: SNOWFLOW_DEMO
+      schema: AD_MEDIA
+      table: VW_AD_DAILY_KPIS
+    dimensions:
+      - name: industry
+        synonyms: [sector]
+        description: Advertiser industry
+        expr: INDUSTRY
+        data_type: VARCHAR
+      - name: channel_type
+        synonyms: [media_type]
+        description: Channel type (Search, Social, Video, etc.)
+        expr: CHANNEL_TYPE
+        data_type: VARCHAR
+    time_dimensions:
+      - name: event_date
+        synonyms: [date, day]
+        description: Daily performance date
+        expr: EVENT_DATE
+        data_type: DATE
+    measures:
+      - name: impressions
+        synonyms: [imps]
+        description: Total impressions
+        expr: SUM(IMPRESSIONS)
+        data_type: NUMBER
+        default_aggregation: sum
+      - name: clicks
+        synonyms: [clicks_total]
+        description: Total clicks
+        expr: SUM(CLICKS)
+        data_type: NUMBER
+        default_aggregation: sum
+      - name: conversions
+        synonyms: [convs]
+        description: Total conversions
+        expr: SUM(CONVERSIONS)
+        data_type: NUMBER
+        default_aggregation: sum
+      - name: spend_gbp
+        synonyms: [spend, cost]
+        description: Total spend (GBP)
+        expr: SUM(SPEND_GBP)
+        data_type: NUMBER
+        default_aggregation: sum
+      - name: revenue_gbp
+        synonyms: [revenue]
+        description: Total attributed revenue (GBP)
+        expr: SUM(REVENUE_GBP)
+        data_type: NUMBER
+        default_aggregation: sum
+      - name: ctr
+        synonyms: [click_through_rate]
+        description: CTR (clicks / impressions)
+        expr: SUM(CLICKS) / NULLIF(SUM(IMPRESSIONS), 0)
+        data_type: NUMBER
+        default_aggregation: none
+      - name: cpc_gbp
+        synonyms: [cost_per_click]
+        description: CPC (spend / clicks)
+        expr: SUM(SPEND_GBP) / NULLIF(SUM(CLICKS), 0)
+        data_type: NUMBER
+        default_aggregation: none
+      - name: cpm_gbp
+        synonyms: [cost_per_mille]
+        description: CPM (spend / impressions * 1000)
+        expr: (SUM(SPEND_GBP) / NULLIF(SUM(IMPRESSIONS), 0)) * 1000
+        data_type: NUMBER
+        default_aggregation: none
+      - name: cpa_gbp
+        synonyms: [cost_per_acquisition]
+        description: CPA (spend / conversions)
+        expr: SUM(SPEND_GBP) / NULLIF(SUM(CONVERSIONS), 0)
+        data_type: NUMBER
+        default_aggregation: none
+      - name: roas
+        synonyms: [return_on_ad_spend]
+        description: ROAS (revenue / spend)
+        expr: SUM(REVENUE_GBP) / NULLIF(SUM(SPEND_GBP), 0)
+        data_type: NUMBER
+        default_aggregation: none

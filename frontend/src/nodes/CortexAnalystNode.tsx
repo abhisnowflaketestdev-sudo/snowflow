@@ -33,16 +33,16 @@ export const CortexAnalystNode = ({ data, selected }: { data: CortexAnalystData;
   return (
     <div 
       style={{
-        background: '#FFFFFF',
-        border: selected ? '2px solid #0EA5E9' : '1px solid #E5E9F0',
+        background: 'rgb(var(--surface))',
+        border: selected ? '2px solid #0EA5E9' : '1px solid rgb(var(--border))',
         borderRadius: 8,
         padding: 12,
         width: 240,
         fontFamily: 'Inter, -apple-system, sans-serif',
-        boxShadow: selected ? '0 4px 12px rgba(14,165,233,0.25)' : '0 1px 3px rgba(0,0,0,0.1)',
+        boxShadow: selected ? '0 6px 18px rgba(14,165,233,0.25)' : '0 6px 18px rgba(0,0,0,0.25)',
       }}
     >
-      <Handle type="target" position={Position.Left} style={{ background: '#0EA5E9', width: 10, height: 10, border: '2px solid white' }} />
+      <Handle type="target" position={Position.Left} style={{ background: '#0EA5E9', width: 10, height: 10 }} />
       
       <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
         <div style={{ 
@@ -57,15 +57,15 @@ export const CortexAnalystNode = ({ data, selected }: { data: CortexAnalystData;
           <MessageSquareText size={18} color="#0EA5E9" />
         </div>
         <div>
-          <div style={{ fontSize: 10, fontWeight: 500, color: '#6B7280', textTransform: 'uppercase', letterSpacing: 0.5 }}>
+          <div style={{ fontSize: 10, fontWeight: 500, color: 'rgb(var(--muted))', textTransform: 'uppercase', letterSpacing: 0.5 }}>
             Cortex Analyst
           </div>
-          <div style={{ fontSize: 14, fontWeight: 600, color: '#1F2937' }}>{data.label}</div>
+          <div style={{ fontSize: 14, fontWeight: 600, color: 'rgb(var(--fg))' }}>{data.label}</div>
         </div>
       </div>
       
       {/* Semantic model reference */}
-      <div style={{ marginTop: 10, padding: 8, background: '#F5F7FA', borderRadius: 6, fontSize: 11, color: '#6B7280' }}>
+      <div style={{ marginTop: 10, padding: 8, background: 'rgb(var(--surface-2))', border: '1px solid rgb(var(--border))', borderRadius: 6, fontSize: 11, color: 'rgb(var(--muted))' }}>
         {data.semanticModel ? (
           <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
             <Database size={12} />
@@ -78,7 +78,7 @@ export const CortexAnalystNode = ({ data, selected }: { data: CortexAnalystData;
       
       {/* Question preview */}
       {data.question && (
-        <div style={{ marginTop: 8, fontSize: 11, color: '#6B7280', lineHeight: 1.4, fontStyle: 'italic' }}>
+        <div style={{ marginTop: 8, fontSize: 11, color: 'rgb(var(--muted))', lineHeight: 1.4, fontStyle: 'italic' }}>
           "{data.question.length > 60 ? data.question.slice(0, 60) + '...' : data.question}"
         </div>
       )}
@@ -97,7 +97,7 @@ export const CortexAnalystNode = ({ data, selected }: { data: CortexAnalystData;
         )}
       </div>
       
-      <Handle type="source" position={Position.Right} style={{ background: '#0EA5E9', width: 10, height: 10, border: '2px solid white' }} />
+      <Handle type="source" position={Position.Right} style={{ background: '#0EA5E9', width: 10, height: 10 }} />
     </div>
   );
 };

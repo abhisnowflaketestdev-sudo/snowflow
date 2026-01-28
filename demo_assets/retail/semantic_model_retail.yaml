@@ -1,0 +1,152 @@
+name: retail_sales_demo
+description: Retail semantic model for a Sainsbury’s-style business (store + ecommerce sales, promos, products, customers)
+
+tables:
+  - name: retail_sales
+    description: Denormalized retail sales lines (fact + dimensions) for analytics and NL→SQL
+    base_table:
+      database: SNOWFLOW_DEMO
+      schema: RETAIL
+      table: VW_RETAIL_SALES
+    dimensions:
+      - name: channel
+        synonyms: [fulfilment, channel_name]
+        description: Sales channel name (In Store, Online, etc.)
+        expr: CHANNEL_NAME
+        data_type: VARCHAR
+      - name: channel_type
+        synonyms: [channel_group]
+        description: Channel group (Store, Ecommerce, Omnichannel)
+        expr: CHANNEL_TYPE
+        data_type: VARCHAR
+      - name: store_name
+        synonyms: [store, branch]
+        description: Store / branch name
+        expr: STORE_NAME
+        data_type: VARCHAR
+      - name: city
+        synonyms: [town]
+        description: Store city
+        expr: CITY
+        data_type: VARCHAR
+      - name: region
+        synonyms: [area, geography]
+        description: Geographic region
+        expr: REGION
+        data_type: VARCHAR
+      - name: store_format
+        synonyms: [format, store_type]
+        description: Store format (Superstore, Convenience, Local, Online Hub)
+        expr: STORE_FORMAT
+        data_type: VARCHAR
+      - name: product_name
+        synonyms: [sku, item]
+        description: Product name
+        expr: PRODUCT_NAME
+        data_type: VARCHAR
+      - name: product_department
+        synonyms: [dept, department]
+        description: Product department
+        expr: PRODUCT_DEPARTMENT
+        data_type: VARCHAR
+      - name: product_category
+        synonyms: [category, department, dept]
+        description: Product category / department
+        expr: PRODUCT_CATEGORY
+        data_type: VARCHAR
+      - name: product_subcategory
+        synonyms: [sub_category]
+        description: Product subcategory
+        expr: PRODUCT_SUBCATEGORY
+        data_type: VARCHAR
+      - name: product_brand
+        synonyms: [brand]
+        description: Product brand
+        expr: PRODUCT_BRAND
+        data_type: VARCHAR
+      - name: is_own_brand
+        synonyms: [own_brand]
+        description: Whether the product is own-brand
+        expr: IS_OWN_BRAND
+        data_type: BOOLEAN
+      - name: customer_segment
+        synonyms: [segment]
+        description: Customer segment
+        expr: CUSTOMER_SEGMENT
+        data_type: VARCHAR
+      - name: loyalty_tier
+        synonyms: [tier, loyalty]
+        description: Loyalty program tier
+        expr: LOYALTY_TIER
+        data_type: VARCHAR
+      - name: age_band
+        synonyms: [age_group]
+        description: Customer age band
+        expr: AGE_BAND
+        data_type: VARCHAR
+      - name: promotion_type
+        synonyms: [promo_type]
+        description: Promotion type applied to the line (if any)
+        expr: PROMOTION_TYPE
+        data_type: VARCHAR
+    time_dimensions:
+      - name: sale_date
+        synonyms: [date, day, transaction_date, order_date]
+        description: Date of sale
+        expr: SALE_DATE
+        data_type: DATE
+    measures:
+      - name: total_net_revenue
+        synonyms: [net_sales, revenue]
+        description: Total net revenue
+        expr: SUM(NET_REVENUE)
+        data_type: NUMBER
+        default_aggregation: sum
+      - name: total_gross_revenue
+        synonyms: [gross_sales]
+        description: Total gross revenue
+        expr: SUM(GROSS_REVENUE)
+        data_type: NUMBER
+        default_aggregation: sum
+      - name: total_discount
+        synonyms: [discount, promo_discount]
+        description: Total discount amount
+        expr: SUM(DISCOUNT_AMOUNT)
+        data_type: NUMBER
+        default_aggregation: sum
+      - name: total_margin
+        synonyms: [margin_amount]
+        description: Total margin amount
+        expr: SUM(MARGIN_AMOUNT)
+        data_type: NUMBER
+        default_aggregation: sum
+      - name: total_units
+        synonyms: [units, quantity]
+        description: Total units sold
+        expr: SUM(QUANTITY)
+        data_type: NUMBER
+        default_aggregation: sum
+      - name: orders
+        synonyms: [transactions]
+        description: Distinct orders
+        expr: COUNT(DISTINCT ORDER_ID)
+        data_type: NUMBER
+        default_aggregation: none
+      - name: customers
+        synonyms: [unique_customers]
+        description: Distinct customers
+        expr: COUNT(DISTINCT CUSTOMER_ID)
+        data_type: NUMBER
+        default_aggregation: none
+      - name: aov
+        synonyms: [average_order_value]
+        description: Average order value (net revenue / orders)
+        expr: SUM(NET_REVENUE) / NULLIF(COUNT(DISTINCT ORDER_ID), 0)
+        data_type: NUMBER
+        default_aggregation: none
+      - name: margin_pct
+        synonyms: [gross_margin_pct, margin_rate]
+        description: Margin percentage (margin / net revenue)
+        expr: SUM(MARGIN_AMOUNT) / NULLIF(SUM(NET_REVENUE), 0)
+        data_type: NUMBER
+        default_aggregation: none

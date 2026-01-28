@@ -135,19 +135,21 @@ export function ToolCreator({ tools, onSaveTool, onDeleteTool, onClose }: ToolCr
   const inputStyle: React.CSSProperties = {
     width: '100%',
     padding: '8px 12px',
-    border: '1px solid #E5E9F0',
+    border: '1px solid rgb(var(--border))',
     borderRadius: 6,
     fontSize: 12,
     boxSizing: 'border-box',
     outline: 'none',
     fontFamily: 'Inter, -apple-system, sans-serif',
+    background: 'rgb(var(--surface))',
+    color: 'rgb(var(--fg))',
   };
 
   const labelStyle: React.CSSProperties = {
     display: 'block',
     fontSize: 11,
     fontWeight: 500,
-    color: '#4B5563',
+    color: 'rgb(var(--fg-muted))',
     marginBottom: 4,
   };
 
@@ -168,7 +170,8 @@ export function ToolCreator({ tools, onSaveTool, onDeleteTool, onClose }: ToolCr
       <div style={{
         width: 600,
         maxHeight: '80vh',
-        background: 'white',
+        background: 'rgb(var(--surface))',
+        border: '1px solid rgb(var(--border))',
         borderRadius: 12,
         boxShadow: '0 20px 40px rgba(0,0,0,0.2)',
         display: 'flex',
@@ -178,15 +181,15 @@ export function ToolCreator({ tools, onSaveTool, onDeleteTool, onClose }: ToolCr
         {/* Header */}
         <div style={{
           padding: '16px 20px',
-          borderBottom: '1px solid #E5E9F0',
+          borderBottom: '1px solid rgb(var(--border))',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
-          background: 'linear-gradient(135deg, #F0F9FF 0%, #EDE9FE 100%)',
+          background: 'linear-gradient(135deg, rgb(var(--surface-2)) 0%, rgb(var(--surface-3)) 100%)',
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <Wrench size={20} color="#8B5CF6" />
-            <span style={{ fontWeight: 600, fontSize: 16, color: '#1F2937' }}>
+            <span style={{ fontWeight: 600, fontSize: 16, color: 'rgb(var(--fg))' }}>
               {mode === 'list' ? 'Custom Tools' : mode === 'create' ? 'Create Tool' : 'Edit Tool'}
             </span>
           </div>
@@ -194,7 +197,7 @@ export function ToolCreator({ tools, onSaveTool, onDeleteTool, onClose }: ToolCr
             onClick={onClose}
             style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4 }}
           >
-            <X size={20} color="#6B7280" />
+            <X size={20} color="rgb(var(--muted))" />
           </button>
         </div>
 
@@ -223,7 +226,7 @@ export function ToolCreator({ tools, onSaveTool, onDeleteTool, onClose }: ToolCr
                     <div
                       key={tool.id}
                       style={{
-                        border: '1px solid #E5E9F0',
+                        border: '1px solid rgb(var(--border))',
                         borderRadius: 8,
                         overflow: 'hidden',
                       }}
@@ -232,7 +235,7 @@ export function ToolCreator({ tools, onSaveTool, onDeleteTool, onClose }: ToolCr
                         onClick={() => toggleExpanded(tool.id)}
                         style={{
                           padding: '12px 16px',
-                          background: '#F9FAFB',
+                          background: 'rgb(var(--surface-2))',
                           cursor: 'pointer',
                           display: 'flex',
                           alignItems: 'center',
@@ -241,7 +244,7 @@ export function ToolCreator({ tools, onSaveTool, onDeleteTool, onClose }: ToolCr
                       >
                         {expandedTools.has(tool.id) ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
                         {getTypeIcon(tool.type)}
-                        <span style={{ fontWeight: 500, fontSize: 13, color: '#1F2937' }}>
+                        <span style={{ fontWeight: 500, fontSize: 13, color: 'rgb(var(--fg))' }}>
                           {tool.name}
                         </span>
                         {tool.isApproved && (
@@ -250,7 +253,7 @@ export function ToolCreator({ tools, onSaveTool, onDeleteTool, onClose }: ToolCr
                         <span style={{ 
                           marginLeft: 'auto', 
                           fontSize: 10, 
-                          color: '#9CA3AF',
+                          color: 'rgb(var(--muted))',
                           textTransform: 'uppercase'
                         }}>
                           {tool.type}
@@ -258,8 +261,8 @@ export function ToolCreator({ tools, onSaveTool, onDeleteTool, onClose }: ToolCr
                       </div>
                       
                       {expandedTools.has(tool.id) && (
-                        <div style={{ padding: 16, borderTop: '1px solid #E5E9F0' }}>
-                          <div style={{ fontSize: 12, color: '#6B7280', marginBottom: 12 }}>
+                        <div style={{ padding: 16, borderTop: '1px solid rgb(var(--border))' }}>
+                          <div style={{ fontSize: 12, color: 'rgb(var(--muted))', marginBottom: 12 }}>
                             {tool.description}
                           </div>
                           
@@ -303,9 +306,10 @@ export function ToolCreator({ tools, onSaveTool, onDeleteTool, onClose }: ToolCr
                               onClick={() => handleEdit(tool)}
                               style={{
                                 padding: '6px 12px',
-                                border: '1px solid #E5E9F0',
+                                border: '1px solid rgb(var(--border))',
                                 borderRadius: 6,
-                                background: 'white',
+                                background: 'rgb(var(--surface))',
+                                color: 'rgb(var(--fg))',
                                 fontSize: 11,
                                 cursor: 'pointer',
                               }}
@@ -370,9 +374,9 @@ export function ToolCreator({ tools, onSaveTool, onDeleteTool, onClose }: ToolCr
                       style={{
                         flex: 1,
                         padding: '10px 12px',
-                        border: type === t ? '2px solid #8B5CF6' : '1px solid #E5E9F0',
+                        border: type === t ? '2px solid #8B5CF6' : '1px solid rgb(var(--border))',
                         borderRadius: 8,
-                        background: type === t ? '#EDE9FE' : 'white',
+                        background: type === t ? 'rgb(var(--purple-bg))' : 'rgb(var(--surface))',
                         cursor: 'pointer',
                         display: 'flex',
                         alignItems: 'center',
@@ -380,7 +384,7 @@ export function ToolCreator({ tools, onSaveTool, onDeleteTool, onClose }: ToolCr
                         gap: 6,
                         fontSize: 12,
                         fontWeight: 500,
-                        color: type === t ? '#6366F1' : '#6B7280',
+                        color: type === t ? '#8B5CF6' : 'rgb(var(--muted))',
                       }}
                     >
                       {getTypeIcon(t)}
@@ -424,7 +428,8 @@ export function ToolCreator({ tools, onSaveTool, onDeleteTool, onClose }: ToolCr
                         display: 'flex',
                         gap: 8,
                         padding: 10,
-                        background: '#F9FAFB',
+                        background: 'rgb(var(--surface-2))',
+                        border: '1px solid rgb(var(--border))',
                         borderRadius: 6,
                         alignItems: 'center',
                       }}>

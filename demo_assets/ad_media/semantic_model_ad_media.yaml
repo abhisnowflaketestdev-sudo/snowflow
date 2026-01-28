@@ -1,0 +1,149 @@
+name: ad_media_performance_demo
+description: Advertising & media semantic model for a WPP-style agency (campaign/channel/creative/audience performance, spend, conversions, ROAS)
+
+tables:
+  - name: ad_performance
+    description: Denormalized daily ad performance (advertiser + campaign + channel) for analytics and NL→SQL
+    base_table:
+      database: SNOWFLOW_DEMO
+      schema: AD_MEDIA
+      table: VW_AD_PERFORMANCE
+    dimensions:
+      - name: advertiser
+        synonyms: [client, brand]
+        description: Advertiser / client name
+        expr: ADVERTISER_NAME
+        data_type: VARCHAR
+      - name: industry
+        synonyms: [sector]
+        description: Advertiser industry
+        expr: INDUSTRY
+        data_type: VARCHAR
+      - name: hq_region
+        synonyms: [region, geography]
+        description: HQ region for advertiser
+        expr: HQ_REGION
+        data_type: VARCHAR
+      - name: account_tier
+        synonyms: [tier]
+        description: Client account tier
+        expr: ACCOUNT_TIER
+        data_type: VARCHAR
+      - name: campaign
+        synonyms: [campaign_name]
+        description: Campaign name
+        expr: CAMPAIGN_NAME
+        data_type: VARCHAR
+      - name: objective
+        synonyms: [goal]
+        description: Campaign objective
+        expr: OBJECTIVE
+        data_type: VARCHAR
+      - name: channel
+        synonyms: [publisher, platform]
+        description: Channel/platform name
+        expr: CHANNEL_NAME
+        data_type: VARCHAR
+      - name: channel_type
+        synonyms: [media_type]
+        description: Channel type (Search, Social, Video, etc.)
+        expr: CHANNEL_TYPE
+        data_type: VARCHAR
+      - name: creative_format
+        synonyms: [format]
+        description: Creative format (Static, Video, Carousel, etc.)
+        expr: CREATIVE_FORMAT
+        data_type: VARCHAR
+      - name: message_angle
+        synonyms: [creative_angle]
+        description: Creative message angle (Price, Brand, Feature, etc.)
+        expr: MESSAGE_ANGLE
+        data_type: VARCHAR
+      - name: geo_region
+        synonyms: [geo, geography]
+        description: Geographic region
+        expr: GEO_REGION
+        data_type: VARCHAR
+      - name: audience_segment
+        synonyms: [audience]
+        description: Audience segment name
+        expr: AUDIENCE_SEGMENT
+        data_type: VARCHAR
+      - name: audience_type
+        synonyms: [segment_type]
+        description: Audience type (Prospecting, Remarketing, CRM)
+        expr: AUDIENCE_TYPE
+        data_type: VARCHAR
+    time_dimensions:
+      - name: event_date
+        synonyms: [date, day]
+        description: Daily performance date
+        expr: EVENT_DATE
+        data_type: DATE
+    measures:
+      - name: impressions
+        synonyms: [imps]
+        description: Total impressions
+        expr: SUM(IMPRESSIONS)
+        data_type: NUMBER
+        default_aggregation: sum
+      - name: clicks
+        synonyms: [clicks_total]
+        description: Total clicks
+        expr: SUM(CLICKS)
+        data_type: NUMBER
+        default_aggregation: sum
+      - name: conversions
+        synonyms: [convs]
+        description: Total conversions
+        expr: SUM(CONVERSIONS)
+        data_type: NUMBER
+        default_aggregation: sum
+      - name: spend_gbp
+        synonyms: [spend, cost]
+        description: Total spend (GBP)
+        expr: SUM(SPEND_GBP)
+        data_type: NUMBER
+        default_aggregation: sum
+      - name: revenue_gbp
+        synonyms: [revenue]
+        description: Total attributed revenue (GBP)
+        expr: SUM(REVENUE_GBP)
+        data_type: NUMBER
+        default_aggregation: sum
+      - name: video_views
+        synonyms: [views]
+        description: Total video views (for video channels)
+        expr: SUM(VIDEO_VIEWS)
+        data_type: NUMBER
+        default_aggregation: sum
+      - name: ctr
+        synonyms: [click_through_rate]
+        description: Click-through rate (clicks / impressions)
+        expr: SUM(CLICKS) / NULLIF(SUM(IMPRESSIONS), 0)
+        data_type: NUMBER
+        default_aggregation: none
+      - name: cpc_gbp
+        synonyms: [cost_per_click]
+        description: Cost per click (spend / clicks)
+        expr: SUM(SPEND_GBP) / NULLIF(SUM(CLICKS), 0)
+        data_type: NUMBER
+        default_aggregation: none
+      - name: cpm_gbp
+        synonyms: [cost_per_mille]
+        description: CPM (spend / impressions * 1000)
+        expr: (SUM(SPEND_GBP) / NULLIF(SUM(IMPRESSIONS), 0)) * 1000
+        data_type: NUMBER
+        default_aggregation: none
+      - name: cpa_gbp
+        synonyms: [cost_per_acquisition]
+        description: Cost per acquisition (spend / conversions)
+        expr: SUM(SPEND_GBP) / NULLIF(SUM(CONVERSIONS), 0)
+        data_type: NUMBER
+        default_aggregation: none
+      - name: roas
+        synonyms: [return_on_ad_spend]
+        description: ROAS (revenue / spend)
+        expr: SUM(REVENUE_GBP) / NULLIF(SUM(SPEND_GBP), 0)
+        data_type: NUMBER
+        default_aggregation: none

@@ -1,6 +1,6 @@
 # SnowFlow Session Log
 
-**Last Updated:** 2025-11-28 (Stage 2 Started)
+**Last Updated:** 2026-01-19 (Section 5 test completion + External Agent UX consistency)
 
 > **IF AI LOSES MEMORY, READ THIS FILE FIRST.**
 
@@ -8,7 +8,7 @@
 
 ## Project Summary
 
-**SnowFlow** = Low-code drag-and-drop UI for building Snowflake Intelligence workflows.
+**SnowFlow** = Low-code drag-and-drop UI for building Snowflake Intelligence workflows, with an IT-admin governance layer (Control Tower) and resilient local fallback for demo/dev.
 
 **Tech Stack:**
 - Frontend: React 18 + Vite + React Flow + Zustand
@@ -17,8 +17,10 @@
 
 **Key Files:**
 - `ARCHITECTURE.md` - System design
-- `DESIGN_SYSTEM.md` - UI colors/fonts (LOCKED - Snowflake white/blue style)
+- `DESIGN_SYSTEM.md` - UI colors/fonts (historical; current theming uses CSS variables in `frontend/src/index.css`)
 - `ROADMAP.md` - Full 6-stage product plan
+- `SESSION_BACKUP_JAN17_2026.md` - Latest detailed session backup
+- `SESSION_BACKUP_JAN19_2026.md` - Latest detailed session backup (Section 5 tests + UX fixes)
 
 ---
 
@@ -54,19 +56,33 @@
 - [x] **Connection validation** - Rules enforced, hints on connect
 - [x] **Toast notifications** - Subtle hints/errors in bottom right
 - [x] **Property panels** - Full 1:1 Snowflake parameter mapping for each node
+- [x] **Theme toggle simplified** - Light/Dark only (no third mode)
+- [x] **Preview (read-only) mode** - Locks editing interactions; retains navigation
+- [x] **Canvas panning** - Board-like pan/scroll/zoom behaviors enabled
+- [x] **Edge select + delete** - Selectable edges; deletable via Delete/Backspace
+- [x] **Box selection** - Shift + drag to select multiple nodes (disabled in Preview)
+- [x] **Workflow naming UX** - Placeholder guidance + autosave indicator + save requires a name
+- [x] **Import/Export button affordance** - Styled to look clickable (hover/press feedback)
+- [x] **External Agent UX consistency** - Properties dropdown mirrors components list; preset→custom resets to avoid confusing carryover
 
 ---
 
-## Snowflake Connection
+## Test Progress (Manual)
+
+- **Section 5**: ✅ Completed (TEST-5.1 → TEST-5.8) — logged in `TEST_PLANS.md` execution log.
+- **Section 6**: ✅ Completed (TEST-6.1 → TEST-6.3) — logged in `TEST_PLANS.md` execution log.
+
+---
+
+## Snowflake Connection (IMPORTANT: CURRENT REALITY)
 
 ```
-Account: TFUIBWS-RA85515
-User: AASTHANA  
-Password: (in backend/.env)
-Database: SNOWFLOW_DEV
-Schema: DEMO
-Warehouse: COMPUTE_WH
-Tables: SALES_DATA (15 rows), CUSTOMER_FEEDBACK (10 rows), SUPPORT_TICKETS (8 rows)
+SnowFlow supports:
+- **Key-pair auth** (preferred): `SNOWFLAKE_PRIVATE_KEY_PATH`
+- **Password auth** (fallback): `SNOWFLAKE_PASSWORD`
+
+Also note:
+- Snowflake access may be blocked by **network policy / VPN / IP allowlist**. When blocked, backend uses **demo/fallback data** for catalog and **local JSON fallback** for governance.
 ```
 
 Credentials stored in `backend/.env`
@@ -194,6 +210,24 @@ The canvas now has 4 lanes instead of 5:
 - [x] **Live Preview** - Test agent with simulated chat while building
 - [x] **Sidebar Tabs** - Switch between Components, Catalog, and Templates
 - [x] **One-click Template Deploy** - Load full workflow from template
+
+### Governance / Control Tower ✅ (Stabilized)
+- [x] Agent registry (Snowflake-backed + local fallback)
+- [x] Audit log viewer (fixed blank page crash)
+- [x] Settings editor UI (admin-configurable) + backend persistence path
+- [x] Performance: Snowflake availability TTL caching + parallelized frontend fetch
+
+### Theme System ✅ (Light/Dark)
+- [x] **Light/Dark** toggle (simple, 2-mode)
+- [x] CSS-variable token system in `frontend/src/index.css`
+- [x] Dark mode matte/graphite surfaces for tabs/cards/nodes
+- [x] Light mode “classic white” surfaces restored (no grey-wash)
+- [x] DAX Translator node retains “hero” dark purple styling (intentional standout)
+
+---
+
+## Quick Links
+- `SESSION_BACKUP_JAN17_2026.md`: full recap of recent work (governance fallback, Control Tower perf, theming, fixes)
 
 ### Custom Tool Creator ✅
 - [x] Full modal UI for creating/editing tools

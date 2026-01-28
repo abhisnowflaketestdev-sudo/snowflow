@@ -1,0 +1,1005 @@
+[
+  {
+    "id": "cortex_complete",
+    "name": "Cortex Complete",
+    "type": "cortex",
+    "workflow": "System",
+    "endpoint": null,
+    "model": "mistral-large2",
+    "tools": [],
+    "status": "active",
+    "risk_level": "low",
+    "is_approved": true,
+    "created_at": "2026-01-09T23:51:07.180268",
+    "created_by": "LOCAL_USER",
+    "approved_at": "2026-01-09T23:51:07.180268",
+    "approved_by": "AUTO",
+    "execution_count": 0,
+    "metadata": {}
+  },
+  {
+    "id": "cortex_analyst",
+    "name": "Cortex Analyst",
+    "type": "cortex",
+    "workflow": "System",
+    "endpoint": null,
+    "model": "analyst",
+    "tools": [
+      "sql_generation"
+    ],
+    "status": "active",
+    "risk_level": "low",
+    "is_approved": true,
+    "created_at": "2026-01-09T23:51:08.325803",
+    "created_by": "LOCAL_USER",
+    "approved_at": "2026-01-09T23:51:08.325803",
+    "approved_by": "AUTO",
+    "execution_count": 0,
+    "metadata": {}
+  },
+  {
+    "id": "cortex_search",
+    "name": "Cortex Search",
+    "type": "cortex",
+    "workflow": "System",
+    "endpoint": null,
+    "model": "search",
+    "tools": [
+      "vector_search"
+    ],
+    "status": "active",
+    "risk_level": "low",
+    "is_approved": true,
+    "created_at": "2026-01-09T23:51:09.441973",
+    "created_by": "LOCAL_USER",
+    "approved_at": "2026-01-09T23:51:09.441973",
+    "approved_by": "AUTO",
+    "execution_count": 0,
+    "metadata": {}
+  },
+  {
+    "id": "test_flow_2",
+    "name": "Sales Analyst",
+    "type": "cortex",
+    "workflow": "test flow",
+    "endpoint": null,
+    "model": "mistral-large2",
+    "tools": [],
+    "status": "active",
+    "risk_level": "low",
+    "is_approved": true,
+    "created_at": "2026-01-09T23:51:10.523444",
+    "created_by": "LOCAL_USER",
+    "approved_at": "2026-01-09T23:51:10.523444",
+    "approved_by": "AUTO",
+    "execution_count": 0,
+    "metadata": {
+      "node_id": "2",
+      "node_type": "agent"
+    }
+  },
+  {
+    "id": "dax_translation_mini_test__sales-agent",
+    "name": "\ud83d\udcb0 Sales Agent",
+    "type": "cortex",
+    "workflow": "Dax Translation mini Test ",
+    "endpoint": null,
+    "model": "mistral-large2",
+    "tools": [
+      "analyst"
+    ],
+    "status": "active",
+    "risk_level": "low",
+    "is_approved": true,
+    "created_at": "2026-01-09T23:51:11.608986",
+    "created_by": "LOCAL_USER",
+    "approved_at": "2026-01-09T23:51:11.608986",
+    "approved_by": "AUTO",
+    "execution_count": 0,
+    "metadata": {
+      "node_id": "sales-agent",
+      "node_type": "agent"
+    }
+  },
+  {
+    "id": "retail_grocer_multi_domain_powerbi_sainsbury's_pbi-copilot",
+    "name": "\ud83d\udfe6 Power BI Copilot",
+    "type": "external",
+    "workflow": "Retail Grocer Multi Domain PowerBI Sainsbury's",
+    "endpoint": "https://api.powerbi.com/v1.0/myorg/copilot",
+    "model": "mistral-large2",
+    "tools": [],
+    "status": "active",
+    "risk_level": "high",
+    "is_approved": true,
+    "created_at": "2026-01-09T23:51:12.683507",
+    "created_by": "LOCAL_USER",
+    "approved_at": "2026-01-10T00:52:27.043355",
+    "approved_by": "Admin",
+    "execution_count": 0,
+    "metadata": {
+      "node_id": "pbi-copilot",
+      "node_type": "externalAgent"
+    }
+  },
+  {
+    "id": "retail_grocer_multi_domain_powerbi_sainsbury's_ms-fabric-agent",
+    "name": "\ud83d\udfe6 MS Fabric Agent",
+    "type": "external",
+    "workflow": "Retail Grocer Multi Domain PowerBI Sainsbury's",
+    "endpoint": "https://api.fabric.microsoft.com/v1/agent",
+    "model": "mistral-large2",
+    "tools": [],
+    "status": "pending_approval",
+    "risk_level": "high",
+    "is_approved": false,
+    "created_at": "2026-01-09T23:51:13.796679",
+    "created_by": "LOCAL_USER",
+    "approved_at": null,
+    "approved_by": null,
+    "execution_count": 0,
+    "metadata": {
+      "node_id": "ms-fabric-agent",
+      "node_type": "externalAgent"
+    }
+  },
+  {
+    "id": "retail_grocer_multi_domain_powerbi_sainsbury's_supervisor-retail",
+    "name": "\ud83e\udde0 Retail Supervisor",
+    "type": "supervisor",
+    "workflow": "Retail Grocer Multi Domain PowerBI Sainsbury's",
+    "endpoint": null,
+    "model": "mistral-large2",
+    "tools": [],
+    "status": "pending_approval",
+    "risk_level": "medium",
+    "is_approved": false,
+    "created_at": "2026-01-09T23:51:14.831080",
+    "created_by": "LOCAL_USER",
+    "approved_at": null,
+    "approved_by": null,
+    "execution_count": 0,
+    "metadata": {
+      "node_id": "supervisor-retail",
+      "node_type": "supervisor"
+    }
+  },
+  {
+    "id": "retail_grocer_multi_domain_powerbi_sainsbury's_agent-sales",
+    "name": "\ud83d\udcb0 Sales Agent",
+    "type": "cortex",
+    "workflow": "Retail Grocer Multi Domain PowerBI Sainsbury's",
+    "endpoint": null,
+    "model": "mistral-large2",
+    "tools": [
+      "analyst"
+    ],
+    "status": "active",
+    "risk_level": "low",
+    "is_approved": true,
+    "created_at": "2026-01-09T23:51:15.887029",
+    "created_by": "LOCAL_USER",
+    "approved_at": "2026-01-09T23:51:15.887029",
+    "approved_by": "AUTO",
+    "execution_count": 0,
+    "metadata": {
+      "node_id": "agent-sales",
+      "node_type": "agent"
+    }
+  },
+  {
+    "id": "retail_grocer_multi_domain_powerbi_sainsbury's_agent-inventory",
+    "name": "\ud83d\udce6 Inventory Agent",
+    "type": "cortex",
+    "workflow": "Retail Grocer Multi Domain PowerBI Sainsbury's",
+    "endpoint": null,
+    "model": "mistral-large2",
+    "tools": [
+      "analyst"
+    ],
+    "status": "active",
+    "risk_level": "low",
+    "is_approved": true,
+    "created_at": "2026-01-09T23:51:16.939634",
+    "created_by": "LOCAL_USER",
+    "approved_at": "2026-01-09T23:51:16.939634",
+    "approved_by": "AUTO",
+    "execution_count": 0,
+    "metadata": {
+      "node_id": "agent-inventory",
+      "node_type": "agent"
+    }
+  },
+  {
+    "id": "retail_grocer_multi_domain_powerbi_sainsbury's_agent-ops",
+    "name": "\ud83c\udfea Ops Agent",
+    "type": "cortex",
+    "workflow": "Retail Grocer Multi Domain PowerBI Sainsbury's",
+    "endpoint": null,
+    "model": "mistral-large2",
+    "tools": [
+      "analyst"
+    ],
+    "status": "active",
+    "risk_level": "low",
+    "is_approved": true,
+    "created_at": "2026-01-09T23:51:18.028312",
+    "created_by": "LOCAL_USER",
+    "approved_at": "2026-01-09T23:51:18.028312",
+    "approved_by": "AUTO",
+    "execution_count": 0,
+    "metadata": {
+      "node_id": "agent-ops",
+      "node_type": "agent"
+    }
+  },
+  {
+    "id": "retail_grocer_multi_domain_powerbi_sainsbury's_agent-promo",
+    "name": "\ud83c\udff7\ufe0f Promo Agent",
+    "type": "cortex",
+    "workflow": "Retail Grocer Multi Domain PowerBI Sainsbury's",
+    "endpoint": null,
+    "model": "mistral-large2",
+    "tools": [
+      "analyst"
+    ],
+    "status": "active",
+    "risk_level": "low",
+    "is_approved": true,
+    "created_at": "2026-01-09T23:51:19.240705",
+    "created_by": "LOCAL_USER",
+    "approved_at": "2026-01-09T23:51:19.240705",
+    "approved_by": "AUTO",
+    "execution_count": 0,
+    "metadata": {
+      "node_id": "agent-promo",
+      "node_type": "agent"
+    }
+  },
+  {
+    "id": "retail_grocer_multi_domain_powerbi_sainsbury's_agent-customer",
+    "name": "\ud83d\udc65 Customer Agent",
+    "type": "cortex",
+    "workflow": "Retail Grocer Multi Domain PowerBI Sainsbury's",
+    "endpoint": null,
+    "model": "mistral-large2",
+    "tools": [
+      "analyst"
+    ],
+    "status": "active",
+    "risk_level": "low",
+    "is_approved": true,
+    "created_at": "2026-01-09T23:51:20.242307",
+    "created_by": "LOCAL_USER",
+    "approved_at": "2026-01-09T23:51:20.242307",
+    "approved_by": "AUTO",
+    "execution_count": 0,
+    "metadata": {
+      "node_id": "agent-customer",
+      "node_type": "agent"
+    }
+  },
+  {
+    "id": "retail_grocer_multi_domain_powerbi_sainsbury's_pbi-renderer",
+    "name": "\ud83d\udfe6 PBI Renderer",
+    "type": "external",
+    "workflow": "Retail Grocer Multi Domain PowerBI Sainsbury's",
+    "endpoint": "https://api.powerbi.com/v1.0/myorg/reports",
+    "model": "mistral-large2",
+    "tools": [],
+    "status": "pending_approval",
+    "risk_level": "high",
+    "is_approved": false,
+    "created_at": "2026-01-09T23:51:21.348416",
+    "created_by": "LOCAL_USER",
+    "approved_at": null,
+    "approved_by": null,
+    "execution_count": 0,
+    "metadata": {
+      "node_id": "pbi-renderer",
+      "node_type": "externalAgent"
+    }
+  },
+  {
+    "id": "retail_grocer_multi_domain_powerbi_sainsbury's_copilot-callback",
+    "name": "\ud83d\udd04 Copilot Callback",
+    "type": "external",
+    "workflow": "Retail Grocer Multi Domain PowerBI Sainsbury's",
+    "endpoint": "https://api.powerbi.com/v1.0/myorg/copilot/respond",
+    "model": "mistral-large2",
+    "tools": [],
+    "status": "pending_approval",
+    "risk_level": "high",
+    "is_approved": false,
+    "created_at": "2026-01-09T23:51:22.378413",
+    "created_by": "LOCAL_USER",
+    "approved_at": null,
+    "approved_by": null,
+    "execution_count": 0,
+    "metadata": {
+      "node_id": "copilot-callback",
+      "node_type": "externalAgent"
+    }
+  },
+  {
+    "id": "black_friday_postmortem_v1_pbi-copilot",
+    "name": "\ud83d\udfe6 Power BI Copilot",
+    "type": "external",
+    "workflow": "Black Friday Postmortem V1",
+    "endpoint": "https://api.powerbi.com/v1.0/myorg/copilot",
+    "model": "mistral-large2",
+    "tools": [],
+    "status": "pending_approval",
+    "risk_level": "high",
+    "is_approved": false,
+    "created_at": "2026-01-09T23:51:23.433328",
+    "created_by": "LOCAL_USER",
+    "approved_at": null,
+    "approved_by": null,
+    "execution_count": 0,
+    "metadata": {
+      "node_id": "pbi-copilot",
+      "node_type": "externalAgent"
+    }
+  },
+  {
+    "id": "black_friday_postmortem_v1_ms-fabric",
+    "name": "\ud83d\udfe6 MS Fabric Agent",
+    "type": "external",
+    "workflow": "Black Friday Postmortem V1",
+    "endpoint": "https://api.fabric.microsoft.com/v1/agent",
+    "model": "mistral-large2",
+    "tools": [],
+    "status": "pending_approval",
+    "risk_level": "high",
+    "is_approved": false,
+    "created_at": "2026-01-09T23:51:24.590411",
+    "created_by": "LOCAL_USER",
+    "approved_at": null,
+    "approved_by": null,
+    "execution_count": 0,
+    "metadata": {
+      "node_id": "ms-fabric",
+      "node_type": "externalAgent"
+    }
+  },
+  {
+    "id": "black_friday_postmortem_v1_market-intel",
+    "name": "\ud83d\udcca Market Intelligence",
+    "type": "external",
+    "workflow": "Black Friday Postmortem V1",
+    "endpoint": "https://api.marketintel.com/v1/competitor-pricing",
+    "model": "mistral-large2",
+    "tools": [],
+    "status": "pending_approval",
+    "risk_level": "high",
+    "is_approved": false,
+    "created_at": "2026-01-09T23:51:25.639079",
+    "created_by": "LOCAL_USER",
+    "approved_at": null,
+    "approved_by": null,
+    "execution_count": 0,
+    "metadata": {
+      "node_id": "market-intel",
+      "node_type": "externalAgent"
+    }
+  },
+  {
+    "id": "black_friday_postmortem_v1_agent-gateway",
+    "name": "\ud83d\udee1\ufe0f Agent Gateway",
+    "type": "external",
+    "workflow": "Black Friday Postmortem V1",
+    "endpoint": "internal://gateway",
+    "model": "mistral-large2",
+    "tools": [],
+    "status": "pending_approval",
+    "risk_level": "high",
+    "is_approved": false,
+    "created_at": "2026-01-09T23:51:30.669899",
+    "created_by": "LOCAL_USER",
+    "approved_at": null,
+    "approved_by": null,
+    "execution_count": 0,
+    "metadata": {
+      "node_id": "agent-gateway",
+      "node_type": "externalAgent"
+    }
+  },
+  {
+    "id": "black_friday_postmortem_v1_supervisor",
+    "name": "\ud83e\udde0 Executive Analytics Supervisor",
+    "type": "supervisor",
+    "workflow": "Black Friday Postmortem V1",
+    "endpoint": null,
+    "model": "mistral-large2",
+    "tools": [],
+    "status": "pending_approval",
+    "risk_level": "medium",
+    "is_approved": false,
+    "created_at": "2026-01-09T23:51:33.030756",
+    "created_by": "LOCAL_USER",
+    "approved_at": null,
+    "approved_by": null,
+    "execution_count": 0,
+    "metadata": {
+      "node_id": "supervisor",
+      "node_type": "supervisor"
+    }
+  },
+  {
+    "id": "black_friday_postmortem_v1_agent-sales",
+    "name": "\ud83d\udcb0 Sales Agent",
+    "type": "cortex",
+    "workflow": "Black Friday Postmortem V1",
+    "endpoint": null,
+    "model": "mistral-large2",
+    "tools": [
+      "Analyst",
+      "Search",
+      "SQL"
+    ],
+    "status": "active",
+    "risk_level": "low",
+    "is_approved": true,
+    "created_at": "2026-01-09T23:51:34.046158",
+    "created_by": "LOCAL_USER",
+    "approved_at": "2026-01-09T23:51:34.046158",
+    "approved_by": "AUTO",
+    "execution_count": 0,
+    "metadata": {
+      "node_id": "agent-sales",
+      "node_type": "cortexAgent"
+    }
+  },
+  {
+    "id": "black_friday_postmortem_v1_agent-customer",
+    "name": "\ud83d\udc65 Customer Agent",
+    "type": "cortex",
+    "workflow": "Black Friday Postmortem V1",
+    "endpoint": null,
+    "model": "mistral-large2",
+    "tools": [
+      "Analyst",
+      "Search",
+      "SQL"
+    ],
+    "status": "active",
+    "risk_level": "low",
+    "is_approved": true,
+    "created_at": "2026-01-09T23:51:35.138270",
+    "created_by": "LOCAL_USER",
+    "approved_at": "2026-01-09T23:51:35.138270",
+    "approved_by": "AUTO",
+    "execution_count": 0,
+    "metadata": {
+      "node_id": "agent-customer",
+      "node_type": "cortexAgent"
+    }
+  },
+  {
+    "id": "black_friday_postmortem_v1_agent-inventory",
+    "name": "\ud83d\udce6 Inventory Agent",
+    "type": "cortex",
+    "workflow": "Black Friday Postmortem V1",
+    "endpoint": null,
+    "model": "mistral-large2",
+    "tools": [
+      "Analyst",
+      "Search",
+      "SQL"
+    ],
+    "status": "active",
+    "risk_level": "low",
+    "is_approved": true,
+    "created_at": "2026-01-09T23:51:36.169935",
+    "created_by": "LOCAL_USER",
+    "approved_at": "2026-01-09T23:51:36.169935",
+    "approved_by": "AUTO",
+    "execution_count": 0,
+    "metadata": {
+      "node_id": "agent-inventory",
+      "node_type": "cortexAgent"
+    }
+  },
+  {
+    "id": "black_friday_postmortem_v1_agent-promo",
+    "name": "\ud83c\udff7\ufe0f Promo Agent",
+    "type": "cortex",
+    "workflow": "Black Friday Postmortem V1",
+    "endpoint": null,
+    "model": "mistral-large2",
+    "tools": [
+      "Analyst",
+      "Search",
+      "SQL"
+    ],
+    "status": "active",
+    "risk_level": "low",
+    "is_approved": true,
+    "created_at": "2026-01-09T23:51:37.240024",
+    "created_by": "LOCAL_USER",
+    "approved_at": "2026-01-09T23:51:37.240024",
+    "approved_by": "AUTO",
+    "execution_count": 0,
+    "metadata": {
+      "node_id": "agent-promo",
+      "node_type": "cortexAgent"
+    }
+  },
+  {
+    "id": "black_friday_postmortem_v1_agent-ops",
+    "name": "\ud83c\udfea Operations Agent",
+    "type": "cortex",
+    "workflow": "Black Friday Postmortem V1",
+    "endpoint": null,
+    "model": "mistral-large2",
+    "tools": [
+      "Analyst",
+      "Search",
+      "SQL"
+    ],
+    "status": "active",
+    "risk_level": "low",
+    "is_approved": true,
+    "created_at": "2026-01-09T23:51:38.484584",
+    "created_by": "LOCAL_USER",
+    "approved_at": "2026-01-09T23:51:38.484584",
+    "approved_by": "AUTO",
+    "execution_count": 0,
+    "metadata": {
+      "node_id": "agent-ops",
+      "node_type": "cortexAgent"
+    }
+  },
+  {
+    "id": "black_friday_postmortem_v1_agent-finance",
+    "name": "\ud83d\udcb5 Finance Agent",
+    "type": "cortex",
+    "workflow": "Black Friday Postmortem V1",
+    "endpoint": null,
+    "model": "mistral-large2",
+    "tools": [
+      "Analyst",
+      "Search",
+      "SQL"
+    ],
+    "status": "active",
+    "risk_level": "low",
+    "is_approved": true,
+    "created_at": "2026-01-09T23:51:39.502451",
+    "created_by": "LOCAL_USER",
+    "approved_at": "2026-01-09T23:51:39.502451",
+    "approved_by": "AUTO",
+    "execution_count": 0,
+    "metadata": {
+      "node_id": "agent-finance",
+      "node_type": "cortexAgent"
+    }
+  },
+  {
+    "id": "black_friday_postmortem_v1_pbi-callback",
+    "name": "\ud83d\udd04 Copilot Callback",
+    "type": "external",
+    "workflow": "Black Friday Postmortem V1",
+    "endpoint": "https://api.powerbi.com/v1.0/myorg/copilot/respond",
+    "model": "mistral-large2",
+    "tools": [],
+    "status": "pending_approval",
+    "risk_level": "high",
+    "is_approved": false,
+    "created_at": "2026-01-09T23:51:40.602373",
+    "created_by": "LOCAL_USER",
+    "approved_at": null,
+    "approved_by": null,
+    "execution_count": 0,
+    "metadata": {
+      "node_id": "pbi-callback",
+      "node_type": "externalAgent"
+    }
+  },
+  {
+    "id": "pharma_enterprise_analytics_-_gsk/az_style_veeva-crm",
+    "name": "\ud83d\udc8a Veeva CRM",
+    "type": "external",
+    "workflow": "Pharma Enterprise Analytics - GSK/AZ Style",
+    "endpoint": "https://api.veeva.com/v1/hcp-engagement",
+    "model": "mistral-large2",
+    "tools": [],
+    "status": "pending_approval",
+    "risk_level": "high",
+    "is_approved": false,
+    "created_at": "2026-01-09T23:51:41.620428",
+    "created_by": "LOCAL_USER",
+    "approved_at": null,
+    "approved_by": null,
+    "execution_count": 0,
+    "metadata": {
+      "node_id": "veeva-crm",
+      "node_type": "externalAgent"
+    }
+  },
+  {
+    "id": "pharma_enterprise_analytics_-_gsk/az_style_clinical-ctms",
+    "name": "\ud83d\udd2c Clinical CTMS",
+    "type": "external",
+    "workflow": "Pharma Enterprise Analytics - GSK/AZ Style",
+    "endpoint": "https://api.medidata.com/v1/trials",
+    "model": "mistral-large2",
+    "tools": [],
+    "status": "pending_approval",
+    "risk_level": "high",
+    "is_approved": false,
+    "created_at": "2026-01-09T23:51:42.692010",
+    "created_by": "LOCAL_USER",
+    "approved_at": null,
+    "approved_by": null,
+    "execution_count": 0,
+    "metadata": {
+      "node_id": "clinical-ctms",
+      "node_type": "externalAgent"
+    }
+  },
+  {
+    "id": "pharma_enterprise_analytics_-_gsk/az_style_sap-mfg",
+    "name": "\ud83c\udfed SAP Manufacturing",
+    "type": "external",
+    "workflow": "Pharma Enterprise Analytics - GSK/AZ Style",
+    "endpoint": "https://api.sap.com/s4hana/manufacturing",
+    "model": "mistral-large2",
+    "tools": [],
+    "status": "pending_approval",
+    "risk_level": "high",
+    "is_approved": false,
+    "created_at": "2026-01-09T23:51:43.759307",
+    "created_by": "LOCAL_USER",
+    "approved_at": null,
+    "approved_by": null,
+    "execution_count": 0,
+    "metadata": {
+      "node_id": "sap-mfg",
+      "node_type": "externalAgent"
+    }
+  },
+  {
+    "id": "pharma_enterprise_analytics_-_gsk/az_style_agent-gateway",
+    "name": "\ud83d\udee1\ufe0f Pharma Data Gateway",
+    "type": "external",
+    "workflow": "Pharma Enterprise Analytics - GSK/AZ Style",
+    "endpoint": "internal://pharma-gateway",
+    "model": "mistral-large2",
+    "tools": [],
+    "status": "pending_approval",
+    "risk_level": "high",
+    "is_approved": false,
+    "created_at": "2026-01-09T23:51:44.834057",
+    "created_by": "LOCAL_USER",
+    "approved_at": null,
+    "approved_by": null,
+    "execution_count": 0,
+    "metadata": {
+      "node_id": "agent-gateway",
+      "node_type": "externalAgent"
+    }
+  },
+  {
+    "id": "pharma_enterprise_analytics_-_gsk/az_style_router-therapeutic",
+    "name": "\ud83e\uddec Therapeutic Area Router",
+    "type": "router",
+    "workflow": "Pharma Enterprise Analytics - GSK/AZ Style",
+    "endpoint": null,
+    "model": "mistral-large2",
+    "tools": [],
+    "status": "pending_approval",
+    "risk_level": "medium",
+    "is_approved": false,
+    "created_at": "2026-01-09T23:51:45.967470",
+    "created_by": "LOCAL_USER",
+    "approved_at": null,
+    "approved_by": null,
+    "execution_count": 0,
+    "metadata": {
+      "node_id": "router-therapeutic",
+      "node_type": "router"
+    }
+  },
+  {
+    "id": "pharma_enterprise_analytics_-_gsk/az_style_supervisor",
+    "name": "\ud83e\udde0 Chief Scientific Officer AI",
+    "type": "supervisor",
+    "workflow": "Pharma Enterprise Analytics - GSK/AZ Style",
+    "endpoint": null,
+    "model": "mistral-large2",
+    "tools": [],
+    "status": "pending_approval",
+    "risk_level": "medium",
+    "is_approved": false,
+    "created_at": "2026-01-09T23:51:47.041475",
+    "created_by": "LOCAL_USER",
+    "approved_at": null,
+    "approved_by": null,
+    "execution_count": 0,
+    "metadata": {
+      "node_id": "supervisor",
+      "node_type": "supervisor"
+    }
+  },
+  {
+    "id": "pharma_enterprise_analytics_-_gsk/az_style_agent-clinical",
+    "name": "\ud83d\udd2c Clinical Development Agent",
+    "type": "cortex",
+    "workflow": "Pharma Enterprise Analytics - GSK/AZ Style",
+    "endpoint": null,
+    "model": "mistral-large2",
+    "tools": [
+      "Analyst",
+      "Search"
+    ],
+    "status": "active",
+    "risk_level": "low",
+    "is_approved": true,
+    "created_at": "2026-01-09T23:51:48.283404",
+    "created_by": "LOCAL_USER",
+    "approved_at": "2026-01-09T23:51:48.283404",
+    "approved_by": "AUTO",
+    "execution_count": 0,
+    "metadata": {
+      "node_id": "agent-clinical",
+      "node_type": "cortexAgent"
+    }
+  },
+  {
+    "id": "pharma_enterprise_analytics_-_gsk/az_style_agent-manufacturing",
+    "name": "\ud83c\udfed Manufacturing Excellence Agent",
+    "type": "cortex",
+    "workflow": "Pharma Enterprise Analytics - GSK/AZ Style",
+    "endpoint": null,
+    "model": "mistral-large2",
+    "tools": [
+      "Analyst",
+      "Search"
+    ],
+    "status": "active",
+    "risk_level": "low",
+    "is_approved": true,
+    "created_at": "2026-01-09T23:51:49.464836",
+    "created_by": "LOCAL_USER",
+    "approved_at": "2026-01-09T23:51:49.464836",
+    "approved_by": "AUTO",
+    "execution_count": 0,
+    "metadata": {
+      "node_id": "agent-manufacturing",
+      "node_type": "cortexAgent"
+    }
+  },
+  {
+    "id": "pharma_enterprise_analytics_-_gsk/az_style_agent-commercial",
+    "name": "\ud83d\udcb0 Commercial Analytics Agent",
+    "type": "cortex",
+    "workflow": "Pharma Enterprise Analytics - GSK/AZ Style",
+    "endpoint": null,
+    "model": "mistral-large2",
+    "tools": [
+      "Analyst",
+      "Search"
+    ],
+    "status": "active",
+    "risk_level": "low",
+    "is_approved": true,
+    "created_at": "2026-01-09T23:51:50.515276",
+    "created_by": "LOCAL_USER",
+    "approved_at": "2026-01-09T23:51:50.515276",
+    "approved_by": "AUTO",
+    "execution_count": 0,
+    "metadata": {
+      "node_id": "agent-commercial",
+      "node_type": "cortexAgent"
+    }
+  },
+  {
+    "id": "pharma_enterprise_analytics_-_gsk/az_style_agent-safety",
+    "name": "\u26a0\ufe0f Pharmacovigilance Agent",
+    "type": "cortex",
+    "workflow": "Pharma Enterprise Analytics - GSK/AZ Style",
+    "endpoint": null,
+    "model": "mistral-large2",
+    "tools": [
+      "Analyst",
+      "Search"
+    ],
+    "status": "active",
+    "risk_level": "low",
+    "is_approved": true,
+    "created_at": "2026-01-09T23:51:51.553807",
+    "created_by": "LOCAL_USER",
+    "approved_at": "2026-01-09T23:51:51.553807",
+    "approved_by": "AUTO",
+    "execution_count": 0,
+    "metadata": {
+      "node_id": "agent-safety",
+      "node_type": "cortexAgent"
+    }
+  },
+  {
+    "id": "pharma_enterprise_analytics_-_gsk/az_style_agent-supply",
+    "name": "\ud83d\udce6 Supply Chain Agent",
+    "type": "cortex",
+    "workflow": "Pharma Enterprise Analytics - GSK/AZ Style",
+    "endpoint": null,
+    "model": "mistral-large2",
+    "tools": [
+      "Analyst",
+      "Search"
+    ],
+    "status": "active",
+    "risk_level": "low",
+    "is_approved": true,
+    "created_at": "2026-01-09T23:51:54.627234",
+    "created_by": "LOCAL_USER",
+    "approved_at": "2026-01-09T23:51:54.627234",
+    "approved_by": "AUTO",
+    "execution_count": 0,
+    "metadata": {
+      "node_id": "agent-supply",
+      "node_type": "cortexAgent"
+    }
+  },
+  {
+    "id": "pharma_enterprise_analytics_-_gsk/az_style_agent-finance",
+    "name": "\ud83d\udcb5 Finance Agent",
+    "type": "cortex",
+    "workflow": "Pharma Enterprise Analytics - GSK/AZ Style",
+    "endpoint": null,
+    "model": "mistral-large2",
+    "tools": [
+      "Analyst",
+      "Search"
+    ],
+    "status": "active",
+    "risk_level": "low",
+    "is_approved": true,
+    "created_at": "2026-01-09T23:51:57.671441",
+    "created_by": "LOCAL_USER",
+    "approved_at": "2026-01-09T23:51:57.671441",
+    "approved_by": "AUTO",
+    "execution_count": 0,
+    "metadata": {
+      "node_id": "agent-finance",
+      "node_type": "cortexAgent"
+    }
+  },
+  {
+    "id": "pharma_enterprise_analytics_-_gsk/az_style_agent-oncology",
+    "name": "\ud83c\udf97\ufe0f Oncology Specialist",
+    "type": "cortex",
+    "workflow": "Pharma Enterprise Analytics - GSK/AZ Style",
+    "endpoint": null,
+    "model": "mistral-large2",
+    "tools": [
+      "Analyst",
+      "Search"
+    ],
+    "status": "active",
+    "risk_level": "low",
+    "is_approved": true,
+    "created_at": "2026-01-09T23:51:58.753187",
+    "created_by": "LOCAL_USER",
+    "approved_at": "2026-01-09T23:51:58.753187",
+    "approved_by": "AUTO",
+    "execution_count": 0,
+    "metadata": {
+      "node_id": "agent-oncology",
+      "node_type": "cortexAgent"
+    }
+  },
+  {
+    "id": "pharma_enterprise_analytics_-_gsk/az_style_agent-immunology",
+    "name": "\ud83d\udee1\ufe0f Immunology Specialist",
+    "type": "cortex",
+    "workflow": "Pharma Enterprise Analytics - GSK/AZ Style",
+    "endpoint": null,
+    "model": "mistral-large2",
+    "tools": [
+      "Analyst",
+      "Search"
+    ],
+    "status": "active",
+    "risk_level": "low",
+    "is_approved": true,
+    "created_at": "2026-01-09T23:51:59.860231",
+    "created_by": "LOCAL_USER",
+    "approved_at": "2026-01-09T23:51:59.860231",
+    "approved_by": "AUTO",
+    "execution_count": 0,
+    "metadata": {
+      "node_id": "agent-immunology",
+      "node_type": "cortexAgent"
+    }
+  },
+  {
+    "id": "pharma_enterprise_analytics_-_gsk/az_style_agent-rare-disease",
+    "name": "\ud83e\uddec Rare Disease Specialist",
+    "type": "cortex",
+    "workflow": "Pharma Enterprise Analytics - GSK/AZ Style",
+    "endpoint": null,
+    "model": "mistral-large2",
+    "tools": [
+      "Analyst",
+      "Search"
+    ],
+    "status": "active",
+    "risk_level": "low",
+    "is_approved": true,
+    "created_at": "2026-01-09T23:52:01.092424",
+    "created_by": "LOCAL_USER",
+    "approved_at": "2026-01-09T23:52:01.092424",
+    "approved_by": "AUTO",
+    "execution_count": 0,
+    "metadata": {
+      "node_id": "agent-rare-disease",
+      "node_type": "cortexAgent"
+    }
+  },
+  {
+    "id": "pharma_enterprise_analytics_-_gsk/az_style_agent-vaccines",
+    "name": "\ud83d\udc89 Vaccines Specialist",
+    "type": "cortex",
+    "workflow": "Pharma Enterprise Analytics - GSK/AZ Style",
+    "endpoint": null,
+    "model": "mistral-large2",
+    "tools": [
+      "Analyst",
+      "Search"
+    ],
+    "status": "active",
+    "risk_level": "low",
+    "is_approved": true,
+    "created_at": "2026-01-09T23:52:02.290991",
+    "created_by": "LOCAL_USER",
+    "approved_at": "2026-01-09T23:52:02.290991",
+    "approved_by": "AUTO",
+    "execution_count": 0,
+    "metadata": {
+      "node_id": "agent-vaccines",
+      "node_type": "cortexAgent"
+    }
+  },
+  {
+    "id": "pharma_enterprise_analytics_-_gsk/az_style_regulatory-callback",
+    "name": "\ud83d\udccb Regulatory Compliance Check",
+    "type": "external",
+    "workflow": "Pharma Enterprise Analytics - GSK/AZ Style",
+    "endpoint": "https://api.veeva.com/vault/regulatory",
+    "model": "mistral-large2",
+    "tools": [],
+    "status": "pending_approval",
+    "risk_level": "high",
+    "is_approved": false,
+    "created_at": "2026-01-09T23:52:03.349432",
+    "created_by": "LOCAL_USER",
+    "approved_at": null,
+    "approved_by": null,
+    "execution_count": 0,
+    "metadata": {
+      "node_id": "regulatory-callback",
+      "node_type": "externalAgent"
+    }
+  },
+  {
+    "id": "external_test_1",
+    "name": "External OpenAI Agent",
+    "type": "external",
+    "workflow": "Test Flow",
+    "endpoint": "https://api.openai.com/v1",
+    "model": null,
+    "tools": [],
+    "status": "active",
+    "risk_level": "high",
+    "is_approved": true,
+    "created_at": "2026-01-09T23:52:29.518642",
+    "created_by": "LOCAL_USER",
+    "approved_at": "2026-01-09T23:52:48.293267",
+    "approved_by": "Admin",
+    "execution_count": 0,
+    "metadata": {}
+  }
+]

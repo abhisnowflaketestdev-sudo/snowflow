@@ -12,8 +12,8 @@ export const ConditionNode = ({ data, selected }: { data: ConditionNodeData; sel
   return (
     <div 
       style={{
-        background: '#FFFFFF',
-        border: selected ? '2px solid #F59E0B' : '1px solid #E5E9F0',
+        background: 'rgb(var(--surface))',
+        border: selected ? '2px solid #F59E0B' : '1px solid rgb(var(--border))',
         borderRadius: 8,
         padding: 12,
         width: 200,
@@ -21,7 +21,7 @@ export const ConditionNode = ({ data, selected }: { data: ConditionNodeData; sel
         boxShadow: selected ? '0 4px 12px rgba(245,158,11,0.25)' : '0 1px 3px rgba(0,0,0,0.1)',
       }}
     >
-      <Handle type="target" position={Position.Left} style={{ background: '#F59E0B', width: 10, height: 10, border: '2px solid white' }} />
+      <Handle type="target" position={Position.Left} style={{ background: '#F59E0B', width: 10, height: 10, border: '2px solid rgb(var(--handle-border))' }} />
       
       <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
         <div style={{ 
@@ -39,12 +39,12 @@ export const ConditionNode = ({ data, selected }: { data: ConditionNodeData; sel
           <div style={{ fontSize: 10, fontWeight: 500, color: '#6B7280', textTransform: 'uppercase', letterSpacing: 0.5 }}>
             Condition
           </div>
-          <div style={{ fontSize: 14, fontWeight: 600, color: '#1F2937' }}>{data.label}</div>
+          <div style={{ fontSize: 14, fontWeight: 600, color: 'rgb(var(--fg))' }}>{data.label}</div>
         </div>
       </div>
       
       {data.condition && (
-        <div style={{ marginTop: 10, padding: 8, background: '#F5F7FA', borderRadius: 6, fontSize: 11, color: '#6B7280', fontFamily: 'monospace' }}>
+        <div style={{ marginTop: 10, padding: 8, background: 'rgb(var(--surface-2))', borderRadius: 6, border: '1px solid rgb(var(--border))', fontSize: 11, color: 'rgb(var(--fg-muted))', fontFamily: 'monospace' }}>
           {data.condition}
         </div>
       )}
@@ -54,14 +54,14 @@ export const ConditionNode = ({ data, selected }: { data: ConditionNodeData; sel
         type="source" 
         position={Position.Right} 
         id="true"
-        style={{ background: '#10B981', width: 10, height: 10, border: '2px solid white', top: '30%' }} 
+        style={{ background: '#10B981', width: 10, height: 10, border: '2px solid rgb(var(--handle-border))', top: '30%' }} 
       />
       {/* False output */}
       <Handle 
         type="source" 
         position={Position.Right} 
         id="false"
-        style={{ background: '#EF4444', width: 10, height: 10, border: '2px solid white', top: '70%' }} 
+        style={{ background: '#EF4444', width: 10, height: 10, border: '2px solid rgb(var(--handle-border))', top: '70%' }} 
       />
       
       <div style={{ position: 'absolute', right: -30, top: '26%', fontSize: 9, color: '#10B981', fontWeight: 600 }}>✓</div>

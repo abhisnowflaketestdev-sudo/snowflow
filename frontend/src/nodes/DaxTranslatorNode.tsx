@@ -230,7 +230,7 @@ const DaxTranslatorNode: React.FC<NodeProps<DaxTranslatorData>> = ({ data, selec
         <div style={{ marginBottom: '10px' }}>
           <div style={{ 
             fontSize: '9px', 
-            color: '#666', 
+          color: '#666', 
             marginBottom: '4px',
             textTransform: 'uppercase',
             letterSpacing: '0.5px',

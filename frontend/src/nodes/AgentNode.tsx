@@ -1,4 +1,4 @@
-import { Handle, Position } from 'reactflow';
+import { Handle, Position, useReactFlow } from 'reactflow';
 import { Brain, Sparkles, Wrench } from 'lucide-react';
 
 /**
@@ -45,12 +45,8 @@ export interface AgentNodeData {
   label: string;
   
   // Required parameters
-  model: 'mistral-large2' | 'mistral-large' | 'mixtral-8x7b' | 'mistral-7b' | 
-         'llama3.1-405b' | 'llama3.1-70b' | 'llama3.1-8b' | 
-         'llama3-70b' | 'llama3-8b' | 
-         'snowflake-arctic' | 'reka-flash' | 'reka-core' |
-         'jamba-instruct' | 'jamba-1.5-mini' | 'jamba-1.5-large' |
-         'gemma-7b';
+  // NOTE: This is a string (not a union) because available Cortex models vary by Snowflake account/region.
+  model: string;
   
   // Prompt configuration
   systemPrompt: string;       // System message (instructions)
@@ -101,10 +97,50 @@ const modelDisplayNames: Record<string, string> = {
   'gemma-7b': 'Gemma 7B',
 };
 
-export const AgentNode = ({ data, selected }: { data: AgentNodeData; selected?: boolean }) => {
+export const AgentNode = ({ id, data, selected }: { id: string; data: AgentNodeData; selected?: boolean }) => {
   const modelName = modelDisplayNames[data.model] || data.model || 'Mistral Large 2';
   const hasCustomParams = (data.temperature !== undefined && data.temperature !== 0.7) || 
                           (data.maxTokens !== undefined && data.maxTokens !== 4096);
+
+  const { getNodes, getEdges } = useReactFlow();
+  const missingSemanticContext = (() => {
+    try {
+      const nodes = getNodes();
+      const edges = getEdges();
+
+      // Only show the badge if this agent is in a data-driven flow (has a Snowflake Source upstream)
+      // AND there is no Semantic Model upstream.
+      const byId = new Map(nodes.map(n => [n.id, n]));
+      const incomingByTarget = new Map<string, string[]>();
+      for (const e of edges) {
+        if (!incomingByTarget.has(e.target)) incomingByTarget.set(e.target, []);
+        incomingByTarget.get(e.target)!.push(e.source);
+      }
+
+      let hasDataUpstream = false;
+      const visited = new Set<string>();
+      const queue: string[] = [id];
+      while (queue.length) {
+        const cur = queue.shift()!;
+        if (visited.has(cur)) continue;
+        visited.add(cur);
+
+        const incoming = incomingByTarget.get(cur) || [];
+        for (const srcId of incoming) {
+          const src = byId.get(srcId);
+          if (!src) continue;
+          if (src.type === 'semanticModel') return false; // semantic context exists
+          if (src.type === 'snowflakeSource') hasDataUpstream = true;
+          queue.push(srcId);
+        }
+
+        if (visited.size > 50) break; // safety for pathological graphs
+      }
+      return hasDataUpstream;
+    } catch {
+      return false;
+    }
+  })();
   
   // Count enabled tools - handle both array format (from templates) and object format (from UI)
   const enabledTools: string[] = [];
@@ -124,23 +160,23 @@ export const AgentNode = ({ data, selected }: { data: AgentNodeData; selected?: 
   return (
     <div 
       style={{
-        background: '#FFFFFF',
-        border: selected ? '2px solid #8B5CF6' : '1px solid #E5E9F0',
+        background: 'rgb(var(--surface-3))',
+        border: selected ? '2px solid #8B5CF6' : '1px solid rgb(var(--border-strong))',
         borderRadius: 8,
         padding: 12,
         width: 240,
         fontFamily: 'Inter, -apple-system, sans-serif',
-        boxShadow: selected ? '0 4px 12px rgba(139,92,246,0.25)' : '0 1px 3px rgba(0,0,0,0.1)',
+        boxShadow: selected ? '0 10px 26px rgba(0,0,0,0.35)' : '0 8px 20px rgba(0,0,0,0.25)',
       }}
     >
-      <Handle type="target" position={Position.Left} style={{ background: '#8B5CF6', width: 10, height: 10, border: '2px solid white' }} />
+      <Handle type="target" position={Position.Left} style={{ background: '#8B5CF6', width: 10, height: 10, border: '2px solid rgb(var(--handle-border))' }} />
       
       <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
         <div style={{ 
           width: 36, 
           height: 36, 
           borderRadius: 8, 
-          background: '#EDE9FE', 
+          background: 'rgba(139, 92, 246, 0.16)', 
           display: 'flex', 
           alignItems: 'center', 
           justifyContent: 'center' 
@@ -148,21 +184,39 @@ export const AgentNode = ({ data, selected }: { data: AgentNodeData; selected?: 
           <Brain size={18} color="#8B5CF6" />
         </div>
         <div>
-          <div style={{ fontSize: 10, fontWeight: 500, color: '#6B7280', textTransform: 'uppercase', letterSpacing: 0.5 }}>
+          <div style={{ fontSize: 10, fontWeight: 500, color: 'rgb(var(--muted))', textTransform: 'uppercase', letterSpacing: 0.5 }}>
             Cortex Agent
           </div>
-          <div style={{ fontSize: 14, fontWeight: 600, color: '#1F2937' }}>{data.label}</div>
+          <div style={{ fontSize: 14, fontWeight: 600, color: 'rgb(var(--fg))' }}>{data.label}</div>
+          {missingSemanticContext && (
+            <div style={{
+              marginTop: 4,
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 6,
+              padding: '2px 6px',
+              borderRadius: 999,
+              background: 'rgba(245, 158, 11, 0.14)',
+              border: '1px solid rgba(245, 158, 11, 0.35)',
+              color: '#F59E0B',
+              fontSize: 10,
+              fontWeight: 600,
+              letterSpacing: 0.2
+            }}>
+              No semantic context
+            </div>
+          )}
         </div>
       </div>
       
       {/* Model info */}
-      <div style={{ marginTop: 10, padding: 8, background: '#F5F7FA', borderRadius: 6 }}>
-        <div style={{ fontSize: 11, color: '#6B7280', display: 'flex', alignItems: 'center', gap: 4 }}>
+      <div style={{ marginTop: 10, padding: 8, background: 'rgb(var(--surface-2))', borderRadius: 6, border: '1px solid rgb(var(--border))' }}>
+        <div style={{ fontSize: 11, color: 'rgb(var(--muted))', display: 'flex', alignItems: 'center', gap: 4 }}>
           <Sparkles size={12} /> 
           <span style={{ fontWeight: 500 }}>{modelName}</span>
         </div>
         {hasCustomParams && (
-          <div style={{ fontSize: 10, color: '#9CA3AF', marginTop: 4 }}>
+          <div style={{ fontSize: 10, color: 'rgb(var(--muted))', marginTop: 4 }}>
             temp: {data.temperature ?? 0.7} | max: {data.maxTokens ?? 4096}
           </div>
         )}
@@ -170,8 +224,8 @@ export const AgentNode = ({ data, selected }: { data: AgentNodeData; selected?: 
       
       {/* Tools indicator */}
       {enabledTools.length > 0 && (
-        <div style={{ marginTop: 8, padding: '6px 8px', background: '#F0F9FF', borderRadius: 6, border: '1px solid #BAE6FD' }}>
-          <div style={{ fontSize: 10, color: '#0369A1', display: 'flex', alignItems: 'center', gap: 4 }}>
+        <div style={{ marginTop: 8, padding: '6px 8px', background: 'rgb(var(--surface-2))', borderRadius: 6, border: '1px solid rgb(var(--border))' }}>
+          <div style={{ fontSize: 10, color: 'rgb(var(--fg-muted))', display: 'flex', alignItems: 'center', gap: 4 }}>
             <Wrench size={11} />
             <span style={{ fontWeight: 500 }}>Tools:</span>
             <span>{enabledTools.join(', ')}</span>
@@ -181,7 +235,7 @@ export const AgentNode = ({ data, selected }: { data: AgentNodeData; selected?: 
       
       {/* System prompt preview */}
       {data.systemPrompt && (
-        <div style={{ marginTop: 8, fontSize: 11, color: '#6B7280', lineHeight: 1.4 }}>
+        <div style={{ marginTop: 8, fontSize: 11, color: 'rgb(var(--muted))', lineHeight: 1.4 }}>
           {data.systemPrompt.length > 60 ? data.systemPrompt.slice(0, 60) + '...' : data.systemPrompt}
         </div>
       )}
@@ -200,7 +254,7 @@ export const AgentNode = ({ data, selected }: { data: AgentNodeData; selected?: 
         )}
       </div>
       
-      <Handle type="source" position={Position.Right} style={{ background: '#8B5CF6', width: 10, height: 10, border: '2px solid white' }} />
+      <Handle type="source" position={Position.Right} style={{ background: '#8B5CF6', width: 10, height: 10, border: '2px solid rgb(var(--handle-border))' }} />
     </div>
   );
 };

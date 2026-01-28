@@ -107,13 +107,29 @@ Every component shows:
 
 ## Implementation Stages
 
+## Status Update (2026-01-17)
+
+The repo has progressed beyond the original “Week 2 / Stage 1” placeholders. Current highlights:
+- **Workflow save/load**: implemented (JSON storage + UI)
+- **Templates**: implemented (UI + load-to-canvas)
+- **Catalog**: implemented with **demo/fallback** behavior when Snowflake is unreachable
+- **Control Tower (Governance)**: implemented and stabilized (agent registry, audit log, settings editor)
+- **Theming**: Light/Dark toggle implemented; dark surfaces standardized; light mode restored to classic white
+
+## Status Update (2026-01-19)
+
+Additional progress since 2026-01-17:
+- **Manual testing**: Section 5 (Node Configuration) confirmed complete by tester (TEST-5.1 → TEST-5.8).
+- **Canvas UX**: Preview/read-only lock, Miro-style panning, box selection (Shift+drag), edge selection + delete.
+- **External Agents**: Properties dropdown now mirrors the left Components list; preset→custom transitions reset provider/endpoints/auth to prevent confusing visual carryover.
+
 ### Stage 1: Foundation (Current → Week 2)
 - [x] React Flow canvas with drag & drop
 - [x] Basic nodes (Source, Agent, Output)
 - [x] Node detail panel
-- [ ] **Persist workflows** (save/load JSON)
-- [ ] **Backend execution** (actually run LangGraph)
-- [ ] **Snowflake connection** (real data)
+- [x] **Persist workflows** (save/load JSON)
+- [x] **Backend execution** (run workflow via backend)
+- [x] **Snowflake connection** (real data; with fallback paths when unreachable)
 
 ### Stage 2: Component Library (Week 3-4)
 - [ ] All Phase 1 data components
@@ -122,22 +138,22 @@ Every component shows:
 - [ ] Component search/filter in sidebar
 
 ### Stage 3: Agent Builder (Week 5-6)
-- [ ] Custom tool creation UI
+- [x] Custom tool creation UI
 - [ ] Agent configuration (model, tools, instructions)
 - [ ] External agent integration (REST endpoints)
 - [ ] Agent testing sandbox
 
 ### Stage 4: Orchestration (Week 7-8)
-- [ ] Multi-agent routing
-- [ ] Sequential/parallel execution
-- [ ] Supervisor patterns
-- [ ] Human-in-the-loop approvals
+- [x] Multi-agent routing
+- [ ] Sequential/parallel execution (partial; needs refinement)
+- [x] Supervisor patterns
+- [ ] Human-in-the-loop approvals (not implemented)
 
 ### Stage 5: Governance (Week 9-10)
-- [ ] Admin dashboard
-- [ ] Role-based component access
-- [ ] Policy application UI
-- [ ] Audit logging
+- [x] Admin dashboard (Control Tower)
+- [ ] Role-based component access (not implemented)
+- [x] Policy application UI (settings editor + backend persistence; scope = SnowFlow governance controls)
+- [x] Audit logging (Snowflake-backed + local fallback)
 
 ### Stage 6: Production Readiness (Week 11-12)
 - [ ] Workflow versioning

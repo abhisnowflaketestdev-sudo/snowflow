@@ -1,0 +1,1422 @@
+[
+  {
+    "log_id": "30637dcc-ba05-4959-9470-7c9554b1fc01",
+    "action_type": "agent_registered",
+    "entity_type": "agent",
+    "entity_id": "cortex_complete",
+    "entity_name": "Cortex Complete",
+    "actor": "LOCAL_USER",
+    "actor_role": "ADMIN",
+    "status": "success",
+    "details": {
+      "agent_type": "cortex",
+      "initial_status": "active",
+      "storage": "local"
+    },
+    "created_at": "2026-01-09T23:51:07.772303"
+  },
+  {
+    "log_id": "81f8e8d9-4ef7-456c-a5f1-c0cfd4758d47",
+    "action_type": "agent_registered",
+    "entity_type": "agent",
+    "entity_id": "cortex_analyst",
+    "entity_name": "Cortex Analyst",
+    "actor": "LOCAL_USER",
+    "actor_role": "ADMIN",
+    "status": "success",
+    "details": {
+      "agent_type": "cortex",
+      "initial_status": "active",
+      "storage": "local"
+    },
+    "created_at": "2026-01-09T23:51:08.860590"
+  },
+  {
+    "log_id": "d13b4d20-ae3b-42d8-bd10-c041447bc711",
+    "action_type": "agent_registered",
+    "entity_type": "agent",
+    "entity_id": "cortex_search",
+    "entity_name": "Cortex Search",
+    "actor": "LOCAL_USER",
+    "actor_role": "ADMIN",
+    "status": "success",
+    "details": {
+      "agent_type": "cortex",
+      "initial_status": "active",
+      "storage": "local"
+    },
+    "created_at": "2026-01-09T23:51:09.982905"
+  },
+  {
+    "log_id": "919c7b78-efd6-4350-b70c-11ff17aee1a4",
+    "action_type": "agent_registered",
+    "entity_type": "agent",
+    "entity_id": "test_flow_2",
+    "entity_name": "Sales Analyst",
+    "actor": "LOCAL_USER",
+    "actor_role": "ADMIN",
+    "status": "success",
+    "details": {
+      "agent_type": "cortex",
+      "initial_status": "active",
+      "storage": "local"
+    },
+    "created_at": "2026-01-09T23:51:11.040261"
+  },
+  {
+    "log_id": "c3003f87-b59b-4a43-8e07-211202688183",
+    "action_type": "agent_registered",
+    "entity_type": "agent",
+    "entity_id": "dax_translation_mini_test__sales-agent",
+    "entity_name": "\ud83d\udcb0 Sales Agent",
+    "actor": "LOCAL_USER",
+    "actor_role": "ADMIN",
+    "status": "success",
+    "details": {
+      "agent_type": "cortex",
+      "initial_status": "active",
+      "storage": "local"
+    },
+    "created_at": "2026-01-09T23:51:12.138892"
+  },
+  {
+    "log_id": "ecf2b09b-ded9-46fa-a909-667bec00d14b",
+    "action_type": "agent_registered",
+    "entity_type": "agent",
+    "entity_id": "retail_grocer_multi_domain_powerbi_sainsbury's_pbi-copilot",
+    "entity_name": "\ud83d\udfe6 Power BI Copilot",
+    "actor": "LOCAL_USER",
+    "actor_role": "ADMIN",
+    "status": "success",
+    "details": {
+      "agent_type": "external",
+      "initial_status": "pending_approval",
+      "storage": "local"
+    },
+    "created_at": "2026-01-09T23:51:13.244902"
+  },
+  {
+    "log_id": "a87c7b1f-2dfd-4a4c-aad9-3c5968dc4713",
+    "action_type": "agent_registered",
+    "entity_type": "agent",
+    "entity_id": "retail_grocer_multi_domain_powerbi_sainsbury's_ms-fabric-agent",
+    "entity_name": "\ud83d\udfe6 MS Fabric Agent",
+    "actor": "LOCAL_USER",
+    "actor_role": "ADMIN",
+    "status": "success",
+    "details": {
+      "agent_type": "external",
+      "initial_status": "pending_approval",
+      "storage": "local"
+    },
+    "created_at": "2026-01-09T23:51:14.310999"
+  },
+  {
+    "log_id": "85bf1af3-046f-46d6-9eba-3aabc34d98b6",
+    "action_type": "agent_registered",
+    "entity_type": "agent",
+    "entity_id": "retail_grocer_multi_domain_powerbi_sainsbury's_supervisor-retail",
+    "entity_name": "\ud83e\udde0 Retail Supervisor",
+    "actor": "LOCAL_USER",
+    "actor_role": "ADMIN",
+    "status": "success",
+    "details": {
+      "agent_type": "supervisor",
+      "initial_status": "pending_approval",
+      "storage": "local"
+    },
+    "created_at": "2026-01-09T23:51:15.377434"
+  },
+  {
+    "log_id": "98d7bc13-a3f0-45a5-91fb-dc9706962005",
+    "action_type": "agent_registered",
+    "entity_type": "agent",
+    "entity_id": "retail_grocer_multi_domain_powerbi_sainsbury's_agent-sales",
+    "entity_name": "\ud83d\udcb0 Sales Agent",
+    "actor": "LOCAL_USER",
+    "actor_role": "ADMIN",
+    "status": "success",
+    "details": {
+      "agent_type": "cortex",
+      "initial_status": "active",
+      "storage": "local"
+    },
+    "created_at": "2026-01-09T23:51:16.429390"
+  },
+  {
+    "log_id": "31b9c02d-e225-4853-a521-4981a10c02b8",
+    "action_type": "agent_registered",
+    "entity_type": "agent",
+    "entity_id": "retail_grocer_multi_domain_powerbi_sainsbury's_agent-inventory",
+    "entity_name": "\ud83d\udce6 Inventory Agent",
+    "actor": "LOCAL_USER",
+    "actor_role": "ADMIN",
+    "status": "success",
+    "details": {
+      "agent_type": "cortex",
+      "initial_status": "active",
+      "storage": "local"
+    },
+    "created_at": "2026-01-09T23:51:17.483237"
+  },
+  {
+    "log_id": "f0c6ec62-351f-4941-b421-92aa25955848",
+    "action_type": "agent_registered",
+    "entity_type": "agent",
+    "entity_id": "retail_grocer_multi_domain_powerbi_sainsbury's_agent-ops",
+    "entity_name": "\ud83c\udfea Ops Agent",
+    "actor": "LOCAL_USER",
+    "actor_role": "ADMIN",
+    "status": "success",
+    "details": {
+      "agent_type": "cortex",
+      "initial_status": "active",
+      "storage": "local"
+    },
+    "created_at": "2026-01-09T23:51:18.632698"
+  },
+  {
+    "log_id": "ed10fb2a-43e1-4bda-b96a-cbbf9d7e037f",
+    "action_type": "agent_registered",
+    "entity_type": "agent",
+    "entity_id": "retail_grocer_multi_domain_powerbi_sainsbury's_agent-promo",
+    "entity_name": "\ud83c\udff7\ufe0f Promo Agent",
+    "actor": "LOCAL_USER",
+    "actor_role": "ADMIN",
+    "status": "success",
+    "details": {
+      "agent_type": "cortex",
+      "initial_status": "active",
+      "storage": "local"
+    },
+    "created_at": "2026-01-09T23:51:19.734295"
+  },
+  {
+    "log_id": "c3ca7d12-c8e4-48de-830c-3a0f2d10c6e5",
+    "action_type": "agent_registered",
+    "entity_type": "agent",
+    "entity_id": "retail_grocer_multi_domain_powerbi_sainsbury's_agent-customer",
+    "entity_name": "\ud83d\udc65 Customer Agent",
+    "actor": "LOCAL_USER",
+    "actor_role": "ADMIN",
+    "status": "success",
+    "details": {
+      "agent_type": "cortex",
+      "initial_status": "active",
+      "storage": "local"
+    },
+    "created_at": "2026-01-09T23:51:20.828332"
+  },
+  {
+    "log_id": "d5dd30e2-3f13-482f-a272-1d913c0ec9bc",
+    "action_type": "agent_registered",
+    "entity_type": "agent",
+    "entity_id": "retail_grocer_multi_domain_powerbi_sainsbury's_pbi-renderer",
+    "entity_name": "\ud83d\udfe6 PBI Renderer",
+    "actor": "LOCAL_USER",
+    "actor_role": "ADMIN",
+    "status": "success",
+    "details": {
+      "agent_type": "external",
+      "initial_status": "pending_approval",
+      "storage": "local"
+    },
+    "created_at": "2026-01-09T23:51:21.876713"
+  },
+  {
+    "log_id": "5ceb1c15-77d0-43f6-bd1d-537f8476248c",
+    "action_type": "agent_registered",
+    "entity_type": "agent",
+    "entity_id": "retail_grocer_multi_domain_powerbi_sainsbury's_copilot-callback",
+    "entity_name": "\ud83d\udd04 Copilot Callback",
+    "actor": "LOCAL_USER",
+    "actor_role": "ADMIN",
+    "status": "success",
+    "details": {
+      "agent_type": "external",
+      "initial_status": "pending_approval",
+      "storage": "local"
+    },
+    "created_at": "2026-01-09T23:51:22.910749"
+  },
+  {
+    "log_id": "415d79fc-af09-4fcb-a777-c50da1947c05",
+    "action_type": "agent_registered",
+    "entity_type": "agent",
+    "entity_id": "black_friday_postmortem_v1_pbi-copilot",
+    "entity_name": "\ud83d\udfe6 Power BI Copilot",
+    "actor": "LOCAL_USER",
+    "actor_role": "ADMIN",
+    "status": "success",
+    "details": {
+      "agent_type": "external",
+      "initial_status": "pending_approval",
+      "storage": "local"
+    },
+    "created_at": "2026-01-09T23:51:23.977818"
+  },
+  {
+    "log_id": "12259a99-4182-4b48-b77d-74a8a27e5e06",
+    "action_type": "agent_registered",
+    "entity_type": "agent",
+    "entity_id": "black_friday_postmortem_v1_ms-fabric",
+    "entity_name": "\ud83d\udfe6 MS Fabric Agent",
+    "actor": "LOCAL_USER",
+    "actor_role": "ADMIN",
+    "status": "success",
+    "details": {
+      "agent_type": "external",
+      "initial_status": "pending_approval",
+      "storage": "local"
+    },
+    "created_at": "2026-01-09T23:51:25.106596"
+  },
+  {
+    "log_id": "83d00f46-3423-4152-b4e1-c315d80a52b6",
+    "action_type": "agent_registered",
+    "entity_type": "agent",
+    "entity_id": "black_friday_postmortem_v1_market-intel",
+    "entity_name": "\ud83d\udcca Market Intelligence",
+    "actor": "LOCAL_USER",
+    "actor_role": "ADMIN",
+    "status": "success",
+    "details": {
+      "agent_type": "external",
+      "initial_status": "pending_approval",
+      "storage": "local"
+    },
+    "created_at": "2026-01-09T23:51:28.157667"
+  },
+  {
+    "log_id": "5b0c1ad8-6184-43f0-9f0e-b4215ddf43a8",
+    "action_type": "agent_registered",
+    "entity_type": "agent",
+    "entity_id": "black_friday_postmortem_v1_agent-gateway",
+    "entity_name": "\ud83d\udee1\ufe0f Agent Gateway",
+    "actor": "LOCAL_USER",
+    "actor_role": "ADMIN",
+    "status": "success",
+    "details": {
+      "agent_type": "external",
+      "initial_status": "pending_approval",
+      "storage": "local"
+    },
+    "created_at": "2026-01-09T23:51:32.252705"
+  },
+  {
+    "log_id": "636e1dff-0008-45a1-ac67-f0ed7c265828",
+    "action_type": "agent_registered",
+    "entity_type": "agent",
+    "entity_id": "black_friday_postmortem_v1_supervisor",
+    "entity_name": "\ud83e\udde0 Executive Analytics Supervisor",
+    "actor": "LOCAL_USER",
+    "actor_role": "ADMIN",
+    "status": "success",
+    "details": {
+      "agent_type": "supervisor",
+      "initial_status": "pending_approval",
+      "storage": "local"
+    },
+    "created_at": "2026-01-09T23:51:33.553874"
+  },
+  {
+    "log_id": "2f18600b-6b7e-4ba1-89a5-871ac2e548c8",
+    "action_type": "agent_registered",
+    "entity_type": "agent",
+    "entity_id": "black_friday_postmortem_v1_agent-sales",
+    "entity_name": "\ud83d\udcb0 Sales Agent",
+    "actor": "LOCAL_USER",
+    "actor_role": "ADMIN",
+    "status": "success",
+    "details": {
+      "agent_type": "cortex",
+      "initial_status": "active",
+      "storage": "local"
+    },
+    "created_at": "2026-01-09T23:51:34.588824"
+  },
+  {
+    "log_id": "12842760-84fe-484e-ad55-456a8740abff",
+    "action_type": "agent_registered",
+    "entity_type": "agent",
+    "entity_id": "black_friday_postmortem_v1_agent-customer",
+    "entity_name": "\ud83d\udc65 Customer Agent",
+    "actor": "LOCAL_USER",
+    "actor_role": "ADMIN",
+    "status": "success",
+    "details": {
+      "agent_type": "cortex",
+      "initial_status": "active",
+      "storage": "local"
+    },
+    "created_at": "2026-01-09T23:51:35.645778"
+  },
+  {
+    "log_id": "eb69603a-d859-4fe3-a2a2-e3610b0b6cac",
+    "action_type": "agent_registered",
+    "entity_type": "agent",
+    "entity_id": "black_friday_postmortem_v1_agent-inventory",
+    "entity_name": "\ud83d\udce6 Inventory Agent",
+    "actor": "LOCAL_USER",
+    "actor_role": "ADMIN",
+    "status": "success",
+    "details": {
+      "agent_type": "cortex",
+      "initial_status": "active",
+      "storage": "local"
+    },
+    "created_at": "2026-01-09T23:51:36.715007"
+  },
+  {
+    "log_id": "b3ab9a0f-5f5c-404e-a51b-4ffd67aab0e9",
+    "action_type": "agent_registered",
+    "entity_type": "agent",
+    "entity_id": "black_friday_postmortem_v1_agent-promo",
+    "entity_name": "\ud83c\udff7\ufe0f Promo Agent",
+    "actor": "LOCAL_USER",
+    "actor_role": "ADMIN",
+    "status": "success",
+    "details": {
+      "agent_type": "cortex",
+      "initial_status": "active",
+      "storage": "local"
+    },
+    "created_at": "2026-01-09T23:51:37.868523"
+  },
+  {
+    "log_id": "32d1e665-d2d4-4417-82ce-36eef3dff3ca",
+    "action_type": "agent_registered",
+    "entity_type": "agent",
+    "entity_id": "black_friday_postmortem_v1_agent-ops",
+    "entity_name": "\ud83c\udfea Operations Agent",
+    "actor": "LOCAL_USER",
+    "actor_role": "ADMIN",
+    "status": "success",
+    "details": {
+      "agent_type": "cortex",
+      "initial_status": "active",
+      "storage": "local"
+    },
+    "created_at": "2026-01-09T23:51:38.993702"
+  },
+  {
+    "log_id": "c2762b38-e31f-4ade-9e63-502c5e33e360",
+    "action_type": "agent_registered",
+    "entity_type": "agent",
+    "entity_id": "black_friday_postmortem_v1_agent-finance",
+    "entity_name": "\ud83d\udcb5 Finance Agent",
+    "actor": "LOCAL_USER",
+    "actor_role": "ADMIN",
+    "status": "success",
+    "details": {
+      "agent_type": "cortex",
+      "initial_status": "active",
+      "storage": "local"
+    },
+    "created_at": "2026-01-09T23:51:40.056285"
+  },
+  {
+    "log_id": "be8fa52e-f55b-4b58-92fd-959a69aa08bb",
+    "action_type": "agent_registered",
+    "entity_type": "agent",
+    "entity_id": "black_friday_postmortem_v1_pbi-callback",
+    "entity_name": "\ud83d\udd04 Copilot Callback",
+    "actor": "LOCAL_USER",
+    "actor_role": "ADMIN",
+    "status": "success",
+    "details": {
+      "agent_type": "external",
+      "initial_status": "pending_approval",
+      "storage": "local"
+    },
+    "created_at": "2026-01-09T23:51:41.115848"
+  },
+  {
+    "log_id": "d82fa27e-e77c-421e-992f-c7fb3d124575",
+    "action_type": "agent_registered",
+    "entity_type": "agent",
+    "entity_id": "pharma_enterprise_analytics_-_gsk/az_style_veeva-crm",
+    "entity_name": "\ud83d\udc8a Veeva CRM",
+    "actor": "LOCAL_USER",
+    "actor_role": "ADMIN",
+    "status": "success",
+    "details": {
+      "agent_type": "external",
+      "initial_status": "pending_approval",
+      "storage": "local"
+    },
+    "created_at": "2026-01-09T23:51:42.156036"
+  },
+  {
+    "log_id": "a63e29ba-dbf3-461b-bfca-a834f335d19f",
+    "action_type": "agent_registered",
+    "entity_type": "agent",
+    "entity_id": "pharma_enterprise_analytics_-_gsk/az_style_clinical-ctms",
+    "entity_name": "\ud83d\udd2c Clinical CTMS",
+    "actor": "LOCAL_USER",
+    "actor_role": "ADMIN",
+    "status": "success",
+    "details": {
+      "agent_type": "external",
+      "initial_status": "pending_approval",
+      "storage": "local"
+    },
+    "created_at": "2026-01-09T23:51:43.222504"
+  },
+  {
+    "log_id": "be59f851-204a-4b1a-a8bc-f0279eab1062",
+    "action_type": "agent_registered",
+    "entity_type": "agent",
+    "entity_id": "pharma_enterprise_analytics_-_gsk/az_style_sap-mfg",
+    "entity_name": "\ud83c\udfed SAP Manufacturing",
+    "actor": "LOCAL_USER",
+    "actor_role": "ADMIN",
+    "status": "success",
+    "details": {
+      "agent_type": "external",
+      "initial_status": "pending_approval",
+      "storage": "local"
+    },
+    "created_at": "2026-01-09T23:51:44.296438"
+  },
+  {
+    "log_id": "52e172e9-a661-47e1-a294-8576e9d28a56",
+    "action_type": "agent_registered",
+    "entity_type": "agent",
+    "entity_id": "pharma_enterprise_analytics_-_gsk/az_style_agent-gateway",
+    "entity_name": "\ud83d\udee1\ufe0f Pharma Data Gateway",
+    "actor": "LOCAL_USER",
+    "actor_role": "ADMIN",
+    "status": "success",
+    "details": {
+      "agent_type": "external",
+      "initial_status": "pending_approval",
+      "storage": "local"
+    },
+    "created_at": "2026-01-09T23:51:45.364172"
+  },
+  {
+    "log_id": "36035a06-bb5b-45fe-9966-294c00ff4575",
+    "action_type": "agent_registered",
+    "entity_type": "agent",
+    "entity_id": "pharma_enterprise_analytics_-_gsk/az_style_router-therapeutic",
+    "entity_name": "\ud83e\uddec Therapeutic Area Router",
+    "actor": "LOCAL_USER",
+    "actor_role": "ADMIN",
+    "status": "success",
+    "details": {
+      "agent_type": "router",
+      "initial_status": "pending_approval",
+      "storage": "local"
+    },
+    "created_at": "2026-01-09T23:51:46.498623"
+  },
+  {
+    "log_id": "c66ee2da-8b90-435b-8757-7a9e8ecaaf00",
+    "action_type": "agent_registered",
+    "entity_type": "agent",
+    "entity_id": "pharma_enterprise_analytics_-_gsk/az_style_supervisor",
+    "entity_name": "\ud83e\udde0 Chief Scientific Officer AI",
+    "actor": "LOCAL_USER",
+    "actor_role": "ADMIN",
+    "status": "success",
+    "details": {
+      "agent_type": "supervisor",
+      "initial_status": "pending_approval",
+      "storage": "local"
+    },
+    "created_at": "2026-01-09T23:51:47.618092"
+  },
+  {
+    "log_id": "160a851f-9b30-44fc-91bd-7eb12b564b19",
+    "action_type": "agent_registered",
+    "entity_type": "agent",
+    "entity_id": "pharma_enterprise_analytics_-_gsk/az_style_agent-clinical",
+    "entity_name": "\ud83d\udd2c Clinical Development Agent",
+    "actor": "LOCAL_USER",
+    "actor_role": "ADMIN",
+    "status": "success",
+    "details": {
+      "agent_type": "cortex",
+      "initial_status": "active",
+      "storage": "local"
+    },
+    "created_at": "2026-01-09T23:51:48.940461"
+  },
+  {
+    "log_id": "cb94403e-9641-4179-ba1e-c0d20d55226a",
+    "action_type": "agent_registered",
+    "entity_type": "agent",
+    "entity_id": "pharma_enterprise_analytics_-_gsk/az_style_agent-manufacturing",
+    "entity_name": "\ud83c\udfed Manufacturing Excellence Agent",
+    "actor": "LOCAL_USER",
+    "actor_role": "ADMIN",
+    "status": "success",
+    "details": {
+      "agent_type": "cortex",
+      "initial_status": "active",
+      "storage": "local"
+    },
+    "created_at": "2026-01-09T23:51:50.001014"
+  },
+  {
+    "log_id": "202480d3-934e-42f5-9f67-f7fc9a6d9d05",
+    "action_type": "agent_registered",
+    "entity_type": "agent",
+    "entity_id": "pharma_enterprise_analytics_-_gsk/az_style_agent-commercial",
+    "entity_name": "\ud83d\udcb0 Commercial Analytics Agent",
+    "actor": "LOCAL_USER",
+    "actor_role": "ADMIN",
+    "status": "success",
+    "details": {
+      "agent_type": "cortex",
+      "initial_status": "active",
+      "storage": "local"
+    },
+    "created_at": "2026-01-09T23:51:51.012752"
+  },
+  {
+    "log_id": "1992ce8a-2407-47ec-b8b8-417c286d5f89",
+    "action_type": "agent_registered",
+    "entity_type": "agent",
+    "entity_id": "pharma_enterprise_analytics_-_gsk/az_style_agent-safety",
+    "entity_name": "\u26a0\ufe0f Pharmacovigilance Agent",
+    "actor": "LOCAL_USER",
+    "actor_role": "ADMIN",
+    "status": "success",
+    "details": {
+      "agent_type": "cortex",
+      "initial_status": "active",
+      "storage": "local"
+    },
+    "created_at": "2026-01-09T23:51:52.094103"
+  },
+  {
+    "log_id": "ac347ce5-934e-452d-9be3-9da76413384d",
+    "action_type": "agent_registered",
+    "entity_type": "agent",
+    "entity_id": "pharma_enterprise_analytics_-_gsk/az_style_agent-supply",
+    "entity_name": "\ud83d\udce6 Supply Chain Agent",
+    "actor": "LOCAL_USER",
+    "actor_role": "ADMIN",
+    "status": "success",
+    "details": {
+      "agent_type": "cortex",
+      "initial_status": "active",
+      "storage": "local"
+    },
+    "created_at": "2026-01-09T23:51:57.139258"
+  },
+  {
+    "log_id": "767db3c0-cee1-4285-b004-473f6d07a209",
+    "action_type": "agent_registered",
+    "entity_type": "agent",
+    "entity_id": "pharma_enterprise_analytics_-_gsk/az_style_agent-finance",
+    "entity_name": "\ud83d\udcb5 Finance Agent",
+    "actor": "LOCAL_USER",
+    "actor_role": "ADMIN",
+    "status": "success",
+    "details": {
+      "agent_type": "cortex",
+      "initial_status": "active",
+      "storage": "local"
+    },
+    "created_at": "2026-01-09T23:51:58.223290"
+  },
+  {
+    "log_id": "67d0be9f-cd86-4b27-b33b-0ab1f64967d8",
+    "action_type": "agent_registered",
+    "entity_type": "agent",
+    "entity_id": "pharma_enterprise_analytics_-_gsk/az_style_agent-oncology",
+    "entity_name": "\ud83c\udf97\ufe0f Oncology Specialist",
+    "actor": "LOCAL_USER",
+    "actor_role": "ADMIN",
+    "status": "success",
+    "details": {
+      "agent_type": "cortex",
+      "initial_status": "active",
+      "storage": "local"
+    },
+    "created_at": "2026-01-09T23:51:59.273373"
+  },
+  {
+    "log_id": "ca7b956d-7e94-4fba-ab6a-a76d7ad1f381",
+    "action_type": "agent_registered",
+    "entity_type": "agent",
+    "entity_id": "pharma_enterprise_analytics_-_gsk/az_style_agent-immunology",
+    "entity_name": "\ud83d\udee1\ufe0f Immunology Specialist",
+    "actor": "LOCAL_USER",
+    "actor_role": "ADMIN",
+    "status": "success",
+    "details": {
+      "agent_type": "cortex",
+      "initial_status": "active",
+      "storage": "local"
+    },
+    "created_at": "2026-01-09T23:52:00.376985"
+  },
+  {
+    "log_id": "b603bfc4-ba55-4789-a490-7f715c36ac6f",
+    "action_type": "agent_registered",
+    "entity_type": "agent",
+    "entity_id": "pharma_enterprise_analytics_-_gsk/az_style_agent-rare-disease",
+    "entity_name": "\ud83e\uddec Rare Disease Specialist",
+    "actor": "LOCAL_USER",
+    "actor_role": "ADMIN",
+    "status": "success",
+    "details": {
+      "agent_type": "cortex",
+      "initial_status": "active",
+      "storage": "local"
+    },
+    "created_at": "2026-01-09T23:52:01.753624"
+  },
+  {
+    "log_id": "91635bbc-984c-4788-a7dd-63ab10544f35",
+    "action_type": "agent_registered",
+    "entity_type": "agent",
+    "entity_id": "pharma_enterprise_analytics_-_gsk/az_style_agent-vaccines",
+    "entity_name": "\ud83d\udc89 Vaccines Specialist",
+    "actor": "LOCAL_USER",
+    "actor_role": "ADMIN",
+    "status": "success",
+    "details": {
+      "agent_type": "cortex",
+      "initial_status": "active",
+      "storage": "local"
+    },
+    "created_at": "2026-01-09T23:52:02.835893"
+  },
+  {
+    "log_id": "8f7febd2-3f2c-4cb2-9648-5afd952d4faf",
+    "action_type": "agent_registered",
+    "entity_type": "agent",
+    "entity_id": "pharma_enterprise_analytics_-_gsk/az_style_regulatory-callback",
+    "entity_name": "\ud83d\udccb Regulatory Compliance Check",
+    "actor": "LOCAL_USER",
+    "actor_role": "ADMIN",
+    "status": "success",
+    "details": {
+      "agent_type": "external",
+      "initial_status": "pending_approval",
+      "storage": "local"
+    },
+    "created_at": "2026-01-09T23:52:03.876790"
+  },
+  {
+    "log_id": "8f08301d-4951-43ca-8216-ef5733cbd718",
+    "action_type": "agent_registered",
+    "entity_type": "agent",
+    "entity_id": "external_test_1",
+    "entity_name": "External OpenAI Agent",
+    "actor": "LOCAL_USER",
+    "actor_role": "ADMIN",
+    "status": "success",
+    "details": {
+      "agent_type": "external",
+      "initial_status": "pending_approval",
+      "storage": "local"
+    },
+    "created_at": "2026-01-09T23:52:32.027849"
+  },
+  {
+    "log_id": "fc125d73-f658-4ec2-8992-b07a89246f92",
+    "action_type": "agent_approved",
+    "entity_type": "agent",
+    "entity_id": "external_test_1",
+    "entity_name": "External OpenAI Agent",
+    "actor": "LOCAL_USER",
+    "actor_role": "ADMIN",
+    "status": "success",
+    "details": {
+      "approved_by": "Admin",
+      "storage": "local"
+    },
+    "created_at": "2026-01-09T23:52:48.902810"
+  },
+  {
+    "log_id": "1d5a7066-d2c3-467c-96d6-9043ad9c50aa",
+    "action_type": "agent_approved",
+    "entity_type": "agent",
+    "entity_id": "retail_grocer_multi_domain_powerbi_sainsbury's_pbi-copilot",
+    "entity_name": "\ud83d\udfe6 Power BI Copilot",
+    "actor": "LOCAL_USER",
+    "actor_role": "ADMIN",
+    "status": "success",
+    "details": {
+      "approved_by": "Admin",
+      "storage": "local"
+    },
+    "created_at": "2026-01-10T00:52:27.044663"
+  },
+  {
+    "log_id": "baadb075-f3ba-4afd-be2e-2a97c6db1fc2",
+    "action_type": "agent_registered",
+    "entity_type": "agent",
+    "entity_id": "cortex_complete",
+    "entity_name": "Cortex Complete",
+    "actor": "LOCAL_USER",
+    "actor_role": "ADMIN",
+    "status": "success",
+    "details": {
+      "agent_type": "cortex",
+      "initial_status": "active"
+    },
+    "created_at": "2026-01-14T18:08:00.100190"
+  },
+  {
+    "log_id": "1b0e2ab9-bbee-48be-b02f-b7cfb3a31c08",
+    "action_type": "agent_registered",
+    "entity_type": "agent",
+    "entity_id": "cortex_analyst",
+    "entity_name": "Cortex Analyst",
+    "actor": "LOCAL_USER",
+    "actor_role": "ADMIN",
+    "status": "success",
+    "details": {
+      "agent_type": "cortex",
+      "initial_status": "active"
+    },
+    "created_at": "2026-01-14T18:08:05.837640"
+  },
+  {
+    "log_id": "89642056-b54a-47af-9610-d6abb1bc2286",
+    "action_type": "agent_registered",
+    "entity_type": "agent",
+    "entity_id": "cortex_search",
+    "entity_name": "Cortex Search",
+    "actor": "LOCAL_USER",
+    "actor_role": "ADMIN",
+    "status": "success",
+    "details": {
+      "agent_type": "cortex",
+      "initial_status": "active"
+    },
+    "created_at": "2026-01-14T18:08:11.485028"
+  },
+  {
+    "log_id": "1c1ee484-7edd-4886-807f-11a3b5092996",
+    "action_type": "agent_registered",
+    "entity_type": "agent",
+    "entity_id": "test_flow_2",
+    "entity_name": "Sales Analyst",
+    "actor": "LOCAL_USER",
+    "actor_role": "ADMIN",
+    "status": "success",
+    "details": {
+      "agent_type": "cortex",
+      "initial_status": "active"
+    },
+    "created_at": "2026-01-14T18:08:17.491645"
+  },
+  {
+    "log_id": "0e83ef5c-ff5f-4e9e-8a83-d5626866f2e1",
+    "action_type": "agent_registered",
+    "entity_type": "agent",
+    "entity_id": "dax_translation_mini_test__sales-agent",
+    "entity_name": "\ud83d\udcb0 Sales Agent",
+    "actor": "LOCAL_USER",
+    "actor_role": "ADMIN",
+    "status": "success",
+    "details": {
+      "agent_type": "cortex",
+      "initial_status": "active"
+    },
+    "created_at": "2026-01-14T18:08:23.946431"
+  },
+  {
+    "log_id": "e382ac25-13f4-4444-a455-ed3d560a4570",
+    "action_type": "agent_registered",
+    "entity_type": "agent",
+    "entity_id": "retail_grocer_multi_domain_powerbi_sainsbury's_pbi-copilot",
+    "entity_name": "\ud83d\udfe6 Power BI Copilot",
+    "actor": "LOCAL_USER",
+    "actor_role": "ADMIN",
+    "status": "success",
+    "details": {
+      "agent_type": "external",
+      "initial_status": "pending_approval",
+      "storage": "local"
+    },
+    "created_at": "2026-01-14T18:08:29.095980"
+  },
+  {
+    "log_id": "6f0ec67f-d20c-4061-97e5-93d2acb717e7",
+    "action_type": "agent_registered",
+    "entity_type": "agent",
+    "entity_id": "retail_grocer_multi_domain_powerbi_sainsbury's_ms-fabric-agent",
+    "entity_name": "\ud83d\udfe6 MS Fabric Agent",
+    "actor": "LOCAL_USER",
+    "actor_role": "ADMIN",
+    "status": "success",
+    "details": {
+      "agent_type": "external",
+      "initial_status": "pending_approval",
+      "storage": "local"
+    },
+    "created_at": "2026-01-14T18:08:34.425392"
+  },
+  {
+    "log_id": "6db54a8a-9bbd-486a-9944-0ba58e0fc94a",
+    "action_type": "agent_registered",
+    "entity_type": "agent",
+    "entity_id": "retail_grocer_multi_domain_powerbi_sainsbury's_supervisor-retail",
+    "entity_name": "\ud83e\udde0 Retail Supervisor",
+    "actor": "LOCAL_USER",
+    "actor_role": "ADMIN",
+    "status": "success",
+    "details": {
+      "agent_type": "supervisor",
+      "initial_status": "pending_approval",
+      "storage": "local"
+    },
+    "created_at": "2026-01-14T18:08:39.768434"
+  },
+  {
+    "log_id": "6f0660fc-f043-4c83-bd01-7b9f76b5656b",
+    "action_type": "agent_registered",
+    "entity_type": "agent",
+    "entity_id": "retail_grocer_multi_domain_powerbi_sainsbury's_agent-sales",
+    "entity_name": "\ud83d\udcb0 Sales Agent",
+    "actor": "LOCAL_USER",
+    "actor_role": "ADMIN",
+    "status": "success",
+    "details": {
+      "agent_type": "cortex",
+      "initial_status": "active",
+      "storage": "local"
+    },
+    "created_at": "2026-01-14T18:08:45.298426"
+  },
+  {
+    "log_id": "a4b6149b-6d2b-400d-b71e-b4e31070a274",
+    "action_type": "agent_registered",
+    "entity_type": "agent",
+    "entity_id": "retail_grocer_multi_domain_powerbi_sainsbury's_agent-inventory",
+    "entity_name": "\ud83d\udce6 Inventory Agent",
+    "actor": "LOCAL_USER",
+    "actor_role": "ADMIN",
+    "status": "success",
+    "details": {
+      "agent_type": "cortex",
+      "initial_status": "active",
+      "storage": "local"
+    },
+    "created_at": "2026-01-14T18:08:50.487853"
+  },
+  {
+    "log_id": "56c6d36e-970f-4c43-8b4a-2759efa77baa",
+    "action_type": "agent_registered",
+    "entity_type": "agent",
+    "entity_id": "retail_grocer_multi_domain_powerbi_sainsbury's_agent-ops",
+    "entity_name": "\ud83c\udfea Ops Agent",
+    "actor": "LOCAL_USER",
+    "actor_role": "ADMIN",
+    "status": "success",
+    "details": {
+      "agent_type": "cortex",
+      "initial_status": "active",
+      "storage": "local"
+    },
+    "created_at": "2026-01-14T18:08:55.905465"
+  },
+  {
+    "log_id": "616cf780-57bb-4a37-9c00-c18a8d647b9a",
+    "action_type": "agent_registered",
+    "entity_type": "agent",
+    "entity_id": "retail_grocer_multi_domain_powerbi_sainsbury's_agent-promo",
+    "entity_name": "\ud83c\udff7\ufe0f Promo Agent",
+    "actor": "LOCAL_USER",
+    "actor_role": "ADMIN",
+    "status": "success",
+    "details": {
+      "agent_type": "cortex",
+      "initial_status": "active",
+      "storage": "local"
+    },
+    "created_at": "2026-01-14T18:09:01.342139"
+  },
+  {
+    "log_id": "109a9004-6a03-4c04-82cf-0f15da93c49c",
+    "action_type": "agent_registered",
+    "entity_type": "agent",
+    "entity_id": "retail_grocer_multi_domain_powerbi_sainsbury's_agent-customer",
+    "entity_name": "\ud83d\udc65 Customer Agent",
+    "actor": "LOCAL_USER",
+    "actor_role": "ADMIN",
+    "status": "success",
+    "details": {
+      "agent_type": "cortex",
+      "initial_status": "active",
+      "storage": "local"
+    },
+    "created_at": "2026-01-14T18:09:06.926757"
+  },
+  {
+    "log_id": "59a3f21d-ffaa-43ef-96d2-91806d55ce18",
+    "action_type": "agent_registered",
+    "entity_type": "agent",
+    "entity_id": "retail_grocer_multi_domain_powerbi_sainsbury's_pbi-renderer",
+    "entity_name": "\ud83d\udfe6 PBI Renderer",
+    "actor": "LOCAL_USER",
+    "actor_role": "ADMIN",
+    "status": "success",
+    "details": {
+      "agent_type": "external",
+      "initial_status": "pending_approval",
+      "storage": "local"
+    },
+    "created_at": "2026-01-14T18:09:12.174926"
+  },
+  {
+    "log_id": "cb787ac5-196a-4c79-8f69-caec4ce7db7a",
+    "action_type": "agent_registered",
+    "entity_type": "agent",
+    "entity_id": "retail_grocer_multi_domain_powerbi_sainsbury's_copilot-callback",
+    "entity_name": "\ud83d\udd04 Copilot Callback",
+    "actor": "LOCAL_USER",
+    "actor_role": "ADMIN",
+    "status": "success",
+    "details": {
+      "agent_type": "external",
+      "initial_status": "pending_approval",
+      "storage": "local"
+    },
+    "created_at": "2026-01-14T18:09:17.714274"
+  },
+  {
+    "log_id": "c85d9c74-9f67-4914-9e3c-90eb4326865b",
+    "action_type": "agent_registered",
+    "entity_type": "agent",
+    "entity_id": "black_friday_postmortem_v1_pbi-copilot",
+    "entity_name": "\ud83d\udfe6 Power BI Copilot",
+    "actor": "LOCAL_USER",
+    "actor_role": "ADMIN",
+    "status": "success",
+    "details": {
+      "agent_type": "external",
+      "initial_status": "pending_approval"
+    },
+    "created_at": "2026-01-14T18:09:23.484768"
+  },
+  {
+    "log_id": "9ca795be-ce01-431d-87e6-b8ac27e50e53",
+    "action_type": "agent_registered",
+    "entity_type": "agent",
+    "entity_id": "black_friday_postmortem_v1_ms-fabric",
+    "entity_name": "\ud83d\udfe6 MS Fabric Agent",
+    "actor": "LOCAL_USER",
+    "actor_role": "ADMIN",
+    "status": "success",
+    "details": {
+      "agent_type": "external",
+      "initial_status": "pending_approval"
+    },
+    "created_at": "2026-01-14T18:09:29.218957"
+  },
+  {
+    "log_id": "b198581b-7ab3-48ea-beaa-cec348f0ad1a",
+    "action_type": "agent_registered",
+    "entity_type": "agent",
+    "entity_id": "black_friday_postmortem_v1_market-intel",
+    "entity_name": "\ud83d\udcca Market Intelligence",
+    "actor": "LOCAL_USER",
+    "actor_role": "ADMIN",
+    "status": "success",
+    "details": {
+      "agent_type": "external",
+      "initial_status": "pending_approval"
+    },
+    "created_at": "2026-01-14T18:09:35.584988"
+  },
+  {
+    "log_id": "35466306-0dfe-4937-b600-f8e06eb7adf6",
+    "action_type": "agent_registered",
+    "entity_type": "agent",
+    "entity_id": "black_friday_postmortem_v1_agent-gateway",
+    "entity_name": "\ud83d\udee1\ufe0f Agent Gateway",
+    "actor": "LOCAL_USER",
+    "actor_role": "ADMIN",
+    "status": "success",
+    "details": {
+      "agent_type": "external",
+      "initial_status": "pending_approval"
+    },
+    "created_at": "2026-01-14T18:09:42.248954"
+  },
+  {
+    "log_id": "01c4cfd7-c748-48dc-8447-64f5d49cc447",
+    "action_type": "agent_registered",
+    "entity_type": "agent",
+    "entity_id": "black_friday_postmortem_v1_supervisor",
+    "entity_name": "\ud83e\udde0 Executive Analytics Supervisor",
+    "actor": "LOCAL_USER",
+    "actor_role": "ADMIN",
+    "status": "success",
+    "details": {
+      "agent_type": "supervisor",
+      "initial_status": "pending_approval"
+    },
+    "created_at": "2026-01-14T18:09:47.946226"
+  },
+  {
+    "log_id": "ca0012ee-3115-45a9-a367-fffcf3fef8e5",
+    "action_type": "agent_registered",
+    "entity_type": "agent",
+    "entity_id": "black_friday_postmortem_v1_agent-sales",
+    "entity_name": "\ud83d\udcb0 Sales Agent",
+    "actor": "LOCAL_USER",
+    "actor_role": "ADMIN",
+    "status": "success",
+    "details": {
+      "agent_type": "cortex",
+      "initial_status": "active"
+    },
+    "created_at": "2026-01-14T18:09:53.842892"
+  },
+  {
+    "log_id": "1ad4b825-f30d-4859-b667-e97031f18781",
+    "action_type": "agent_registered",
+    "entity_type": "agent",
+    "entity_id": "black_friday_postmortem_v1_agent-customer",
+    "entity_name": "\ud83d\udc65 Customer Agent",
+    "actor": "LOCAL_USER",
+    "actor_role": "ADMIN",
+    "status": "success",
+    "details": {
+      "agent_type": "cortex",
+      "initial_status": "active"
+    },
+    "created_at": "2026-01-14T18:09:59.599175"
+  },
+  {
+    "log_id": "46e790d7-87de-4ca7-a8af-4a0b6fc93ded",
+    "action_type": "agent_registered",
+    "entity_type": "agent",
+    "entity_id": "black_friday_postmortem_v1_agent-inventory",
+    "entity_name": "\ud83d\udce6 Inventory Agent",
+    "actor": "LOCAL_USER",
+    "actor_role": "ADMIN",
+    "status": "success",
+    "details": {
+      "agent_type": "cortex",
+      "initial_status": "active"
+    },
+    "created_at": "2026-01-14T18:10:05.330605"
+  },
+  {
+    "log_id": "cd581525-bf40-4f40-8b90-f75d66757e85",
+    "action_type": "agent_registered",
+    "entity_type": "agent",
+    "entity_id": "black_friday_postmortem_v1_agent-promo",
+    "entity_name": "\ud83c\udff7\ufe0f Promo Agent",
+    "actor": "LOCAL_USER",
+    "actor_role": "ADMIN",
+    "status": "success",
+    "details": {
+      "agent_type": "cortex",
+      "initial_status": "active"
+    },
+    "created_at": "2026-01-14T18:10:11.100626"
+  },
+  {
+    "log_id": "d7f4cbd7-416a-476c-be22-15c77e830e2f",
+    "action_type": "agent_registered",
+    "entity_type": "agent",
+    "entity_id": "black_friday_postmortem_v1_agent-ops",
+    "entity_name": "\ud83c\udfea Operations Agent",
+    "actor": "LOCAL_USER",
+    "actor_role": "ADMIN",
+    "status": "success",
+    "details": {
+      "agent_type": "cortex",
+      "initial_status": "active"
+    },
+    "created_at": "2026-01-14T18:10:17.081960"
+  },
+  {
+    "log_id": "5d5f803e-93dd-482c-8eef-1a63c0c37cd4",
+    "action_type": "agent_registered",
+    "entity_type": "agent",
+    "entity_id": "black_friday_postmortem_v1_agent-finance",
+    "entity_name": "\ud83d\udcb5 Finance Agent",
+    "actor": "LOCAL_USER",
+    "actor_role": "ADMIN",
+    "status": "success",
+    "details": {
+      "agent_type": "cortex",
+      "initial_status": "active"
+    },
+    "created_at": "2026-01-14T18:10:22.812271"
+  },
+  {
+    "log_id": "8de942e4-8742-4e87-b2d4-76fd4db51ac7",
+    "action_type": "agent_registered",
+    "entity_type": "agent",
+    "entity_id": "black_friday_postmortem_v1_pbi-callback",
+    "entity_name": "\ud83d\udd04 Copilot Callback",
+    "actor": "LOCAL_USER",
+    "actor_role": "ADMIN",
+    "status": "success",
+    "details": {
+      "agent_type": "external",
+      "initial_status": "pending_approval"
+    },
+    "created_at": "2026-01-14T18:10:28.891206"
+  },
+  {
+    "log_id": "5ed5a687-05d8-4d79-9ba6-bbc5b3b64f4b",
+    "action_type": "agent_registered",
+    "entity_type": "agent",
+    "entity_id": "pharma_enterprise_analytics_-_gsk/az_style_veeva-crm",
+    "entity_name": "\ud83d\udc8a Veeva CRM",
+    "actor": "LOCAL_USER",
+    "actor_role": "ADMIN",
+    "status": "success",
+    "details": {
+      "agent_type": "external",
+      "initial_status": "pending_approval"
+    },
+    "created_at": "2026-01-14T18:10:34.640623"
+  },
+  {
+    "log_id": "93f1fa1c-b2dd-4e0b-9684-5ed586f2a83f",
+    "action_type": "agent_registered",
+    "entity_type": "agent",
+    "entity_id": "pharma_enterprise_analytics_-_gsk/az_style_clinical-ctms",
+    "entity_name": "\ud83d\udd2c Clinical CTMS",
+    "actor": "LOCAL_USER",
+    "actor_role": "ADMIN",
+    "status": "success",
+    "details": {
+      "agent_type": "external",
+      "initial_status": "pending_approval"
+    },
+    "created_at": "2026-01-14T18:10:40.530516"
+  },
+  {
+    "log_id": "815a3319-5776-4501-a0ea-1c39eb55dedf",
+    "action_type": "agent_registered",
+    "entity_type": "agent",
+    "entity_id": "pharma_enterprise_analytics_-_gsk/az_style_sap-mfg",
+    "entity_name": "\ud83c\udfed SAP Manufacturing",
+    "actor": "LOCAL_USER",
+    "actor_role": "ADMIN",
+    "status": "success",
+    "details": {
+      "agent_type": "external",
+      "initial_status": "pending_approval"
+    },
+    "created_at": "2026-01-14T18:10:46.477719"
+  },
+  {
+    "log_id": "5eb5f454-62c6-4ad8-87ea-225c34068926",
+    "action_type": "agent_registered",
+    "entity_type": "agent",
+    "entity_id": "pharma_enterprise_analytics_-_gsk/az_style_agent-gateway",
+    "entity_name": "\ud83d\udee1\ufe0f Pharma Data Gateway",
+    "actor": "LOCAL_USER",
+    "actor_role": "ADMIN",
+    "status": "success",
+    "details": {
+      "agent_type": "external",
+      "initial_status": "pending_approval"
+    },
+    "created_at": "2026-01-14T18:10:52.218939"
+  },
+  {
+    "log_id": "a2c03d0e-41d6-4140-bba8-18b58e532c12",
+    "action_type": "agent_registered",
+    "entity_type": "agent",
+    "entity_id": "pharma_enterprise_analytics_-_gsk/az_style_router-therapeutic",
+    "entity_name": "\ud83e\uddec Therapeutic Area Router",
+    "actor": "LOCAL_USER",
+    "actor_role": "ADMIN",
+    "status": "success",
+    "details": {
+      "agent_type": "router",
+      "initial_status": "pending_approval"
+    },
+    "created_at": "2026-01-14T18:10:59.012037"
+  },
+  {
+    "log_id": "b66ce4d3-0ec1-494b-8b66-7af9d983eba8",
+    "action_type": "agent_registered",
+    "entity_type": "agent",
+    "entity_id": "pharma_enterprise_analytics_-_gsk/az_style_supervisor",
+    "entity_name": "\ud83e\udde0 Chief Scientific Officer AI",
+    "actor": "LOCAL_USER",
+    "actor_role": "ADMIN",
+    "status": "success",
+    "details": {
+      "agent_type": "supervisor",
+      "initial_status": "pending_approval"
+    },
+    "created_at": "2026-01-14T18:11:05.162215"
+  },
+  {
+    "log_id": "95f82fa5-9d73-4182-afc4-424db5010ee2",
+    "action_type": "agent_registered",
+    "entity_type": "agent",
+    "entity_id": "pharma_enterprise_analytics_-_gsk/az_style_agent-clinical",
+    "entity_name": "\ud83d\udd2c Clinical Development Agent",
+    "actor": "LOCAL_USER",
+    "actor_role": "ADMIN",
+    "status": "success",
+    "details": {
+      "agent_type": "cortex",
+      "initial_status": "active"
+    },
+    "created_at": "2026-01-14T18:11:11.206177"
+  },
+  {
+    "log_id": "cf225bbf-4779-42c9-ab50-46ff8c68c005",
+    "action_type": "agent_registered",
+    "entity_type": "agent",
+    "entity_id": "pharma_enterprise_analytics_-_gsk/az_style_agent-manufacturing",
+    "entity_name": "\ud83c\udfed Manufacturing Excellence Agent",
+    "actor": "LOCAL_USER",
+    "actor_role": "ADMIN",
+    "status": "success",
+    "details": {
+      "agent_type": "cortex",
+      "initial_status": "active"
+    },
+    "created_at": "2026-01-14T18:11:17.007994"
+  },
+  {
+    "log_id": "53052ee5-c0be-443f-9a4c-48fffecd42d5",
+    "action_type": "agent_registered",
+    "entity_type": "agent",
+    "entity_id": "pharma_enterprise_analytics_-_gsk/az_style_agent-commercial",
+    "entity_name": "\ud83d\udcb0 Commercial Analytics Agent",
+    "actor": "LOCAL_USER",
+    "actor_role": "ADMIN",
+    "status": "success",
+    "details": {
+      "agent_type": "cortex",
+      "initial_status": "active"
+    },
+    "created_at": "2026-01-14T18:11:23.056115"
+  },
+  {
+    "log_id": "6ea109bf-9fe5-4ece-ab17-439188020fd9",
+    "action_type": "agent_registered",
+    "entity_type": "agent",
+    "entity_id": "pharma_enterprise_analytics_-_gsk/az_style_agent-safety",
+    "entity_name": "\u26a0\ufe0f Pharmacovigilance Agent",
+    "actor": "LOCAL_USER",
+    "actor_role": "ADMIN",
+    "status": "success",
+    "details": {
+      "agent_type": "cortex",
+      "initial_status": "active"
+    },
+    "created_at": "2026-01-14T18:11:28.725596"
+  },
+  {
+    "log_id": "cdcf082a-ed15-4c15-b87a-99de21b0abab",
+    "action_type": "agent_registered",
+    "entity_type": "agent",
+    "entity_id": "pharma_enterprise_analytics_-_gsk/az_style_agent-supply",
+    "entity_name": "\ud83d\udce6 Supply Chain Agent",
+    "actor": "LOCAL_USER",
+    "actor_role": "ADMIN",
+    "status": "success",
+    "details": {
+      "agent_type": "cortex",
+      "initial_status": "active"
+    },
+    "created_at": "2026-01-14T18:11:34.550187"
+  },
+  {
+    "log_id": "7716be31-2b72-4178-8a09-b91a623d6c87",
+    "action_type": "agent_registered",
+    "entity_type": "agent",
+    "entity_id": "pharma_enterprise_analytics_-_gsk/az_style_agent-finance",
+    "entity_name": "\ud83d\udcb5 Finance Agent",
+    "actor": "LOCAL_USER",
+    "actor_role": "ADMIN",
+    "status": "success",
+    "details": {
+      "agent_type": "cortex",
+      "initial_status": "active"
+    },
+    "created_at": "2026-01-14T18:11:40.464638"
+  },
+  {
+    "log_id": "0c75ab0a-8798-4158-8b03-203a3eb3b25a",
+    "action_type": "agent_registered",
+    "entity_type": "agent",
+    "entity_id": "pharma_enterprise_analytics_-_gsk/az_style_agent-oncology",
+    "entity_name": "\ud83c\udf97\ufe0f Oncology Specialist",
+    "actor": "LOCAL_USER",
+    "actor_role": "ADMIN",
+    "status": "success",
+    "details": {
+      "agent_type": "cortex",
+      "initial_status": "active"
+    },
+    "created_at": "2026-01-14T18:11:46.599994"
+  },
+  {
+    "log_id": "f3835fb7-2cf1-445a-8931-0e5a7df7da7c",
+    "action_type": "agent_registered",
+    "entity_type": "agent",
+    "entity_id": "pharma_enterprise_analytics_-_gsk/az_style_agent-immunology",
+    "entity_name": "\ud83d\udee1\ufe0f Immunology Specialist",
+    "actor": "LOCAL_USER",
+    "actor_role": "ADMIN",
+    "status": "success",
+    "details": {
+      "agent_type": "cortex",
+      "initial_status": "active"
+    },
+    "created_at": "2026-01-14T18:11:52.385097"
+  },
+  {
+    "log_id": "f7a05150-a68d-4ad6-bde7-d54b689b3ce8",
+    "action_type": "agent_registered",
+    "entity_type": "agent",
+    "entity_id": "pharma_enterprise_analytics_-_gsk/az_style_agent-rare-disease",
+    "entity_name": "\ud83e\uddec Rare Disease Specialist",
+    "actor": "LOCAL_USER",
+    "actor_role": "ADMIN",
+    "status": "success",
+    "details": {
+      "agent_type": "cortex",
+      "initial_status": "active"
+    },
+    "created_at": "2026-01-14T18:11:58.191086"
+  },
+  {
+    "log_id": "8e6743b7-228b-4c46-a23f-4787294db47f",
+    "action_type": "agent_registered",
+    "entity_type": "agent",
+    "entity_id": "pharma_enterprise_analytics_-_gsk/az_style_agent-vaccines",
+    "entity_name": "\ud83d\udc89 Vaccines Specialist",
+    "actor": "LOCAL_USER",
+    "actor_role": "ADMIN",
+    "status": "success",
+    "details": {
+      "agent_type": "cortex",
+      "initial_status": "active"
+    },
+    "created_at": "2026-01-14T18:12:03.954067"
+  },
+  {
+    "log_id": "2f86383c-d94c-4e3e-844f-853262eb9631",
+    "action_type": "agent_registered",
+    "entity_type": "agent",
+    "entity_id": "pharma_enterprise_analytics_-_gsk/az_style_regulatory-callback",
+    "entity_name": "\ud83d\udccb Regulatory Compliance Check",
+    "actor": "LOCAL_USER",
+    "actor_role": "ADMIN",
+    "status": "success",
+    "details": {
+      "agent_type": "external",
+      "initial_status": "pending_approval"
+    },
+    "created_at": "2026-01-14T18:12:09.942571"
+  }
+]

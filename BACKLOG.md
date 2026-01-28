@@ -24,7 +24,7 @@
 |---------|----------|--------|-------|
 | **Real-time edge tracing** | 🔴 P0 | 3 hrs | Edges glow/pulse as messages flow through |
 | Active node highlighting | 🔴 P0 | 1 hr | Current node glows during execution |
-| Read-only mode during run | 🟡 P1 | 1 hr | Properties greyed out, canvas frozen |
+| Read-only mode during run | 🟡 P1 | 1 hr | ✅ Implemented as Preview (read-only) lock; optionally auto-enable during execution later |
 | Execution progress indicator | 🟡 P1 | 1 hr | Show which step we're on |
 
 ### 🔗 Flow Composability & APIs (NEW)
@@ -113,7 +113,7 @@ curl -X POST https://snowflow.acme.com/api/flows/margin-analyzer/execute \
 | Keyboard shortcuts | 🟢 P2 | 1 hr | Cmd+S, Delete, etc. |
 | Undo/Redo | 🟢 P2 | 2 hrs | Track canvas changes |
 | Zoom controls | 🟢 P2 | 30 min | Fit to screen, zoom slider |
-| Dark mode | ⚪ P3 | 2 hrs | Alternative theme |
+| Dark mode | 🟡 P1 | 2 hrs | ✅ Implemented (Light/Dark toggle + tokenized surfaces); ongoing polish |
 | Mobile responsive | ⚪ P3 | 4 hrs | Tablet support |
 
 ### Architecture / Distribution

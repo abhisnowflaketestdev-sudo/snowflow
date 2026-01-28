@@ -1,0 +1,7 @@
+{
+  "agent_approval_required": true,
+  "cortex_agents_auto_approved": true,
+  "max_external_endpoints": 10,
+  "audit_retention_days": 365,
+  "require_mfa_for_approval": false
+}

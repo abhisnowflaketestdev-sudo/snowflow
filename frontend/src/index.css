@@ -19,6 +19,41 @@
   /* Sidebar width - scales with viewport */
   --sidebar-width: clamp(220px, 14vw, 320px);
   --panel-width: clamp(320px, 20vw, 420px);
+
+  /* ──────────────────────────────────────────────────────────────
+     Theme tokens (WCAG-friendly contrast)
+     Use as: rgb(var(--token) / <alpha>)
+     ────────────────────────────────────────────────────────────── */
+  /* Light (classic bright UI) */
+  --bg: 255 255 255;           /* pure white */
+  --surface: 255 255 255;      /* cards/panels */
+  --surface-2: 250 252 255;    /* subtle tint for inputs/headers */
+  --surface-3: 255 255 255;    /* list cells/cards should stay white */
+  --fg: 15 23 42;              /* slate-900 */
+  --fg-muted: 51 65 85;        /* slate-700 */
+  --muted: 71 85 105;          /* slate-600 */
+  --border: 226 232 240;       /* slate-200 */
+  --border-strong: 203 213 225;/* slate-300 */
+  --ring: 14 165 233;          /* sky-500 */
+  --grid: 203 213 225;         /* slate-300 (used with low alpha in JS) */
+
+  /* Semantic */
+  --info-bg: 224 242 254;      /* sky-100 */
+  --info-fg: 3 105 161;        /* sky-700 */
+  --success-bg: 236 253 245;   /* emerald-50 */
+  --success-fg: 6 95 70;       /* emerald-800 */
+  --warning-bg: 254 243 199;   /* amber-100 */
+  --warning-fg: 146 64 14;     /* amber-800 */
+  --danger-bg: 254 242 242;    /* red-50 */
+  --danger-fg: 185 28 28;      /* red-700 */
+  --purple-bg: 245 243 255;    /* violet-50 */
+  --purple-fg: 91 33 182;      /* violet-800 */
+
+  /* React Flow accents */
+  --handle-border: 15 23 42;
+  --edge: 41 181 232;          /* Snowflake blue */
+  --edge-active: 245 158 11;   /* amber-500 */
+  --edge-success: 16 185 129;  /* emerald-500 */
 }
 
 html, body, #root {
@@ -27,6 +62,81 @@ html, body, #root {
   margin: 0;
   padding: 0;
   font-size: var(--font-base);
+}
+
+html {
+  color-scheme: light;
+}
+
+html.dark {
+  color-scheme: dark;
+  /* Dark */
+  --bg: 11 18 32;             /* deep navy */
+  --surface: 15 23 42;        /* slate-900 */
+  --surface-2: 17 24 39;      /* slate-900-ish */
+  --surface-3: 30 41 59;      /* slate-800 */
+  --fg: 226 232 240;          /* slate-200 */
+  --fg-muted: 203 213 225;    /* slate-300 */
+  --muted: 148 163 184;       /* slate-400 */
+  --border: 51 65 85;         /* slate-700 */
+  --border-strong: 71 85 105; /* slate-600 */
+  --ring: 56 189 248;         /* sky-400 */
+  --grid: 148 163 184;        /* slate-400 (used with low alpha in JS) */
+
+  --info-bg: 14 116 144;      /* cyan-700-ish */
+  --info-fg: 236 254 255;     /* cyan-50 */
+  --success-bg: 5 46 22;      /* green-950 */
+  --success-fg: 187 247 208;  /* green-200 */
+  --warning-bg: 69 26 3;      /* amber-950 */
+  --warning-fg: 254 215 170;  /* amber-200 */
+  --danger-bg: 69 10 10;      /* red-950 */
+  --danger-fg: 254 202 202;   /* red-200 */
+  --purple-bg: 46 16 101;     /* violet-950 */
+  --purple-fg: 221 214 254;   /* violet-200 */
+
+  --handle-border: 226 232 240;
+}
+
+body {
+  background: rgb(var(--bg));
+  color: rgb(var(--fg));
+}
+
+/* React Flow controls: ensure buttons/icons have proper contrast in both themes.
+   Wrap in a Tailwind layer so it survives Tailwind v4 processing consistently. */
+@layer base {
+  .react-flow__controls {
+    background: rgb(var(--surface)) !important;
+    border: 1px solid rgb(var(--border)) !important;
+    border-radius: 8px !important;
+    overflow: hidden;
+  }
+
+  .react-flow__controls-button {
+    background: transparent !important;
+    color: rgb(var(--fg)) !important;
+    border: 0 !important;
+    border-bottom: 1px solid rgb(var(--border)) !important;
+    box-shadow: none !important;
+  }
+
+  .react-flow__controls-button:hover {
+    background: rgb(var(--surface-2)) !important;
+  }
+
+  .react-flow__controls-button:active {
+    background: rgb(var(--surface-3)) !important;
+  }
+
+  .react-flow__controls-button svg {
+    stroke: currentColor !important;
+  }
+}
+
+/* Focus ring for keyboard users */
+:focus-visible {
+  outline: 2px solid rgb(var(--ring));
+  outline-offset: 2px;
 }
 
 /* Remove React Flow's default node wrapper styling - but NOT child content */
@@ -56,7 +166,7 @@ html, body, #root {
   max-width: 8px !important;
   max-height: 8px !important;
   border-radius: 50% !important;
-  border: 2px solid white !important;
+  border: 2px solid rgb(var(--handle-border)) !important;
   box-sizing: border-box !important;
 }
 
@@ -168,14 +278,14 @@ html, body, #root {
 
 /* Active edge - orange highlight */
 .react-flow__edge.active-edge path {
-  stroke: #F59E0B;
+  stroke: rgb(var(--edge-active));
   stroke-width: 3;
   opacity: 1;
 }
 
 /* Completed edge - green */
 .react-flow__edge.completed-edge path {
-  stroke: #10B981;
+  stroke: rgb(var(--edge-success));
   stroke-width: 2;
   opacity: 1;
 }
@@ -183,9 +293,47 @@ html, body, #root {
 /* Default/Idle edges - Snowflake blue */
 .react-flow__edge path,
 .react-flow__edge.idle-edge path {
-  stroke: #29B5E8;
+  stroke: rgb(var(--edge));
   stroke-width: 2;
   transition: stroke 0.3s ease, stroke-width 0.3s ease;
+}
+
+/* Hover affordance: subtle + discoverable (cursor + slight thickening) */
+.react-flow__edge:hover {
+  cursor: pointer;
+}
+
+.react-flow__edge:hover path {
+  stroke-width: 3;
+  opacity: 1;
+}
+
+.react-flow__edge:hover .react-flow__edge-path {
+  filter: drop-shadow(0 0 6px rgba(41, 181, 232, 0.25));
+}
+
+/* Risky edges (advanced / lower-confidence paths) */
+.react-flow__edge.risky-edge path {
+  stroke: rgb(var(--edge-active));
+  stroke-dasharray: 6 4;
+}
+
+/* Risky edge hover: slightly easier to notice without being loud */
+.react-flow__edge.risky-edge:hover .react-flow__edge-path {
+  filter: drop-shadow(0 0 8px rgba(245, 158, 11, 0.28));
+}
+
+/* Box selection (Shift + drag) */
+.react-flow__selection {
+  background: color-mix(in srgb, rgb(var(--ring)) 14%, transparent) !important;
+  border: 1px solid rgb(var(--ring)) !important;
+}
+
+/* Selected edge: make it obvious it's selected (required for TEST-3.6) */
+.react-flow__edge.selected path,
+.react-flow__edge:focus-visible path {
+  stroke: rgb(var(--edge-active));
+  stroke-width: 4;
 }
 
 /* Keep React Flow's default animated dashes */

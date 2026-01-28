@@ -22,7 +22,11 @@ const loadFromLocalStorage = (): { nodes: Node[]; edges: Edge[]; name: string } 
       const data = JSON.parse(saved);
       // Only restore if saved within last 24 hours
       if (data.savedAt && Date.now() - data.savedAt < 24 * 60 * 60 * 1000) {
-        return { nodes: data.nodes, edges: data.edges, name: data.name };
+        const rawName = typeof data.name === 'string' ? data.name : '';
+        // Migration: older versions stored the literal string "Untitled Workflow" as a default name.
+        // Treat that as "unnamed" so the UI shows the placeholder instead of a fake title.
+        const name = rawName.trim() === 'Untitled Workflow' ? '' : rawName;
+        return { nodes: data.nodes, edges: data.edges, name };
       }
     }
   } catch (e) {
@@ -36,6 +40,7 @@ type FlowState = {
   edges: Edge[];
   selectedNode: Node | null;
   workflowName: string;
+  lastAutosavedAt: number | null;
   onNodesChange: OnNodesChange;
   onEdgesChange: OnEdgesChange;
   onConnect: OnConnect;
@@ -78,59 +83,73 @@ const defaultEdges: Edge[] = [
 const savedState = loadFromLocalStorage();
 const initialNodes = savedState?.nodes || defaultNodes;
 const initialEdges = savedState?.edges || defaultEdges;
-const initialName = savedState?.name || 'Untitled Workflow';
+const initialName = savedState?.name ?? '';
 
 export const useFlowStore = create<FlowState>((set, get) => ({
   nodes: initialNodes,
   edges: initialEdges,
   selectedNode: null,
   workflowName: initialName,
+  lastAutosavedAt: null,
   onNodesChange: (changes) => {
     const newNodes = applyNodeChanges(changes, get().nodes);
-    set({ nodes: newNodes });
+    const now = Date.now();
+    // If the currently selected node was removed, close the properties panel.
+    const selected = get().selectedNode;
+    const selectedStillExists = selected ? newNodes.some((n) => n.id === selected.id) : true;
+    set({ nodes: newNodes, selectedNode: selectedStillExists ? selected : null, lastAutosavedAt: now });
     saveToLocalStorage(newNodes, get().edges, get().workflowName);
   },
   onEdgesChange: (changes) => {
     const newEdges = applyEdgeChanges(changes, get().edges);
-    set({ edges: newEdges });
+    const now = Date.now();
+    set({ edges: newEdges, lastAutosavedAt: now });
     saveToLocalStorage(get().nodes, newEdges, get().workflowName);
   },
   onConnect: (connection) => {
     const newEdges = addEdge({ ...connection, animated: true, style: { stroke: '#29B5E8' } }, get().edges);
-    set({ edges: newEdges });
+    const now = Date.now();
+    set({ edges: newEdges, lastAutosavedAt: now });
     saveToLocalStorage(get().nodes, newEdges, get().workflowName);
   },
   addNode: (node) => {
     const newNodes = [...get().nodes, node];
-    set({ nodes: newNodes });
+    const now = Date.now();
+    set({ nodes: newNodes, lastAutosavedAt: now });
     saveToLocalStorage(newNodes, get().edges, get().workflowName);
   },
   setSelectedNode: (node) => set({ selectedNode: node }),
   updateNodeData: (nodeId, data) => {
     const newNodes = get().nodes.map(n => n.id === nodeId ? { ...n, data: { ...n.data, ...data } } : n);
+    const now = Date.now();
     set({
       nodes: newNodes,
       selectedNode: get().selectedNode?.id === nodeId 
         ? { ...get().selectedNode!, data: { ...get().selectedNode!.data, ...data } }
         : get().selectedNode
+      ,
+      lastAutosavedAt: now
     });
     saveToLocalStorage(newNodes, get().edges, get().workflowName);
   },
   setWorkflow: (nodes, edges, name) => {
     const workflowName = name || get().workflowName;
-    set({ nodes, edges, workflowName, selectedNode: null });
+    const now = Date.now();
+    set({ nodes, edges, workflowName, selectedNode: null, lastAutosavedAt: now });
     saveToLocalStorage(nodes, edges, workflowName);
   },
   setWorkflowName: (name) => {
-    set({ workflowName: name });
+    const now = Date.now();
+    set({ workflowName: name, lastAutosavedAt: now });
     saveToLocalStorage(get().nodes, get().edges, name);
   },
   clearWorkflow: () => {
-    set({ nodes: [], edges: [], selectedNode: null, workflowName: 'Untitled Workflow' });
-    saveToLocalStorage([], [], 'Untitled Workflow');
+    const now = Date.now();
+    set({ nodes: [], edges: [], selectedNode: null, workflowName: '', lastAutosavedAt: now });
+    saveToLocalStorage([], [], '');
   },
   clearLocalStorage: () => {
     localStorage.removeItem(STORAGE_KEY);
-    set({ nodes: defaultNodes, edges: defaultEdges, selectedNode: null, workflowName: 'Untitled Workflow' });
+    set({ nodes: defaultNodes, edges: defaultEdges, selectedNode: null, workflowName: '', lastAutosavedAt: null });
   },
 }));

@@ -263,12 +263,14 @@ export function Templates({ onSelectTemplate }: TemplatesProps) {
       flexDirection: 'column', 
       height: '100%',
       fontFamily: 'Inter, -apple-system, sans-serif',
+      background: 'rgb(var(--surface))',
+      color: 'rgb(var(--fg))',
     }}>
       {/* Header */}
       <div style={{ 
         padding: '12px 16px', 
-        borderBottom: '1px solid #E5E9F0',
-        background: '#F9FAFB'
+        borderBottom: '1px solid rgb(var(--border))',
+        background: 'rgb(var(--surface-2))'
       }}>
         <div style={{ 
           display: 'flex', 
@@ -277,7 +279,7 @@ export function Templates({ onSelectTemplate }: TemplatesProps) {
           marginBottom: 8
         }}>
           <Zap size={18} color="#F59E0B" />
-          <span style={{ fontWeight: 600, color: '#1F2937', fontSize: 14 }}>Templates</span>
+          <span style={{ fontWeight: 600, color: 'rgb(var(--fg))', fontSize: 14 }}>Templates</span>
           {hasSnowflakeTemplates && (
             <span title="Loaded from Snowflake"><Cloud size={12} color="#64748b" /></span>
           )}
@@ -292,10 +294,10 @@ export function Templates({ onSelectTemplate }: TemplatesProps) {
               padding: 4,
             }}
           >
-            <RefreshCw size={14} color={loading ? '#9CA3AF' : '#64748b'} />
+            <RefreshCw size={14} color={loading ? 'rgb(var(--muted))' : 'rgb(var(--fg-muted))'} />
           </button>
         </div>
-        <div style={{ fontSize: 11, color: '#6B7280' }}>
+        <div style={{ fontSize: 11, color: 'rgb(var(--muted))' }}>
           Pre-built patterns. Deploy in minutes, not hours.
         </div>
       </div>
@@ -323,19 +325,19 @@ export function Templates({ onSelectTemplate }: TemplatesProps) {
               style={{
                 padding: '14px',
                 marginBottom: 10,
-                background: '#FFFFFF',
-                border: '1px solid #E5E9F0',
+                background: 'rgb(var(--surface-3))',
+                border: '1px solid rgb(var(--border-strong))',
                 borderRadius: 10,
                 cursor: 'pointer',
                 transition: 'all 0.15s ease',
               }}
               onMouseOver={(e) => {
                 e.currentTarget.style.borderColor = '#64748b';
-                e.currentTarget.style.boxShadow = '0 4px 12px rgba(41,181,232,0.15)';
+                e.currentTarget.style.boxShadow = '0 8px 20px rgba(0,0,0,0.25)';
                 e.currentTarget.style.transform = 'translateY(-1px)';
               }}
               onMouseOut={(e) => {
-                e.currentTarget.style.borderColor = '#E5E9F0';
+                e.currentTarget.style.borderColor = 'rgb(var(--border-strong))';
                 e.currentTarget.style.boxShadow = 'none';
                 e.currentTarget.style.transform = 'none';
               }}
@@ -346,7 +348,7 @@ export function Templates({ onSelectTemplate }: TemplatesProps) {
                   width: 36, 
                   height: 36, 
                   borderRadius: 8, 
-                  background: '#F3F4F6',
+                  background: 'rgb(var(--surface-2))',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
@@ -355,13 +357,13 @@ export function Templates({ onSelectTemplate }: TemplatesProps) {
                   {template.icon}
                 </div>
                 <div style={{ flex: 1 }}>
-                  <div style={{ fontWeight: 600, fontSize: 13, color: '#1F2937', marginBottom: 2, display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <div style={{ fontWeight: 600, fontSize: 13, color: 'rgb(var(--fg))', marginBottom: 2, display: 'flex', alignItems: 'center', gap: 6 }}>
                     {template.name}
                     {template.isFromSnowflake && (
                       <Cloud size={10} color="#64748b" />
                     )}
                   </div>
-                  <div style={{ fontSize: 11, color: '#6B7280', lineHeight: 1.4 }}>
+                  <div style={{ fontSize: 11, color: 'rgb(var(--muted))', lineHeight: 1.4 }}>
                     {template.description}
                   </div>
                 </div>
@@ -392,13 +394,13 @@ export function Templates({ onSelectTemplate }: TemplatesProps) {
               <div style={{ 
                 marginTop: 10, 
                 paddingTop: 10, 
-                borderTop: '1px solid #F3F4F6',
+                borderTop: '1px solid rgb(var(--border))',
                 display: 'flex',
                 justifyContent: 'flex-end'
               }}>
                 <span style={{ 
                   fontSize: 11, 
-                  color: '#64748b', 
+                  color: 'rgb(var(--fg-muted))', 
                   fontWeight: 500,
                   display: 'flex',
                   alignItems: 'center',
@@ -415,10 +417,10 @@ export function Templates({ onSelectTemplate }: TemplatesProps) {
       {/* Footer */}
       <div style={{ 
         padding: '10px 16px', 
-        borderTop: '1px solid #E5E9F0',
-        background: '#F9FAFB',
+        borderTop: '1px solid rgb(var(--border))',
+        background: 'rgb(var(--surface-2))',
         fontSize: 10,
-        color: '#6B7280',
+        color: 'rgb(var(--muted))',
         textAlign: 'center'
       }}>
         {hasSnowflakeTemplates ? 'Templates synced from Snowflake' : 'Templates are IT-approved and governance-ready'}

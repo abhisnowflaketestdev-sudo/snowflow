@@ -29,6 +29,8 @@ interface SemanticModel {
 interface DataCatalogProps {
   onSelectSource: (source: DataSource) => void;
   onSelectSemanticModel?: (model: SemanticModel) => void;
+  roleVersion?: number;
+  initialTab?: 'sources' | 'semantics';
 }
 
 // Mock data for fallback
@@ -43,8 +45,8 @@ const mockSemanticModels: SemanticModel[] = [
   { id: '2', name: 'customer_360.yaml', database: 'SNOWFLOW_PROD', schema: 'SEMANTIC_MODELS', stage: 'CORTEX_STAGE', path: '@SNOWFLOW_PROD.SEMANTIC_MODELS.CORTEX_STAGE/customer_360.yaml' },
 ];
 
-export function DataCatalog({ onSelectSource, onSelectSemanticModel }: DataCatalogProps) {
-  const [activeTab, setActiveTab] = useState<'sources' | 'semantics'>('sources');
+export function DataCatalog({ onSelectSource, onSelectSemanticModel, roleVersion, initialTab }: DataCatalogProps) {
+  const [activeTab, setActiveTab] = useState<'sources' | 'semantics'>(initialTab ?? 'sources');
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState<'all' | 'ready' | 'pending'>('all');
   const [dataSources, setDataSources] = useState<DataSource[]>([]);
@@ -54,6 +56,11 @@ export function DataCatalog({ onSelectSource, onSelectSemanticModel }: DataCatal
   const [error, setError] = useState<string | null>(null);
   const [semanticsError, setSemanticsError] = useState<string | null>(null);
 
+  useEffect(() => {
+    if (!initialTab) return;
+    setActiveTab(initialTab);
+  }, [initialTab]);
+
   // Fetch real data from Snowflake
   const fetchSources = async () => {
     setLoading(true);
@@ -61,10 +68,16 @@ export function DataCatalog({ onSelectSource, onSelectSemanticModel }: DataCatal
     
     try {
       const response = await axios.get('http://localhost:8000/catalog/sources');
-      const sources = response.data.sources.map((s: any) => ({
+      const raw = Array.isArray(response.data?.sources) ? response.data.sources : [];
+      // If backend returns empty + warning, treat as unavailable and use fallback
+      if (raw.length === 0 && response.data?.warning) {
+        throw new Error(response.data.warning);
+      }
+
+      const sources = raw.map((s: any) => ({
         id: s.id,
         name: s.name,
-        type: s.type === 'base table' ? 'table' : s.type,
+        type: (s.type === 'base table' || s.type === 'base_table') ? 'table' : s.type,
         database: s.database,
         schema: s.schema,
         hasSemanticModel: s.hasSemanticModel || false,
@@ -91,13 +104,14 @@ export function DataCatalog({ onSelectSource, onSelectSemanticModel }: DataCatal
     
     try {
       const response = await axios.get('http://localhost:8000/catalog/semantic-models');
-      const models = response.data.semantic_models.map((m: any, idx: number) => ({
+      const rawModels = response.data?.semantic_models || response.data?.semanticModels || [];
+      const models = rawModels.map((m: any, idx: number) => ({
         id: m.id || `sm-${idx}`,
-        name: m.name,
+        name: m.fileName || m.name,
         database: m.database,
         schema: m.schema,
         stage: m.stage,
-        path: m.path,
+        path: m.stagePath || m.path,
         size: m.size,
         lastModified: m.lastModified,
       }));
@@ -114,7 +128,8 @@ export function DataCatalog({ onSelectSource, onSelectSemanticModel }: DataCatal
   useEffect(() => {
     fetchSources();
     fetchSemanticModels();
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [roleVersion]);
 
   const filteredSources = dataSources.filter(source => {
     const matchesSearch = source.name.toLowerCase().includes(search.toLowerCase()) ||
@@ -198,12 +213,14 @@ export function DataCatalog({ onSelectSource, onSelectSemanticModel }: DataCatal
       flexDirection: 'column', 
       height: '100%',
       fontFamily: 'Inter, -apple-system, sans-serif',
+      background: 'rgb(var(--surface))',
+      color: 'rgb(var(--fg))',
     }}>
       {/* Header */}
       <div style={{ 
         padding: '12px 16px', 
-        borderBottom: '1px solid #E5E9F0',
-        background: '#F9FAFB'
+        borderBottom: '1px solid rgb(var(--border))',
+        background: 'rgb(var(--surface-2))'
       }}>
         <div style={{ 
           display: 'flex', 
@@ -212,7 +229,7 @@ export function DataCatalog({ onSelectSource, onSelectSemanticModel }: DataCatal
           marginBottom: 12
         }}>
           <Database size={18} color="#29B5E8" />
-          <span style={{ fontWeight: 600, color: '#1F2937', fontSize: 14 }}>Data Catalog</span>
+          <span style={{ fontWeight: 600, color: 'rgb(var(--fg))', fontSize: 14 }}>Data Catalog</span>
           <button
             onClick={activeTab === 'sources' ? fetchSources : fetchSemanticModels}
             disabled={loading || loadingSemantics}
@@ -227,7 +244,7 @@ export function DataCatalog({ onSelectSource, onSelectSemanticModel }: DataCatal
             }}
             title="Refresh from Snowflake"
           >
-            <RefreshCw size={14} color={(loading || loadingSemantics) ? '#9CA3AF' : '#29B5E8'} className={(loading || loadingSemantics) ? 'animate-spin' : ''} />
+            <RefreshCw size={14} color={(loading || loadingSemantics) ? 'rgb(var(--muted))' : '#29B5E8'} className={(loading || loadingSemantics) ? 'animate-spin' : ''} />
           </button>
         </div>
 
@@ -236,7 +253,8 @@ export function DataCatalog({ onSelectSource, onSelectSemanticModel }: DataCatal
           display: 'flex', 
           gap: 4, 
           marginBottom: 12,
-          background: '#E5E9F0',
+          background: 'rgb(var(--surface-3))',
+          border: '1px solid rgb(var(--border))',
           borderRadius: 8,
           padding: 3,
         }}>
@@ -250,9 +268,9 @@ export function DataCatalog({ onSelectSource, onSelectSemanticModel }: DataCatal
               fontSize: 12,
               fontWeight: 600,
               cursor: 'pointer',
-              background: activeTab === 'sources' ? '#FFFFFF' : 'transparent',
-              color: activeTab === 'sources' ? '#1F2937' : '#6B7280',
-              boxShadow: activeTab === 'sources' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
+              background: activeTab === 'sources' ? 'rgb(var(--surface))' : 'transparent',
+              color: activeTab === 'sources' ? 'rgb(var(--fg))' : 'rgb(var(--muted))',
+              boxShadow: activeTab === 'sources' ? '0 1px 2px rgba(0,0,0,0.25)' : 'none',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
@@ -273,9 +291,9 @@ export function DataCatalog({ onSelectSource, onSelectSemanticModel }: DataCatal
               fontSize: 12,
               fontWeight: 600,
               cursor: 'pointer',
-              background: activeTab === 'semantics' ? '#FFFFFF' : 'transparent',
-              color: activeTab === 'semantics' ? '#1F2937' : '#6B7280',
-              boxShadow: activeTab === 'semantics' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
+              background: activeTab === 'semantics' ? 'rgb(var(--surface))' : 'transparent',
+              color: activeTab === 'semantics' ? 'rgb(var(--fg))' : 'rgb(var(--muted))',
+              boxShadow: activeTab === 'semantics' ? '0 1px 2px rgba(0,0,0,0.25)' : 'none',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
@@ -285,8 +303,8 @@ export function DataCatalog({ onSelectSource, onSelectSemanticModel }: DataCatal
           >
             <Layers size={14} />
             Semantics ({semanticModels.length})
-          </button>
-        </div>
+        </button>
+      </div>
 
         {/* Connection status */}
         {activeTab === 'sources' && error && (
@@ -326,23 +344,25 @@ export function DataCatalog({ onSelectSource, onSelectSemanticModel }: DataCatal
         
         {/* Search */}
         <div style={{ position: 'relative', marginBottom: 10 }}>
-          <Search size={14} style={{ position: 'absolute', left: 10, top: 8, color: '#9CA3AF' }} />
-          <input
-            type="text"
+          <Search size={14} style={{ position: 'absolute', left: 10, top: 8, color: 'rgb(var(--muted))' }} />
+        <input
+          type="text"
             placeholder={activeTab === 'sources' ? "Search data sources..." : "Search semantic models..."}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             style={{
               width: '100%',
               padding: '8px 10px 8px 32px',
-              border: '1px solid #E5E9F0',
+              border: '1px solid rgb(var(--border))',
               borderRadius: 6,
               fontSize: 12,
+              color: 'rgb(var(--fg))',
+              background: 'rgb(var(--surface))',
               boxSizing: 'border-box',
               outline: 'none',
             }}
-          />
-        </div>
+        />
+      </div>
 
         {/* Filter tabs - only show for sources */}
         {activeTab === 'sources' && (
@@ -357,8 +377,8 @@ export function DataCatalog({ onSelectSource, onSelectSemanticModel }: DataCatal
                 fontSize: 11,
                 fontWeight: 500,
                 cursor: 'pointer',
-                background: filter === 'all' ? '#29B5E8' : '#F3F4F6',
-                color: filter === 'all' ? 'white' : '#6B7280',
+                background: filter === 'all' ? '#29B5E8' : 'rgb(var(--surface-3))',
+                color: filter === 'all' ? 'white' : 'rgb(var(--muted))',
               }}
             >
               All ({dataSources.length})
@@ -373,8 +393,8 @@ export function DataCatalog({ onSelectSource, onSelectSemanticModel }: DataCatal
                 fontSize: 11,
                 fontWeight: 500,
                 cursor: 'pointer',
-                background: filter === 'ready' ? '#10B981' : '#F3F4F6',
-                color: filter === 'ready' ? 'white' : '#6B7280',
+                background: filter === 'ready' ? '#10B981' : 'rgb(var(--surface-3))',
+                color: filter === 'ready' ? 'white' : 'rgb(var(--muted))',
               }}
             >
               Ready ({readyCount})
@@ -389,14 +409,14 @@ export function DataCatalog({ onSelectSource, onSelectSemanticModel }: DataCatal
                 fontSize: 11,
                 fontWeight: 500,
                 cursor: 'pointer',
-                background: filter === 'pending' ? '#F59E0B' : '#F3F4F6',
-                color: filter === 'pending' ? 'white' : '#6B7280',
+                background: filter === 'pending' ? '#F59E0B' : 'rgb(var(--surface-3))',
+                color: filter === 'pending' ? 'white' : 'rgb(var(--muted))',
               }}
             >
               Pending ({pendingCount})
             </button>
-          </div>
-        )}
+        </div>
+      )}
       </div>
 
       {/* Content list */}
@@ -416,8 +436,8 @@ export function DataCatalog({ onSelectSource, onSelectSemanticModel }: DataCatal
               }}>
                 <Loader2 size={24} className="animate-spin" />
                 <span style={{ fontSize: 12 }}>Loading from Snowflake...</span>
-              </div>
-            ) : (
+          </div>
+        ) : (
               <>
                 {filteredSources.map((source, idx) => (
                   <div
@@ -436,8 +456,8 @@ export function DataCatalog({ onSelectSource, onSelectSemanticModel }: DataCatal
                     style={{
                       padding: '10px 12px',
                       marginBottom: 8,
-                      background: source.hasAccess ? '#FFFFFF' : '#F9FAFB',
-                      border: '1px solid #E5E9F0',
+                      background: source.hasAccess ? 'rgb(var(--surface-3))' : 'rgb(var(--surface-2))',
+                      border: '1px solid rgb(var(--border-strong))',
                       borderRadius: 8,
                       cursor: source.hasAccess ? 'grab' : 'not-allowed',
                       opacity: source.hasAccess ? 1 : 0.7,
@@ -446,11 +466,13 @@ export function DataCatalog({ onSelectSource, onSelectSemanticModel }: DataCatal
                     onMouseOver={(e) => {
                       if (source.hasAccess) {
                         e.currentTarget.style.borderColor = '#29B5E8';
+                        e.currentTarget.style.background = 'rgb(var(--surface-2))';
                         e.currentTarget.style.boxShadow = '0 2px 8px rgba(41,181,232,0.15)';
                       }
                     }}
                     onMouseOut={(e) => {
-                      e.currentTarget.style.borderColor = '#E5E9F0';
+                      e.currentTarget.style.borderColor = 'rgb(var(--border-strong))';
+                      e.currentTarget.style.background = 'rgb(var(--surface-3))';
                       e.currentTarget.style.boxShadow = 'none';
                     }}
                   >
@@ -459,7 +481,7 @@ export function DataCatalog({ onSelectSource, onSelectSemanticModel }: DataCatal
                         width: 32, 
                         height: 32, 
                         borderRadius: 6, 
-                        background: '#F0F9FF', 
+                        background: 'rgba(41, 181, 232, 0.12)', 
                         display: 'flex', 
                         alignItems: 'center', 
                         justifyContent: 'center',
@@ -471,7 +493,7 @@ export function DataCatalog({ onSelectSource, onSelectSemanticModel }: DataCatal
                         <div style={{ 
                           fontSize: 13, 
                           fontWeight: 600, 
-                          color: '#1F2937',
+                          color: 'rgb(var(--fg))',
                           marginBottom: 2,
                           overflow: 'hidden',
                           textOverflow: 'ellipsis',
@@ -481,7 +503,7 @@ export function DataCatalog({ onSelectSource, onSelectSemanticModel }: DataCatal
                         </div>
                         <div style={{ 
                           fontSize: 10, 
-                          color: '#6B7280',
+                          color: 'rgb(var(--muted))',
                           marginBottom: 4
                         }}>
                           {source.database}.{source.schema}
@@ -489,7 +511,7 @@ export function DataCatalog({ onSelectSource, onSelectSemanticModel }: DataCatal
                         <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
                           {getStatusBadge(source)}
                           {source.rowCount && (
-                            <span style={{ fontSize: 9, color: '#9CA3AF' }}>
+                            <span style={{ fontSize: 9, color: 'rgb(var(--muted))' }}>
                               {source.rowCount.toLocaleString()} rows
                             </span>
                           )}
@@ -506,7 +528,7 @@ export function DataCatalog({ onSelectSource, onSelectSemanticModel }: DataCatal
                     fontSize: 12
                   }}>
                     No data sources match your filter
-                  </div>
+                </div>
                 )}
               </>
             )}
@@ -550,18 +572,20 @@ export function DataCatalog({ onSelectSource, onSelectSemanticModel }: DataCatal
                     style={{
                       padding: '10px 12px',
                       marginBottom: 8,
-                      background: '#FFFFFF',
-                      border: '1px solid #E5E9F0',
+                      background: 'rgb(var(--surface-3))',
+                      border: '1px solid rgb(var(--border-strong))',
                       borderRadius: 8,
                       cursor: 'grab',
                       transition: 'all 0.15s ease',
                     }}
                     onMouseOver={(e) => {
                       e.currentTarget.style.borderColor = '#8B5CF6';
+                      e.currentTarget.style.background = 'rgb(var(--surface-2))';
                       e.currentTarget.style.boxShadow = '0 2px 8px rgba(139,92,246,0.15)';
                     }}
                     onMouseOut={(e) => {
-                      e.currentTarget.style.borderColor = '#E5E9F0';
+                      e.currentTarget.style.borderColor = 'rgb(var(--border-strong))';
+                      e.currentTarget.style.background = 'rgb(var(--surface-3))';
                       e.currentTarget.style.boxShadow = 'none';
                     }}
                   >
@@ -582,7 +606,7 @@ export function DataCatalog({ onSelectSource, onSelectSemanticModel }: DataCatal
                         <div style={{ 
                           fontSize: 13, 
                           fontWeight: 600, 
-                          color: '#1F2937',
+                          color: 'rgb(var(--fg))',
                           marginBottom: 2,
                           overflow: 'hidden',
                           textOverflow: 'ellipsis',
@@ -592,7 +616,7 @@ export function DataCatalog({ onSelectSource, onSelectSemanticModel }: DataCatal
                         </div>
                         <div style={{ 
                           fontSize: 10, 
-                          color: '#6B7280',
+                          color: 'rgb(var(--muted))',
                           marginBottom: 4
                         }}>
                           @{model.database}.{model.schema}.{model.stage}
@@ -630,7 +654,7 @@ export function DataCatalog({ onSelectSource, onSelectSemanticModel }: DataCatal
                     {semanticModels.length === 0 
                       ? 'No semantic models found in Snowflake stages'
                       : 'No semantic models match your search'}
-                  </div>
+            </div>
                 )}
               </>
             )}

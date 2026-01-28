@@ -114,18 +114,18 @@ export function LivePreview({ workflowName, isConfigured, nodes, edges, onClose 
       display: 'flex',
       flexDirection: 'column',
       height: '100%',
-      background: '#FFFFFF',
-      borderLeft: '1px solid #E5E9F0',
+      background: 'rgb(var(--surface))',
+      borderLeft: '1px solid rgb(var(--border))',
       fontFamily: 'Inter, -apple-system, sans-serif',
     }}>
       {/* Header */}
       <div style={{
         padding: '12px 16px',
-        borderBottom: '1px solid #E5E9F0',
+        borderBottom: '1px solid rgb(var(--border))',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
-        background: 'linear-gradient(135deg, #F0F9FF 0%, #E0F2FE 100%)',
+        background: 'linear-gradient(135deg, rgb(var(--surface-2)) 0%, rgb(var(--surface-3)) 100%)',
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <div style={{
@@ -140,11 +140,11 @@ export function LivePreview({ workflowName, isConfigured, nodes, edges, onClose 
             <Sparkles size={14} color="white" />
           </div>
           <div>
-            <div style={{ fontWeight: 600, fontSize: 12, color: '#1F2937' }}>
+            <div style={{ fontWeight: 600, fontSize: 12, color: 'rgb(var(--fg))' }}>
               Live Preview
             </div>
-            <div style={{ fontSize: 10, color: '#6B7280' }}>
-              {workflowName || 'Untitled Workflow'}
+            <div style={{ fontSize: 10, color: 'rgb(var(--muted))' }}>
+              {(workflowName || '').trim() || 'Untitled Workflow'}
             </div>
           </div>
         </div>
@@ -157,7 +157,7 @@ export function LivePreview({ workflowName, isConfigured, nodes, edges, onClose 
               cursor: 'pointer',
               padding: 4,
               borderRadius: 4,
-              color: '#6B7280',
+              color: 'rgb(var(--muted))',
             }}
           >
             {expanded ? <Minimize2 size={14} /> : <Maximize2 size={14} />}
@@ -171,7 +171,7 @@ export function LivePreview({ workflowName, isConfigured, nodes, edges, onClose 
                 cursor: 'pointer',
                 padding: 4,
                 borderRadius: 4,
-                color: '#6B7280',
+                color: 'rgb(var(--muted))',
               }}
             >
               <X size={14} />
@@ -199,7 +199,7 @@ export function LivePreview({ workflowName, isConfigured, nodes, edges, onClose 
         <div style={{
           padding: '8px 16px',
           background: useRealBackend ? '#D1FAE5' : '#E0F2FE',
-          borderBottom: '1px solid #E5E9F0',
+          borderBottom: '1px solid rgb(var(--border))',
           fontSize: 10,
           display: 'flex',
           alignItems: 'center',
@@ -353,8 +353,8 @@ export function LivePreview({ workflowName, isConfigured, nodes, edges, onClose 
       {/* Input area */}
       <div style={{
         padding: 12,
-        borderTop: '1px solid #E5E9F0',
-        background: '#F9FAFB',
+        borderTop: '1px solid rgb(var(--border))',
+        background: 'rgb(var(--surface-2))',
       }}>
         <div style={{
           display: 'flex',

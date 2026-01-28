@@ -26,16 +26,16 @@ export const CortexNode = ({ data, selected }: { data: CortexNodeData; selected?
   return (
     <div 
       style={{
-        background: '#FFFFFF',
-        border: selected ? `2px solid ${config.color}` : '1px solid #E5E9F0',
+        background: 'rgb(var(--surface))',
+        border: selected ? `2px solid ${config.color}` : '1px solid rgb(var(--border))',
         borderRadius: 8,
         padding: 12,
         width: 220,
         fontFamily: 'Inter, -apple-system, sans-serif',
-        boxShadow: selected ? `0 4px 12px ${config.color}40` : '0 1px 3px rgba(0,0,0,0.1)',
+        boxShadow: selected ? `0 6px 18px ${config.color}40` : '0 6px 18px rgba(0,0,0,0.25)',
       }}
     >
-      <Handle type="target" position={Position.Left} style={{ background: config.color, width: 10, height: 10, border: '2px solid white' }} />
+      <Handle type="target" position={Position.Left} style={{ background: config.color, width: 10, height: 10 }} />
       
       <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
         <div style={{ 
@@ -50,14 +50,14 @@ export const CortexNode = ({ data, selected }: { data: CortexNodeData; selected?
           <Icon size={18} color={config.color} />
         </div>
         <div>
-          <div style={{ fontSize: 10, fontWeight: 500, color: '#6B7280', textTransform: 'uppercase', letterSpacing: 0.5 }}>
+          <div style={{ fontSize: 10, fontWeight: 500, color: 'rgb(var(--muted))', textTransform: 'uppercase', letterSpacing: 0.5 }}>
             {config.label}
           </div>
-          <div style={{ fontSize: 14, fontWeight: 600, color: '#1F2937' }}>{data.label}</div>
+          <div style={{ fontSize: 14, fontWeight: 600, color: 'rgb(var(--fg))' }}>{data.label}</div>
         </div>
       </div>
       
-      <div style={{ marginTop: 10, padding: 8, background: '#F5F7FA', borderRadius: 6, fontSize: 11, color: '#6B7280' }}>
+      <div style={{ marginTop: 10, padding: 8, background: 'rgb(var(--surface-2))', border: '1px solid rgb(var(--border))', borderRadius: 6, fontSize: 11, color: 'rgb(var(--muted))' }}>
         {data.cortexFunction === 'complete' && data.model && (
           <div><span style={{ fontWeight: 500 }}>Model:</span> {data.model}</div>
         )}
@@ -72,7 +72,7 @@ export const CortexNode = ({ data, selected }: { data: CortexNodeData; selected?
         )}
       </div>
       
-      <Handle type="source" position={Position.Right} style={{ background: config.color, width: 10, height: 10, border: '2px solid white' }} />
+      <Handle type="source" position={Position.Right} style={{ background: config.color, width: 10, height: 10 }} />
     </div>
   );
 };

@@ -26,13 +26,13 @@ export const FileInputNode = ({ data, selected }: { data: FileInputNodeData; sel
   return (
     <div 
       style={{
-        background: '#FFFFFF',
-        border: selected ? `2px solid ${config.color}` : '1px solid #E5E9F0',
+        background: 'rgb(var(--surface))',
+        border: selected ? `2px solid ${config.color}` : '1px solid rgb(var(--border))',
         borderRadius: 10,
         padding: 14,
         width: 220,
         fontFamily: 'Inter, -apple-system, sans-serif',
-        boxShadow: selected ? `0 4px 12px ${config.color}40` : '0 2px 8px rgba(0,0,0,0.08)',
+        boxShadow: selected ? `0 6px 18px ${config.color}40` : '0 6px 18px rgba(0,0,0,0.25)',
       }}
     >
       {/* Header */}
@@ -52,12 +52,12 @@ export const FileInputNode = ({ data, selected }: { data: FileInputNodeData; sel
           <div style={{ fontSize: 9, fontWeight: 600, color: config.color, textTransform: 'uppercase', letterSpacing: 0.5 }}>
             File Input
           </div>
-          <div style={{ fontSize: 14, fontWeight: 600, color: '#1F2937' }}>{data.label}</div>
+          <div style={{ fontSize: 14, fontWeight: 600, color: 'rgb(var(--fg))' }}>{data.label}</div>
         </div>
       </div>
       
       {/* File info */}
-      <div style={{ padding: 10, background: '#F8FAFC', borderRadius: 8, fontSize: 11 }}>
+      <div style={{ padding: 10, background: 'rgb(var(--surface-2))', border: '1px solid rgb(var(--border))', borderRadius: 8, fontSize: 11 }}>
         <div style={{ marginBottom: 6 }}>
           <span style={{ 
             background: config.color,
@@ -71,17 +71,17 @@ export const FileInputNode = ({ data, selected }: { data: FileInputNodeData; sel
           </span>
         </div>
         {data.fileName ? (
-          <div style={{ fontFamily: 'monospace', fontSize: 10, color: '#64748B', wordBreak: 'break-all' }}>
+          <div style={{ fontFamily: 'monospace', fontSize: 10, color: 'rgb(var(--muted))', wordBreak: 'break-all' }}>
             📄 {data.fileName}
           </div>
         ) : (
-          <div style={{ color: '#9CA3AF', fontStyle: 'italic' }}>
+          <div style={{ color: 'rgb(var(--muted))', fontStyle: 'italic' }}>
             Click to upload file →
           </div>
         )}
       </div>
       
-      <Handle type="source" position={Position.Right} style={{ background: config.color, width: 10, height: 10, border: '2px solid white' }} />
+      <Handle type="source" position={Position.Right} style={{ background: config.color, width: 10, height: 10 }} />
     </div>
   );
 };
@@ -147,17 +147,17 @@ export const FileOutputNode = ({ data, selected }: { data: FileOutputNodeData; s
   return (
     <div 
       style={{
-        background: '#FFFFFF',
-        border: selected ? `2px solid ${config.color}` : '1px solid #E5E9F0',
+        background: 'rgb(var(--surface))',
+        border: selected ? `2px solid ${config.color}` : '1px solid rgb(var(--border))',
         borderRadius: 10,
         padding: 14,
         width: isExpanded ? 400 : 260,
         fontFamily: 'Inter, -apple-system, sans-serif',
-        boxShadow: selected ? `0 4px 12px ${config.color}40` : '0 2px 8px rgba(0,0,0,0.08)',
+        boxShadow: selected ? `0 6px 18px ${config.color}40` : '0 6px 18px rgba(0,0,0,0.25)',
         transition: 'width 0.3s ease, box-shadow 0.3s ease',
       }}
     >
-      <Handle type="target" position={Position.Left} style={{ background: config.color, width: 10, height: 10, border: '2px solid white' }} />
+      <Handle type="target" position={Position.Left} style={{ background: config.color, width: 10, height: 10 }} />
       
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
@@ -176,7 +176,7 @@ export const FileOutputNode = ({ data, selected }: { data: FileOutputNodeData; s
           <div style={{ fontSize: 9, fontWeight: 600, color: config.color, textTransform: 'uppercase', letterSpacing: 0.5 }}>
             File Output
           </div>
-          <div style={{ fontSize: 14, fontWeight: 600, color: '#1F2937' }}>{data.label}</div>
+          <div style={{ fontSize: 14, fontWeight: 600, color: 'rgb(var(--fg))' }}>{data.label}</div>
         </div>
         
         {/* Expand button */}
@@ -199,7 +199,7 @@ export const FileOutputNode = ({ data, selected }: { data: FileOutputNodeData; s
       </div>
       
       {/* Output info */}
-      <div style={{ padding: 10, background: '#F8FAFC', borderRadius: 8, fontSize: 11, marginBottom: 8 }}>
+      <div style={{ padding: 10, background: 'rgb(var(--surface-2))', border: '1px solid rgb(var(--border))', borderRadius: 8, fontSize: 11, marginBottom: 8 }}>
         <div style={{ marginBottom: 6 }}>
           <span style={{ 
             background: config.color,
@@ -217,7 +217,7 @@ export const FileOutputNode = ({ data, selected }: { data: FileOutputNodeData; s
             ✓ Ready ({data.generatedContent.length} chars)
           </div>
         ) : (
-          <div style={{ color: '#9CA3AF', fontStyle: 'italic' }}>
+          <div style={{ color: 'rgb(var(--muted))', fontStyle: 'italic' }}>
             Waiting for input...
           </div>
         )}
@@ -308,8 +308,8 @@ export const FileOutputNode = ({ data, selected }: { data: FileOutputNodeData; s
             padding: '6px 8px',
             borderRadius: 6,
             border: 'none',
-            background: data.generatedContent ? '#F3F4F6' : '#F9FAFB',
-            color: data.generatedContent ? '#374151' : '#9CA3AF',
+            background: data.generatedContent ? 'rgb(var(--surface-3))' : 'rgb(var(--surface-2))',
+            color: data.generatedContent ? 'rgb(var(--fg))' : 'rgb(var(--muted))',
             fontSize: 10,
             fontWeight: 500,
             cursor: data.generatedContent ? 'pointer' : 'not-allowed',
@@ -329,8 +329,8 @@ export const FileOutputNode = ({ data, selected }: { data: FileOutputNodeData; s
             padding: '6px 8px',
             borderRadius: 6,
             border: 'none',
-            background: copied ? config.color : (data.generatedContent ? '#F3F4F6' : '#F9FAFB'),
-            color: copied ? 'white' : (data.generatedContent ? '#374151' : '#9CA3AF'),
+            background: copied ? config.color : (data.generatedContent ? 'rgb(var(--surface-3))' : 'rgb(var(--surface-2))'),
+            color: copied ? 'white' : (data.generatedContent ? 'rgb(var(--fg))' : 'rgb(var(--muted))'),
             fontSize: 10,
             fontWeight: 500,
             cursor: data.generatedContent ? 'pointer' : 'not-allowed',
@@ -350,8 +350,8 @@ export const FileOutputNode = ({ data, selected }: { data: FileOutputNodeData; s
             padding: '6px 8px',
             borderRadius: 6,
             border: 'none',
-            background: data.generatedContent ? config.color : '#F9FAFB',
-            color: data.generatedContent ? 'white' : '#9CA3AF',
+            background: data.generatedContent ? config.color : 'rgb(var(--surface-2))',
+            color: data.generatedContent ? 'white' : 'rgb(var(--muted))',
             fontSize: 10,
             fontWeight: 500,
             cursor: data.generatedContent ? 'pointer' : 'not-allowed',
@@ -406,17 +406,17 @@ export const SchemaExtractorNode = ({ data, selected }: { data: SchemaExtractorN
   return (
     <div 
       style={{
-        background: '#FFFFFF',
-        border: selected ? `2px solid ${config.color}` : '1px solid #E5E9F0',
+        background: 'rgb(var(--surface))',
+        border: selected ? `2px solid ${config.color}` : '1px solid rgb(var(--border))',
         borderRadius: 10,
         padding: 14,
         width: isExpanded ? 380 : 260,
         fontFamily: 'Inter, -apple-system, sans-serif',
-        boxShadow: selected ? `0 4px 12px ${config.color}40` : '0 2px 8px rgba(0,0,0,0.08)',
+        boxShadow: selected ? `0 6px 18px ${config.color}40` : '0 6px 18px rgba(0,0,0,0.25)',
         transition: 'width 0.3s ease',
       }}
     >
-      <Handle type="target" position={Position.Left} style={{ background: config.color, width: 10, height: 10, border: '2px solid white' }} />
+      <Handle type="target" position={Position.Left} style={{ background: config.color, width: 10, height: 10 }} />
       
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
@@ -436,7 +436,7 @@ export const SchemaExtractorNode = ({ data, selected }: { data: SchemaExtractorN
           <div style={{ fontSize: 9, fontWeight: 600, color: config.color, textTransform: 'uppercase', letterSpacing: 0.5 }}>
             Schema Extractor
           </div>
-          <div style={{ fontSize: 14, fontWeight: 600, color: '#1F2937' }}>{data.label}</div>
+          <div style={{ fontSize: 14, fontWeight: 600, color: 'rgb(var(--fg))' }}>{data.label}</div>
         </div>
         
         {/* Expand button */}
@@ -465,7 +465,8 @@ export const SchemaExtractorNode = ({ data, selected }: { data: SchemaExtractorN
         onClick={data.extractedSchema ? handleToggleExpand : undefined}
         style={{ 
           padding: 10, 
-          background: '#F8FAFC', 
+          background: 'rgb(var(--surface-2))', 
+          border: '1px solid rgb(var(--border))',
           borderRadius: 8, 
           fontSize: 11, 
           marginBottom: 8,
@@ -495,7 +496,7 @@ export const SchemaExtractorNode = ({ data, selected }: { data: SchemaExtractorN
             JSON
           </span>
         </div>
-        <div style={{ color: '#64748B', fontSize: 10 }}>
+        <div style={{ color: 'rgb(var(--muted))', fontSize: 10 }}>
           {data.extractedSchema 
             ? `✓ Extracted (${data.extractedSchema.length} chars)` 
             : 'Extracts tables, relationships, measures → Interchange JSON'}
@@ -543,8 +544,8 @@ export const SchemaExtractorNode = ({ data, selected }: { data: SchemaExtractorN
             padding: '6px 8px',
             borderRadius: 6,
             border: 'none',
-            background: copied ? config.color : '#F3F4F6',
-            color: copied ? 'white' : '#374151',
+            background: copied ? config.color : 'rgb(var(--surface-3))',
+            color: copied ? 'white' : 'rgb(var(--fg))',
             fontSize: 10,
             fontWeight: 500,
             cursor: 'pointer',
@@ -562,7 +563,7 @@ export const SchemaExtractorNode = ({ data, selected }: { data: SchemaExtractorN
         Uses: {data.model || 'mistral-large2'}
       </div>
       
-      <Handle type="source" position={Position.Right} style={{ background: '#F59E0B', width: 10, height: 10, border: '2px solid white' }} />
+      <Handle type="source" position={Position.Right} style={{ background: '#F59E0B', width: 10, height: 10 }} />
     </div>
   );
 };
@@ -608,17 +609,17 @@ export const SchemaTransformerNode = ({ data, selected }: { data: SchemaTransfor
   return (
     <div 
       style={{
-        background: '#FFFFFF',
-        border: selected ? `2px solid ${config.color}` : '1px solid #E5E9F0',
+        background: 'rgb(var(--surface))',
+        border: selected ? `2px solid ${config.color}` : '1px solid rgb(var(--border))',
         borderRadius: 10,
         padding: 14,
         width: isExpanded ? 380 : 260,
         fontFamily: 'Inter, -apple-system, sans-serif',
-        boxShadow: selected ? `0 4px 12px ${config.color}40` : '0 2px 8px rgba(0,0,0,0.08)',
+        boxShadow: selected ? `0 6px 18px ${config.color}40` : '0 6px 18px rgba(0,0,0,0.25)',
         transition: 'width 0.3s ease',
       }}
     >
-      <Handle type="target" position={Position.Left} style={{ background: '#F59E0B', width: 10, height: 10, border: '2px solid white' }} />
+      <Handle type="target" position={Position.Left} style={{ background: '#F59E0B', width: 10, height: 10 }} />
       
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
@@ -638,7 +639,7 @@ export const SchemaTransformerNode = ({ data, selected }: { data: SchemaTransfor
           <div style={{ fontSize: 9, fontWeight: 600, color: config.color, textTransform: 'uppercase', letterSpacing: 0.5 }}>
             Schema Transformer
           </div>
-          <div style={{ fontSize: 14, fontWeight: 600, color: '#1F2937' }}>{data.label}</div>
+          <div style={{ fontSize: 14, fontWeight: 600, color: 'rgb(var(--fg))' }}>{data.label}</div>
         </div>
         
         {/* Expand button */}

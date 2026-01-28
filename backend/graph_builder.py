@@ -616,6 +616,32 @@ Respond with ONLY the route name (e.g., {example_routes}). Nothing else - just t
                     prompt=classification_prompt,
                     options={'temperature': 0.1, 'max_tokens': 50}
                 ).strip()
+            elif strategy == 'keyword':
+                # Lightweight keyword matching (no LLM). Uses route condition as a comma-separated keyword list.
+                p = (user_prompt or '').lower()
+                matches = []
+                for r in routes:
+                    name = (r.get('name') or '').strip()
+                    cond = (r.get('condition') or '').strip()
+                    # If the condition looks like `intent == "sales"` extract the quoted token; otherwise treat as keyword list.
+                    keywords: List[str] = []
+                    if 'intent' in cond and '==' in cond:
+                        import re
+                        m = re.search(r'==\s*[\'"]([^\'"]+)[\'"]', cond)
+                        if m:
+                            keywords = [m.group(1)]
+                    if not keywords:
+                        keywords = [k.strip().strip('"').strip("'") for k in cond.split(',') if k.strip()]
+                    if not keywords and name:
+                        keywords = [name]
+                    if any(k.lower() in p for k in keywords if k):
+                        matches.append(name or (keywords[0] if keywords else 'default'))
+                if len(matches) > 1:
+                    decision = 'ALL'
+                elif len(matches) == 1:
+                    decision = matches[0]
+                else:
+                    decision = routes[0].get('name', 'default') if routes else 'default'
             elif strategy == 'round_robin':
                 decision = routes[0].get('name', 'default') if routes else 'default'
             else:
@@ -864,6 +890,11 @@ def create_output_node(node_config: Dict):
         agent_results = state.get('agent_results', [])
         existing_response = state.get('results', {}).get('agent_response')
         
+        # DEBUG: Log what we're receiving
+        print(f"[OUTPUT DEBUG] agent_results count: {len(agent_results)}")
+        print(f"[OUTPUT DEBUG] existing_response: {len(existing_response) if existing_response else 'NONE'}")
+        print(f"[OUTPUT DEBUG] state keys: {list(state.keys())}")
+        
         combined_response = ""
         
         if agent_results and not existing_response:
@@ -881,15 +912,20 @@ def create_output_node(node_config: Dict):
         
         # IMPORTANT: Store results in shared state for the complete event
         if combined_response:
-            set_shared_results('agent_response', combined_response)
-            set_shared_results('response', combined_response)
+            update_shared_results('agent_response', combined_response)
+            update_shared_results('response', combined_response)
         
-            return {
-                'results': {
-                    **state.get('results', {}),
-                'agent_response': combined_response,
-                'response': combined_response
-            },
+        # Always return results, even if empty
+        final_results = {
+            **state.get('results', {}),
+            'agent_response': combined_response or '',
+            'response': combined_response or ''
+        }
+        
+        print(f"[OUTPUT NODE] Returning results with agent_response: {len(combined_response or '')} chars")
+        
+        return {
+            'results': final_results,
             'messages': [f"📤 Output '{label}' ready" + (f" - {len(combined_response)} chars" if combined_response else "")],
             'current_node': node_config['id'],
             'executed_nodes': [node_config['id']]
@@ -998,6 +1034,8 @@ def create_external_agent_node(node_config: Dict):
         auth_type = data.get('authType', 'none')
         auth_token = data.get('authToken', '')
         api_key = data.get('apiKey', '')
+        api_key_header = data.get('apiKeyHeader', 'X-API-Key')
+        headers_json = data.get('headersJson', '')
         
         # Check if this agent is in the selected list (for Supervisor-controlled execution)
         # BUT: Only filter if this is a domain/analysis agent. Output/callback agents always execute.
@@ -1047,12 +1085,25 @@ def create_external_agent_node(node_config: Dict):
         
         # Build headers based on auth type
         headers = {'Content-Type': 'application/json'}
+
+        # Merge user-specified headers (best-effort JSON)
+        if isinstance(headers_json, str) and headers_json.strip():
+            try:
+                extra = json.loads(headers_json)
+                if isinstance(extra, dict):
+                    for k, v in extra.items():
+                        if k and v is not None:
+                            headers[str(k)] = str(v)
+            except Exception:
+                # Ignore invalid JSON to keep UX forgiving
+                pass
+
         if auth_type == 'bearer' and auth_token:
-            headers['Authorization'] = f'Bearer {auth_token}'
+            headers.setdefault('Authorization', f'Bearer {auth_token}')
         elif auth_type == 'api_key' and api_key:
-            headers['X-API-Key'] = api_key
+            headers[str(api_key_header or 'X-API-Key')] = api_key
         elif auth_type == 'oauth' and auth_token:
-            headers['Authorization'] = f'Bearer {auth_token}'
+            headers.setdefault('Authorization', f'Bearer {auth_token}')
         
         # Build request payload based on agent type
         context_data = state.get('data', [])[:5]
@@ -2038,7 +2089,20 @@ def build_graph(nodes: List[Dict], edges: List[Dict]) -> StateGraph:
     for node in nodes:
         if node.get('type') == 'router':
             router_id = node['id']
-            targets = adjacency.get(router_id, [])
+            # Prefer deterministic ordering based on the router's output handles (route-1, route-2, ...)
+            router_edges = [e for e in edges if e.get('source') == router_id]
+            def handle_rank(h: str | None) -> int:
+                if not h:
+                    return 999
+                # Expected format: "route-1"
+                try:
+                    if isinstance(h, str) and h.startswith('route-'):
+                        return int(h.split('-')[1])
+                except Exception:
+                    return 999
+                return 999
+            router_edges_sorted = sorted(router_edges, key=lambda e: handle_rank(e.get('sourceHandle')))
+            targets = [e.get('target') for e in router_edges_sorted if e.get('target')] or adjacency.get(router_id, [])
             # Get agent labels for matching
             target_agents = []
             for t in targets:
@@ -2599,7 +2663,15 @@ async def execute_workflow_streaming(nodes: List[Dict], edges: List[Dict], promp
                     
                     # Merge shared results with final state results
                     stored_results = get_shared_results()
-                    final_results = {**final_state.get('results', {}), **stored_results}
+                    state_results = final_state.get('results', {})
+                    final_results = {**state_results, **stored_results}
+                    
+                    # DEBUG: Log results composition
+                    print(f"[DEBUG] stored_results keys: {list(stored_results.keys())}")
+                    print(f"[DEBUG] state_results keys: {list(state_results.keys()) if isinstance(state_results, dict) else 'NOT A DICT: ' + str(type(state_results))}")
+                    print(f"[DEBUG] final_results keys: {list(final_results.keys())}")
+                    print(f"[DEBUG] agent_response length: {len(final_results.get('agent_response', '')) if final_results.get('agent_response') else 'NONE'}")
+                    
                     yield {
                         'type': 'complete',
                         'success': True,
@@ -2629,40 +2701,50 @@ async def execute_workflow_streaming(nodes: List[Dict], edges: List[Dict], promp
                         yield {'type': 'error', 'error': node_error, 'auth_error': True, 'node_id': node_id}
                         break
                     
-                    # IMMEDIATE FAN-IN CHECK: After every completion, check if we should force output
-                    # With CONDITIONAL ROUTING, only selected agents execute. We use traced_nodes
-                    # to know which predecessors are actually expected.
-                    output_nodes = [n['id'] for n in nodes if n.get('type') == 'output']
-                    output_node_set = set(output_nodes)
+                    # FAN-IN SHORTCUT DISABLED: Let graph complete naturally via _complete event
+                    # The _complete event handler (line ~2636) properly merges stored_results
+                    # This prevents race conditions where we complete before output node stores results
+                    #
+                    # Old aggressive fan-in logic caused issues - see fix history
+                    USE_AGGRESSIVE_FANIN = False  # Set True to re-enable (not recommended)
                     
-                    # Get ALL possible nodes that feed into output (from edge definitions)
-                    all_output_predecessors = set()
-                    for edge in edges:
-                        if edge.get('target') in output_node_set:
-                            all_output_predecessors.add(edge.get('source'))
+                    if USE_AGGRESSIVE_FANIN:
+                        # IMMEDIATE FAN-IN CHECK: After every completion, check if we should force output
+                        output_nodes = [n['id'] for n in nodes if n.get('type') == 'output']
+                        output_node_set = set(output_nodes)
+                        
+                        all_output_predecessors = set()
+                        for edge in edges:
+                            if edge.get('target') in output_node_set:
+                                all_output_predecessors.add(edge.get('source'))
+                        
+                        expected_predecessors = all_output_predecessors & traced_nodes
+                        all_preds_done = expected_predecessors and expected_predecessors.issubset(completed_nodes)
+                    else:
+                        all_preds_done = False  # Disabled - let graph complete naturally
                     
-                    # DYNAMIC FAN-IN: Only wait for predecessors that ACTUALLY started executing
-                    # This handles conditional routing where some agents aren't selected
-                    expected_predecessors = all_output_predecessors & traced_nodes
-                    
-                    # Debug: Show status after key nodes complete
-                    if node_id in all_output_predecessors or node_id == 'pbi-callback' or 'agent-' in node_id:
-                        missing = expected_predecessors - completed_nodes
-                        print(f"[FAN-IN DEBUG] After {node_id}: {len(completed_nodes & expected_predecessors)}/{len(expected_predecessors)} expected predecessors done")
-                        if missing:
-                            print(f"[FAN-IN DEBUG] Still waiting for: {missing}")
-                        else:
-                            print(f"[FAN-IN DEBUG] All expected predecessors complete!")
-                    
-                    # Check if all EXPECTED output predecessors are completed
-                    # (expected = predecessors that actually started, based on conditional routing)
-                    all_preds_done = expected_predecessors and expected_predecessors.issubset(completed_nodes)
-                    print(f"[FAN-IN CHECK] expected_predecessors={expected_predecessors}, completed_nodes has {len(completed_nodes)} items, all_preds_done={all_preds_done}")
                     if all_preds_done:
                         print(f"[FAN-IN] ✅ All {len(expected_predecessors)} output predecessors completed!")
                         print(f"[FAN-IN] Predecessors: {expected_predecessors}")
                         
-                        # Force output node and complete - NO ASYNC SLEEP, direct yield
+                        # WAIT for the actual output node to run and store results
+                        # Poll for up to 10 seconds for agent_response to appear
+                        print(f"[FAN-IN] Waiting for output node to store results...")
+                        wait_start = time.time()
+                        max_wait = 10.0  # seconds
+                        stored_results = {}
+                        
+                        while (time.time() - wait_start) < max_wait:
+                            stored_results = get_shared_results()
+                            if stored_results.get('agent_response') or stored_results.get('response'):
+                                print(f"[FAN-IN] ✅ Results available after {time.time() - wait_start:.2f}s")
+                                break
+                            time.sleep(0.2)  # Poll every 200ms
+                        
+                        if not stored_results.get('agent_response'):
+                            print(f"[FAN-IN] ⚠️ Timeout waiting for results after {max_wait}s")
+                        
+                        # Now emit the output node events
                         for out_id in output_nodes:
                             if out_id not in completed_nodes:
                                 print(f"[FAN-IN] Forcing output node: {out_id}")
@@ -2673,9 +2755,8 @@ async def execute_workflow_streaming(nodes: List[Dict], edges: List[Dict], promp
                                 completed_nodes.add(out_id)
                         
                         print(f"[FAN-IN] Yielding complete event...")
-                        # Get the stored results from supervisor
-                        stored_results = get_shared_results()
-                        print(f"[FAN-IN] Retrieved results: {len(str(stored_results))} chars")
+                        print(f"[FAN-IN] Final stored_results keys: {list(stored_results.keys())}")
+                        print(f"[FAN-IN] agent_response: {len(stored_results.get('agent_response', '')) if stored_results.get('agent_response') else 'NONE'}")
                         
                         # Build rich execution messages for detailed timeline
                         exec_messages = []
@@ -2787,11 +2868,16 @@ async def execute_workflow_streaming(nodes: List[Dict], edges: List[Dict], promp
                             yield {'type': 'node_executing', 'node_id': out_id}
                             await asyncio.sleep(0.15)
                             yield {'type': 'node_completed', 'node_id': out_id}
+                    
+                    # IMPORTANT: Still try to get any stored results
+                    timeout_results = get_shared_results()
+                    print(f"[TIMEOUT] Retrieved stored results: {list(timeout_results.keys())}")
+                    
                     yield {
                         'type': 'complete',
                         'success': True,
                         'messages': ['Workflow completed (max timeout)'],
-                        'results': {},
+                        'results': timeout_results,  # Include any stored results
                         'executed_nodes': list(traced_nodes),
                         'simulated_nodes': []
                     }
@@ -2810,12 +2896,15 @@ async def execute_workflow_streaming(nodes: List[Dict], edges: List[Dict], promp
                             yield {'type': 'node_completed', 'node_id': out_id}
                             completed_nodes.add(out_id)
                     
-                    # Force completion with what we have
+                    # IMPORTANT: Get any stored results before completing
+                    inactivity_results = get_shared_results()
+                    print(f"[TIMEOUT] Retrieved stored results: {list(inactivity_results.keys())}")
+                    
                     yield {
                         'type': 'complete',
                         'success': True,
                         'messages': ['Workflow completed (timeout recovery)'],
-                        'results': {},
+                        'results': inactivity_results,  # Include any stored results
                         'executed_nodes': list(traced_nodes | completed_nodes),
                         'simulated_nodes': []
                     }
@@ -2829,7 +2918,12 @@ async def execute_workflow_streaming(nodes: List[Dict], edges: List[Dict], promp
                     try:
                         result = future.result()  # This will raise if there was an exception
                         print(f"[DEBUG] Future returned normally: {type(result)}")
-                        # If we got here, graph.invoke() returned but _complete wasn't sent
+                        
+                        # IMPORTANT: Merge stored results with graph result
+                        stored = get_shared_results()
+                        final_results = {**(result.get('results', {}) if isinstance(result, dict) else {}), **stored}
+                        print(f"[DEBUG] Merged results keys: {list(final_results.keys())}")
+                        
                         # Force output node tracing
                         output_nodes = [n['id'] for n in nodes if n.get('type') == 'output']
                         for out_id in output_nodes:
@@ -2840,10 +2934,10 @@ async def execute_workflow_streaming(nodes: List[Dict], edges: List[Dict], promp
                         yield {
                             'type': 'complete',
                             'success': True,
-                            'messages': ['Workflow completed'],
-                            'results': result if isinstance(result, dict) else {},
+                            'messages': result.get('messages', ['Workflow completed']) if isinstance(result, dict) else ['Workflow completed'],
+                            'results': final_results,
                             'executed_nodes': list(traced_nodes | completed_nodes),
-                            'simulated_nodes': []
+                            'simulated_nodes': result.get('simulated_nodes', []) if isinstance(result, dict) else []
                         }
                     except Exception as e:
                         print(f"[DEBUG] Future raised exception: {e}")
