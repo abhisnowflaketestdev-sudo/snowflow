@@ -1,6 +1,6 @@
 # SnowFlow Session Log
 
-**Last Updated:** 2026-01-19 (Section 5 test completion + External Agent UX consistency)
+**Last Updated:** 2026-01-28 (Guided Canvas v1.0 milestone release)
 
 > **IF AI LOSES MEMORY, READ THIS FILE FIRST.**
 
@@ -19,8 +19,29 @@
 - `ARCHITECTURE.md` - System design
 - `DESIGN_SYSTEM.md` - UI colors/fonts (historical; current theming uses CSS variables in `frontend/src/index.css`)
 - `ROADMAP.md` - Full 6-stage product plan
-- `SESSION_BACKUP_JAN17_2026.md` - Latest detailed session backup
-- `SESSION_BACKUP_JAN19_2026.md` - Latest detailed session backup (Section 5 tests + UX fixes)
+- `SESSION_BACKUP_JAN17_2026.md` - Detailed session backup
+- `SESSION_BACKUP_JAN19_2026.md` - Detailed session backup (Section 5 tests + UX fixes)
+- `SESSION_BACKUP_JAN28_2026.md` - Latest backup (Guided Canvas v1.0 milestone)
+
+---
+
+## 🎉 MILESTONE: Guided Canvas v1.0 (2026-01-28)
+
+**Git Tag:** `v1.0.0-guided-canvas`  
+**Commit:** `8a87a50`
+
+### What's New:
+- **Guided Stack Canvas** (`frontend/src/components/GuidedStackCanvas.tsx`): New step-by-step workflow builder with visual feedback
+- **Experience Channel switching**: Snowflake Intelligence, REST API, Slack, Teams - with channel-specific UI
+- **Orchestration patterns**: Single Agent, Supervisor, Router, External modes with clickable pills
+- **Visual feedback system**: Toast notifications, "Changes pending" banner, Apply & Run button
+- **REST API endpoint preview**: Shows endpoint URL (`POST /run/stream`), request body template, response format
+
+### Key Fixes (this session):
+- Config persistence bug in `buildProgressiveGraph` (JS spread order was overwriting new config with stale data)
+- Channel dropdown state synchronization
+- Orchestration pill interactivity and visual states
+- Vite cache issues preventing code updates from loading
 
 ---
 
