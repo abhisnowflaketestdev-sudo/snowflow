@@ -1051,9 +1051,9 @@ export function GuidedStackCanvas({
             maxWidth: 580, 
             margin: '0 auto 16px',
             padding: '12px 16px',
-            background: 'linear-gradient(135deg, rgba(59,130,246,0.12) 0%, rgba(99,102,241,0.12) 100%)',
+            background: 'linear-gradient(135deg, rgba(245,158,11,0.15) 0%, rgba(234,179,8,0.15) 100%)',
             borderRadius: 12,
-            border: '2px solid rgba(59,130,246,0.3)',
+            border: '2px solid rgba(245,158,11,0.5)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
@@ -1064,11 +1064,11 @@ export function GuidedStackCanvas({
                 width: 10, 
                 height: 10, 
                 borderRadius: '50%', 
-                background: '#3B82F6',
+                background: '#F59E0B',
                 animation: 'pulse 1.5s infinite'
               }} />
               <div>
-                <div style={{ fontSize: 13, fontWeight: 700, color: '#3B82F6' }}>Changes pending</div>
+                <div style={{ fontSize: 13, fontWeight: 700, color: '#F59E0B' }}>Changes pending</div>
                 <div style={{ fontSize: 11, color: '#64748B' }}>Click "Test Agent" to apply your changes</div>
               </div>
             </div>
@@ -1079,7 +1079,7 @@ export function GuidedStackCanvas({
                 padding: '8px 16px',
                 borderRadius: 8,
                 border: 'none',
-                background: '#3B82F6',
+                background: '#F59E0B',
                 color: 'white',
                 fontSize: 12,
                 fontWeight: 700,
@@ -1340,9 +1340,9 @@ export function GuidedStackCanvas({
                     {hasUnsavedChanges && (
                       <div style={{ 
                         padding: '10px 14px', 
-                        background: 'linear-gradient(135deg, rgba(59,130,246,0.12) 0%, rgba(99,102,241,0.12) 100%)', 
+                        background: 'linear-gradient(135deg, rgba(245,158,11,0.15) 0%, rgba(234,179,8,0.15) 100%)', 
                         borderRadius: 10, 
-                        border: '2px solid rgba(59,130,246,0.3)',
+                        border: '2px solid rgba(245,158,11,0.5)',
                         display: 'flex',
                         alignItems: 'center',
                         gap: 10
@@ -1351,10 +1351,10 @@ export function GuidedStackCanvas({
                           width: 8, 
                           height: 8, 
                           borderRadius: '50%', 
-                          background: '#3B82F6',
+                          background: '#F59E0B',
                           animation: 'pulse 1.5s infinite'
                         }} />
-                        <div style={{ fontSize: 12, color: '#3B82F6', fontWeight: 600 }}>
+                        <div style={{ fontSize: 12, color: '#F59E0B', fontWeight: 600 }}>
                           Changes detected — run again to apply
                         </div>
                       </div>
@@ -1368,19 +1368,19 @@ export function GuidedStackCanvas({
                           width: '100%', 
                           padding: '18px 24px', 
                           borderRadius: 14, 
-                          border: hasUnsavedChanges ? '2px solid #3B82F6' : 'none', 
+                          border: hasUnsavedChanges ? '2px solid #F59E0B' : 'none', 
                           background: isRunning 
                             ? '#94A3B8' 
                             : (guidedConfig.channel === 'slack' || guidedConfig.channel === 'teams')
                               ? '#CBD5E1'
                               : hasUnsavedChanges
-                                ? 'linear-gradient(135deg, #3B82F6 0%, #6366F1 100%)'
+                                ? 'linear-gradient(135deg, #F59E0B 0%, #D97706 100%)'
                                 : 'linear-gradient(135deg, #10B981 0%, #059669 100%)', 
                           color: 'white', 
                           fontSize: 16, 
                           fontWeight: 700, 
                           cursor: (isRunning || guidedConfig.channel === 'slack' || guidedConfig.channel === 'teams') ? 'not-allowed' : 'pointer', 
-                          boxShadow: (isRunning || guidedConfig.channel === 'slack' || guidedConfig.channel === 'teams') ? 'none' : hasUnsavedChanges ? '0 6px 20px rgba(59,130,246,0.4)' : '0 6px 20px rgba(16,185,129,0.4)',
+                          boxShadow: (isRunning || guidedConfig.channel === 'slack' || guidedConfig.channel === 'teams') ? 'none' : hasUnsavedChanges ? '0 6px 20px rgba(245,158,11,0.4)' : '0 6px 20px rgba(16,185,129,0.4)',
                           display: 'flex', 
                           alignItems: 'center', 
                           justifyContent: 'center', 

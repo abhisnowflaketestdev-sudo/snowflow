@@ -3064,6 +3064,7 @@ function Flow() {
               setExecStatus('success');
               setActiveNodes(new Set());
               setExecutionPhase('');
+              setIsProductionMode(false); // Unlock canvas after successful execution
               showToast('Workflow completed!', 'success');
             } else if (eventData.type === 'error') {
               // Handle specific error types
@@ -3073,6 +3074,7 @@ function Flow() {
               setExecStatus('error');
               setActiveNodes(new Set());
               setExecutionPhase('');
+              setIsProductionMode(false); // Unlock canvas after error
               
               if (isAuthError) {
                 showToast('🔐 Snowflake Auth Error: Token expired. Restart backend to re-authenticate.', 'error');
@@ -3089,6 +3091,7 @@ function Flow() {
       setExecStatus('error');
       setActiveNodes(new Set());
       setExecutionPhase('');
+      setIsProductionMode(false); // Unlock canvas after catch error
       const errMsg = err instanceof Error ? err.message : 'Unknown error';
       // Show more specific error message
       if (errMsg.includes('Authentication') || errMsg.includes('expired') || errMsg.includes('auth')) {
