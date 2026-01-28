@@ -424,32 +424,118 @@ SnowFlow UI
 
 ## 📅 January 2026 Update
 
+### 🎉 Milestone: Guided Canvas v1.0 (2026-01-28)
+
+**Git Tag:** `v1.0.0-guided-canvas`
+
+- [x] **Guided Stack Canvas** - Step-by-step workflow builder with visual feedback
+- [x] **Experience Channels** - Snowflake Intelligence, REST API, Slack, Teams switching
+- [x] **Orchestration Patterns** - Single Agent, Supervisor, Router, External modes
+- [x] **Visual Feedback** - Toast notifications, "Changes pending" banner, Apply & Run
+
 ### Recently Completed ✅
 
 - [x] **Resizable Sidebar** - Drag handle to adjust width (200-500px)
 - [x] **Security Audit** - All Python CVEs patched
 - [x] **GitHub Migration** - Moved to `abhisnowflaketestdev-sudo/snowflow`
 
+---
+
+## 🚀 NEXT MAJOR MILESTONE: Native App-ification
+
+> **Goal:** Make SnowFlow completely plug-and-play. Zero friction from Snowflake account connection → workflow building → API endpoint generation → Control Tower monitoring.
+
+### Phase 1: Seamless Onboarding
+| Feature | Priority | Effort | Notes |
+|---------|----------|--------|-------|
+| **One-click Snowflake Connect** | 🔴 P0 | 4 hrs | OAuth flow, no manual key setup |
+| **Auto-detect account capabilities** | 🔴 P0 | 2 hrs | Cortex models, warehouses, roles available |
+| **Guided setup wizard** | 🟡 P1 | 4 hrs | Walk user through first workflow |
+| **Demo mode (no Snowflake)** | 🟡 P1 | 3 hrs | Full experience with mock data |
+
+### Phase 2: Native App Packaging
+| Feature | Priority | Effort | Notes |
+|---------|----------|--------|-------|
+| **Snowflake Native App manifest** | 🔴 P0 | 4 hrs | `manifest.yml`, setup scripts |
+| **Snowpark Container Services** | 🔴 P0 | 8 hrs | Run FastAPI backend in Snowflake compute |
+| **Streamlit UI option** | 🟡 P1 | 6 hrs | Alternative to React for simpler deployment |
+| **Native App versioning** | 🟡 P1 | 2 hrs | Upgrade path for installed apps |
+| **Marketplace listing** | 🟢 P2 | 4 hrs | Publish to Snowflake Marketplace |
+
+### Phase 3: Auto-Generated Endpoints
+| Feature | Priority | Effort | Notes |
+|---------|----------|--------|-------|
+| **One-click API publish** | 🔴 P0 | 6 hrs | Turn any workflow into REST endpoint |
+| **Auto-generate endpoint URL** | 🔴 P0 | 2 hrs | `https://<account>.snowflakecomputing.com/api/snowflow/<workflow>` |
+| **OpenAPI spec generation** | 🟡 P1 | 3 hrs | Swagger docs for each endpoint |
+| **API key management** | 🟡 P1 | 4 hrs | Generate/revoke keys per workflow |
+| **OAuth2 for endpoints** | 🟡 P1 | 6 hrs | Proper auth, not just API keys |
+| **Rate limiting** | 🟢 P2 | 2 hrs | Per-workflow throttling |
+
+### Phase 4: Control Tower Integration
+| Feature | Priority | Effort | Notes |
+|---------|----------|--------|-------|
+| **Real-time monitoring dashboard** | 🔴 P0 | 6 hrs | All workflows, all endpoints, live |
+| **Usage analytics** | 🟡 P1 | 4 hrs | Calls, latency, errors per endpoint |
+| **Cost tracking** | 🟡 P1 | 3 hrs | Credit consumption per workflow |
+| **Alerting** | 🟢 P2 | 3 hrs | Slack/email on errors, thresholds |
+
+### Architecture Vision
+```
+┌─────────────────────────────────────────────────────────────┐
+│                    SNOWFLAKE ACCOUNT                        │
+│  ┌──────────────────────────────────────────────────────┐  │
+│  │           SNOWFLOW NATIVE APP                        │  │
+│  │  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐  │  │
+│  │  │   React UI  │  │  FastAPI    │  │  Control    │  │  │
+│  │  │  (Streamlit │  │  (Container │  │   Tower     │  │  │
+│  │  │   option)   │  │   Services) │  │  Dashboard  │  │  │
+│  │  └─────────────┘  └─────────────┘  └─────────────┘  │  │
+│  │         │                │                │          │  │
+│  │         └────────────────┼────────────────┘          │  │
+│  │                          │                           │  │
+│  │  ┌───────────────────────▼───────────────────────┐  │  │
+│  │  │              WORKFLOW ENGINE                   │  │  │
+│  │  │   ┌─────────┐  ┌─────────┐  ┌─────────┐      │  │  │
+│  │  │   │Workflow1│  │Workflow2│  │Workflow3│      │  │  │
+│  │  │   └────┬────┘  └────┬────┘  └────┬────┘      │  │  │
+│  │  └────────┼────────────┼────────────┼───────────┘  │  │
+│  │           │            │            │              │  │
+│  │  ┌────────▼────────────▼────────────▼───────────┐  │  │
+│  │  │           AUTO-GENERATED ENDPOINTS            │  │  │
+│  │  │  POST /workflow1  POST /workflow2  POST /...  │  │  │
+│  │  └──────────────────────────────────────────────┘  │  │
+│  └──────────────────────────────────────────────────────┘  │
+│                             │                              │
+│                             ▼                              │
+│  ┌─────────────────────────────────────────────────────┐  │
+│  │              CORTEX / DATA LAYER                     │  │
+│  │   Tables  │  Views  │  Semantic Models  │  Cortex   │  │
+│  └─────────────────────────────────────────────────────┘  │
+└─────────────────────────────────────────────────────────────┘
+```
+
+---
+
 ### Currently In Progress 🔄
 
 | Feature | Priority | Status | Notes |
 |---------|----------|--------|-------|
+| **Guided Canvas UX** | 🔴 P0 | ✅ Done | v1.0 milestone shipped |
 | **Control Tower** | 🔴 P0 | Pending | Agent approval, marketplace, monitoring |
-| **UI Panel Fixes** | 🔴 P0 | Needs verification | Overflow, dropdowns |
-| **Dynamic Snowflake Dropdowns** | 🟡 P1 | Partially done | DB/Schema/Stage selectors |
+| **Native App Packaging** | 🔴 P0 | Next | See above roadmap |
 
 ### Session Context (If Chat Lost)
 
 **User Context:**
-- Returning after 1 month break
-- Focus: Enterprise production readiness
-- Priority: Control Tower feature
+- Focus: Native App-ification for plug-and-play experience
+- Goal: Seamless Snowflake connection → endpoint generation → monitoring
 - GitHub: `abhisnowflaketestdev-sudo/snowflow`
 
 **Technical Context:**
-- Frontend running on port 5173
+- Frontend running on port 5174
 - Backend running on port 8000
-- All security vulnerabilities patched
-- Resizable sidebar implemented
+- Guided Canvas v1.0 shipped (tag: `v1.0.0-guided-canvas`)
+- Snowflake connected via key-pair auth
 
-*Last updated: 2026-01-09*
+*Last updated: 2026-01-28*
