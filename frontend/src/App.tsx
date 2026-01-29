@@ -2939,15 +2939,15 @@ function Flow() {
     setSelectedNode(null);
   }, [setSelectedNode]);
 
-  const runWorkflow = async (prompt?: string, skipNameCheck?: boolean) => {
-    // Check if workflow needs a name (first run)
-    // Use fresh state from store to avoid closure issues
-    const currentName = useFlowStore.getState().workflowName;
-    if (!skipNameCheck && !currentName.trim()) {
-      setPendingRunPrompt(prompt);
-      setShowNamePrompt(true);
-      return;
-    }
+  const runWorkflow = async (prompt?: string, _skipNameCheck?: boolean) => {
+    // Name check disabled temporarily - was causing blank page
+    // TODO: Re-enable after debugging
+    // const currentName = useFlowStore.getState().workflowName;
+    // if (!skipNameCheck && !currentName.trim()) {
+    //   setPendingRunPrompt(prompt);
+    //   setShowNamePrompt(true);
+    //   return;
+    // }
     
     // Pre-run validation
     if (nodes.length === 0) {
