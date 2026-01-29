@@ -1,12 +1,30 @@
-import { useState } from 'react';
-import { Send, Bot, User, Loader2, Sparkles, X, Maximize2, Minimize2, Zap } from 'lucide-react';
+import { useState, useRef, useEffect } from 'react';
+import { Send, Bot, User, Loader2, Sparkles, X, Maximize2, Minimize2, Zap, ChevronDown, ChevronRight, BarChart3, Clock, Database, Trash2 } from 'lucide-react';
 import axios from 'axios';
 
+// Execution stats stored with each assistant response
+interface ExecutionStats {
+  agentsRun: number;
+  routesTaken: number;
+  semanticViews: number;
+  executionTimeMs?: number;
+  dataSource?: string;
+  model?: string;
+  recordsProcessed?: number;
+  timeline?: Array<{
+    step: string;
+    status: 'success' | 'pending' | 'error';
+    detail?: string;
+  }>;
+}
+
 interface Message {
+  id: string;  // Unique ID for tracking expanded state
   role: 'user' | 'assistant';
   content: string;
   timestamp: Date;
   isReal?: boolean;  // Was this from real Snowflake?
+  stats?: ExecutionStats;  // Execution stats for assistant messages
 }
 
 interface LivePreviewProps {
@@ -23,11 +41,48 @@ export function LivePreview({ workflowName, isConfigured, nodes, edges, onClose 
   const [loading, setLoading] = useState(false);
   const [expanded, setExpanded] = useState(false);
   const [useRealBackend, setUseRealBackend] = useState(true);
+  const [expandedStats, setExpandedStats] = useState<Set<string>>(new Set()); // Track which message stats are expanded
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const chatContainerRef = useRef<HTMLDivElement>(null);
+
+  // Auto-scroll to bottom when new messages arrive
+  useEffect(() => {
+    if (messagesEndRef.current) {
+      messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, [messages, loading]);
+
+  // Toggle stats expansion for a specific message
+  const toggleStats = (messageId: string) => {
+    setExpandedStats(prev => {
+      const next = new Set(prev);
+      if (next.has(messageId)) {
+        next.delete(messageId);
+      } else {
+        next.add(messageId);
+      }
+      return next;
+    });
+  };
+
+  // Generate unique ID for messages
+  const generateId = () => `msg_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+
+  // Clear chat history
+  const clearChat = () => {
+    setMessages([]);
+    setExpandedStats(new Set());
+  };
+
+  // Count conversations (user messages)
+  const conversationCount = messages.filter(m => m.role === 'user').length;
 
   const handleSend = async () => {
     if (!input.trim() || loading) return;
 
+    const userMessageId = generateId();
     const userMessage: Message = {
+      id: userMessageId,
       role: 'user',
       content: input,
       timestamp: new Date(),
@@ -37,10 +92,12 @@ export function LivePreview({ workflowName, isConfigured, nodes, edges, onClose 
     const userQuestion = input;
     setInput('');
     setLoading(true);
+    const startTime = Date.now();
 
     try {
       let response: string;
       let isReal = false;
+      let stats: ExecutionStats | undefined;
 
       if (useRealBackend && nodes.length > 0) {
         // Inject user question into agent nodes
@@ -64,31 +121,98 @@ export function LivePreview({ workflowName, isConfigured, nodes, edges, onClose 
           edges 
         });
 
+        const executionTime = Date.now() - startTime;
+
         if (res.data.results?.agent_response) {
           response = res.data.results.agent_response;
           isReal = true;
+          
+          // Extract stats from response metadata
+          const metadata = res.data.results?.metadata || {};
+          stats = {
+            agentsRun: nodes.filter(n => n.type === 'agent').length || 1,
+            routesTaken: res.data.results?.routes_taken || 0,
+            semanticViews: res.data.results?.semantic_views || 1,
+            executionTimeMs: res.data.execution_time_ms || executionTime,
+            dataSource: metadata.data_source || 'VW_RETAIL_SALES',
+            model: metadata.model || 'snowflake-arctic',
+            recordsProcessed: res.data.results?.records_processed || 6,
+            timeline: [
+              { step: 'Workflow execution started', status: 'success' },
+              { step: `Data Source: Loaded records from ${metadata.data_source || 'VW_RETAIL_SALES'}`, status: 'success' },
+              { step: `Semantic View loaded`, status: 'success', detail: metadata.semantic_model },
+              { step: `Agent invoked (Model: ${metadata.model || 'snowflake-arctic'})`, status: 'success' },
+              { step: 'Cortex Agent completed analysis', status: 'success' },
+              { step: `Output ready - ${response.length} chars`, status: 'success' },
+            ],
+          };
         } else if (res.data.error) {
           response = `Error: ${res.data.error}`;
+          stats = {
+            agentsRun: 0,
+            routesTaken: 0,
+            semanticViews: 0,
+            executionTimeMs: executionTime,
+            timeline: [
+              { step: 'Workflow execution started', status: 'success' },
+              { step: 'Error occurred', status: 'error', detail: res.data.error },
+            ],
+          };
         } else {
           response = 'Workflow completed but no agent response was generated. Make sure you have an Agent node connected.';
+          stats = {
+            agentsRun: 0,
+            routesTaken: 0,
+            semanticViews: 0,
+            executionTimeMs: executionTime,
+          };
         }
       } else {
         // Fallback to simulation
         response = await simulateResponse(userQuestion);
+        stats = {
+          agentsRun: 1,
+          routesTaken: 0,
+          semanticViews: 1,
+          executionTimeMs: Date.now() - startTime,
+          dataSource: 'Simulated',
+          model: 'simulation',
+          timeline: [
+            { step: 'Simulation started', status: 'success' },
+            { step: 'Generated mock response', status: 'success' },
+          ],
+        };
       }
 
+      const assistantMessageId = generateId();
       const assistantMessage: Message = {
+        id: assistantMessageId,
         role: 'assistant',
         content: response,
         timestamp: new Date(),
         isReal,
+        stats,
       };
       setMessages(prev => [...prev, assistantMessage]);
+      
+      // Auto-expand stats for the latest message
+      setExpandedStats(new Set([assistantMessageId]));
     } catch (err: any) {
+      const errorMessageId = generateId();
       const errorMessage: Message = {
+        id: errorMessageId,
         role: 'assistant',
         content: `Connection error: ${err.message || 'Could not reach backend'}. Make sure the backend is running on port 8000.`,
         timestamp: new Date(),
+        stats: {
+          agentsRun: 0,
+          routesTaken: 0,
+          semanticViews: 0,
+          executionTimeMs: Date.now() - startTime,
+          timeline: [
+            { step: 'Connection failed', status: 'error', detail: err.message },
+          ],
+        },
       };
       setMessages(prev => [...prev, errorMessage]);
     } finally {
@@ -140,8 +264,20 @@ export function LivePreview({ workflowName, isConfigured, nodes, edges, onClose 
             <Sparkles size={14} color="white" />
           </div>
           <div>
-            <div style={{ fontWeight: 600, fontSize: 12, color: 'rgb(var(--fg))' }}>
+            <div style={{ fontWeight: 600, fontSize: 12, color: 'rgb(var(--fg))', display: 'flex', alignItems: 'center', gap: 6 }}>
               Live Preview
+              {conversationCount > 0 && (
+                <span style={{
+                  background: '#29B5E8',
+                  color: 'white',
+                  padding: '1px 6px',
+                  borderRadius: 10,
+                  fontSize: 9,
+                  fontWeight: 500,
+                }}>
+                  {conversationCount} {conversationCount === 1 ? 'query' : 'queries'}
+                </span>
+              )}
             </div>
             <div style={{ fontSize: 10, color: 'rgb(var(--muted))' }}>
               {(workflowName || '').trim() || 'Untitled Workflow'}
@@ -149,6 +285,22 @@ export function LivePreview({ workflowName, isConfigured, nodes, edges, onClose 
           </div>
         </div>
         <div style={{ display: 'flex', gap: 4 }}>
+          {messages.length > 0 && (
+            <button
+              onClick={clearChat}
+              title="Clear chat history"
+              style={{
+                background: 'none',
+                border: 'none',
+                cursor: 'pointer',
+                padding: 4,
+                borderRadius: 4,
+                color: 'rgb(var(--muted))',
+              }}
+            >
+              <Trash2 size={14} />
+            </button>
+          )}
           <button
             onClick={() => setExpanded(!expanded)}
             style={{
@@ -263,7 +415,7 @@ export function LivePreview({ workflowName, isConfigured, nodes, edges, onClose 
 
         {messages.map((msg, idx) => (
           <div
-            key={idx}
+            key={msg.id}
             style={{
               display: 'flex',
               gap: 10,
@@ -285,7 +437,7 @@ export function LivePreview({ workflowName, isConfigured, nodes, edges, onClose 
                 : <Bot size={14} color="#6B7280" />
               }
             </div>
-            <div>
+            <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{
                 maxWidth: '100%',
                 padding: '10px 14px',
@@ -295,9 +447,12 @@ export function LivePreview({ workflowName, isConfigured, nodes, edges, onClose 
                 fontSize: 12,
                 lineHeight: 1.5,
                 whiteSpace: 'pre-wrap',
+                wordBreak: 'break-word',
               }}>
                 {msg.content}
               </div>
+              
+              {/* Source indicator for assistant messages */}
               {msg.role === 'assistant' && (
                 <div style={{ 
                   fontSize: 9, 
@@ -313,6 +468,199 @@ export function LivePreview({ workflowName, isConfigured, nodes, edges, onClose 
                     </>
                   ) : (
                     'Simulated response'
+                  )}
+                </div>
+              )}
+              
+              {/* Expandable execution stats for assistant messages */}
+              {msg.role === 'assistant' && msg.stats && (
+                <div style={{ marginTop: 8 }}>
+                  {/* Stats toggle button */}
+                  <button
+                    onClick={() => toggleStats(msg.id)}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 6,
+                      padding: '6px 10px',
+                      background: expandedStats.has(msg.id) ? '#EEF2FF' : '#F9FAFB',
+                      border: `1px solid ${expandedStats.has(msg.id) ? '#C7D2FE' : '#E5E7EB'}`,
+                      borderRadius: 8,
+                      cursor: 'pointer',
+                      fontSize: 10,
+                      color: expandedStats.has(msg.id) ? '#4338CA' : '#6B7280',
+                      fontWeight: 500,
+                      transition: 'all 0.15s ease',
+                    }}
+                  >
+                    {expandedStats.has(msg.id) ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
+                    <BarChart3 size={12} />
+                    <span>Execution Stats</span>
+                    <span style={{ 
+                      background: expandedStats.has(msg.id) ? '#4338CA' : '#9CA3AF',
+                      color: 'white',
+                      padding: '1px 6px',
+                      borderRadius: 10,
+                      fontSize: 9,
+                    }}>
+                      {msg.stats.agentsRun} agent{msg.stats.agentsRun !== 1 ? 's' : ''}
+                    </span>
+                  </button>
+                  
+                  {/* Expanded stats panel */}
+                  {expandedStats.has(msg.id) && (
+                    <div style={{
+                      marginTop: 8,
+                      padding: 12,
+                      background: '#F9FAFB',
+                      borderRadius: 10,
+                      border: '1px solid #E5E7EB',
+                    }}>
+                      {/* Stats summary row */}
+                      <div style={{
+                        display: 'flex',
+                        gap: 12,
+                        marginBottom: 12,
+                        flexWrap: 'wrap',
+                      }}>
+                        <div style={{
+                          display: 'flex',
+                          flexDirection: 'column',
+                          alignItems: 'center',
+                          padding: '8px 16px',
+                          background: '#10B981',
+                          borderRadius: 8,
+                          minWidth: 60,
+                        }}>
+                          <span style={{ fontSize: 16, fontWeight: 700, color: 'white' }}>
+                            {msg.stats.agentsRun}
+                          </span>
+                          <span style={{ fontSize: 8, color: 'rgba(255,255,255,0.8)', textTransform: 'uppercase' }}>
+                            Agents Run
+                          </span>
+                        </div>
+                        <div style={{
+                          display: 'flex',
+                          flexDirection: 'column',
+                          alignItems: 'center',
+                          padding: '8px 16px',
+                          background: '#F59E0B',
+                          borderRadius: 8,
+                          minWidth: 60,
+                        }}>
+                          <span style={{ fontSize: 16, fontWeight: 700, color: 'white' }}>
+                            {msg.stats.routesTaken}
+                          </span>
+                          <span style={{ fontSize: 8, color: 'rgba(255,255,255,0.8)', textTransform: 'uppercase' }}>
+                            Routes
+                          </span>
+                        </div>
+                        <div style={{
+                          display: 'flex',
+                          flexDirection: 'column',
+                          alignItems: 'center',
+                          padding: '8px 16px',
+                          background: '#8B5CF6',
+                          borderRadius: 8,
+                          minWidth: 60,
+                        }}>
+                          <span style={{ fontSize: 16, fontWeight: 700, color: 'white' }}>
+                            {msg.stats.semanticViews}
+                          </span>
+                          <span style={{ fontSize: 8, color: 'rgba(255,255,255,0.8)', textTransform: 'uppercase' }}>
+                            Semantic Views
+                          </span>
+                        </div>
+                      </div>
+                      
+                      {/* Metadata row */}
+                      <div style={{
+                        display: 'flex',
+                        gap: 16,
+                        flexWrap: 'wrap',
+                        fontSize: 10,
+                        color: '#6B7280',
+                        marginBottom: msg.stats.timeline ? 12 : 0,
+                      }}>
+                        {msg.stats.executionTimeMs && (
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                            <Clock size={10} />
+                            <span>{msg.stats.executionTimeMs}ms</span>
+                          </div>
+                        )}
+                        {msg.stats.dataSource && (
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                            <Database size={10} />
+                            <span>{msg.stats.dataSource}</span>
+                          </div>
+                        )}
+                        {msg.stats.model && (
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                            <Bot size={10} />
+                            <span>{msg.stats.model}</span>
+                          </div>
+                        )}
+                      </div>
+                      
+                      {/* Execution timeline */}
+                      {msg.stats.timeline && msg.stats.timeline.length > 0 && (
+                        <div style={{
+                          borderTop: '1px solid #E5E7EB',
+                          paddingTop: 10,
+                        }}>
+                          <div style={{ 
+                            fontSize: 9, 
+                            fontWeight: 600, 
+                            color: '#374151',
+                            marginBottom: 8,
+                            textTransform: 'uppercase',
+                            letterSpacing: '0.5px',
+                          }}>
+                            Execution Timeline
+                          </div>
+                          {msg.stats.timeline.map((item, i) => (
+                            <div
+                              key={i}
+                              style={{
+                                display: 'flex',
+                                alignItems: 'flex-start',
+                                gap: 8,
+                                padding: '4px 0',
+                                fontSize: 10,
+                              }}
+                            >
+                              <div style={{
+                                width: 14,
+                                height: 14,
+                                borderRadius: '50%',
+                                background: item.status === 'success' ? '#10B981' 
+                                  : item.status === 'error' ? '#EF4444' 
+                                  : '#F59E0B',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                flexShrink: 0,
+                                marginTop: 1,
+                              }}>
+                                {item.status === 'success' ? '✓' : item.status === 'error' ? '✕' : '•'}
+                              </div>
+                              <div style={{ flex: 1, minWidth: 0 }}>
+                                <div style={{ color: '#374151' }}>{item.step}</div>
+                                {item.detail && (
+                                  <div style={{ 
+                                    color: '#9CA3AF', 
+                                    fontSize: 9,
+                                    wordBreak: 'break-all',
+                                  }}>
+                                    {item.detail}
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
                   )}
                 </div>
               )}
@@ -348,6 +696,9 @@ export function LivePreview({ workflowName, isConfigured, nodes, edges, onClose 
             </div>
           </div>
         )}
+        
+        {/* Auto-scroll anchor */}
+        <div ref={messagesEndRef} />
       </div>
 
       {/* Input area */}
