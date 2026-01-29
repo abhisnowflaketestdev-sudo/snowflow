@@ -2113,6 +2113,13 @@ function Flow() {
   const [savedWorkflows, setSavedWorkflows] = useState<Array<{ filename: string; name: string; node_count: number }>>([]);
   const [workflowDescription, setWorkflowDescription] = useState('');
   const [backendConnected, setBackendConnected] = useState<boolean | null>(null); // null = checking, true = connected, false = disconnected
+  const [snowflakeStatus, setSnowflakeStatus] = useState<{
+    connected: boolean;
+    warning: boolean;
+    troubleshooting: string[] | null;
+    consecutive_failures: number;
+  } | null>(null);
+  const [showConnectionWarning, setShowConnectionWarning] = useState(false);
   const [demoInstallStatus, setDemoInstallStatus] = useState<'idle' | 'installing' | 'done' | 'error'>('idle');
   const [demoInstallReport, setDemoInstallReport] = useState<any | null>(null);
   const [sfRoles, setSfRoles] = useState<string[]>([]);
@@ -2144,6 +2151,64 @@ function Flow() {
     
     return () => clearInterval(interval);
   }, []);
+
+  // Poll Snowflake connection status from backend monitor
+  useEffect(() => {
+    const checkSnowflakeStatus = async () => {
+      try {
+        const response = await fetch('http://localhost:8000/connection/status', {
+          method: 'GET',
+          signal: AbortSignal.timeout(5000)
+        });
+        if (response.ok) {
+          const status = await response.json();
+          setSnowflakeStatus(status);
+          // Show warning popup if there's a warning and we haven't dismissed it
+          if (status.warning && !status.connected) {
+            setShowConnectionWarning(true);
+          }
+        }
+      } catch {
+        // Backend might not be up yet, ignore
+      }
+    };
+    
+    // Check after a short delay (let backend start)
+    const initialTimeout = setTimeout(checkSnowflakeStatus, 3000);
+    
+    // Check every 15 seconds
+    const interval = setInterval(checkSnowflakeStatus, 15000);
+    
+    return () => {
+      clearTimeout(initialTimeout);
+      clearInterval(interval);
+    };
+  }, []);
+
+  // Retry Snowflake connection
+  const retrySnowflakeConnection = async () => {
+    try {
+      const response = await fetch('http://localhost:8000/connection/retry', {
+        method: 'POST',
+        signal: AbortSignal.timeout(30000)
+      });
+      const result = await response.json();
+      if (result.success) {
+        setShowConnectionWarning(false);
+        showToast('Snowflake connection restored!', 'success');
+        // Refresh status
+        const statusResponse = await fetch('http://localhost:8000/connection/status');
+        if (statusResponse.ok) {
+          setSnowflakeStatus(await statusResponse.json());
+        }
+      } else {
+        showToast('Connection retry failed. See troubleshooting steps.', 'error');
+      }
+    } catch (e) {
+      showToast('Failed to retry connection', 'error');
+    }
+  };
+
   const [saveAsTemplate, setSaveAsTemplate] = useState(false);
   const [templateCategory, setTemplateCategory] = useState('analytics');
   const [templateComplexity, setTemplateComplexity] = useState('medium');
@@ -4952,6 +5017,116 @@ function Flow() {
             Guided
           </button>
         </div>
+
+        {/* Snowflake Connection Warning Popup */}
+        {showConnectionWarning && snowflakeStatus && !snowflakeStatus.connected && (
+          <div style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            background: 'rgba(0,0,0,0.5)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 9999,
+          }}>
+            <div style={{
+              background: isDarkMode ? '#1E293B' : 'white',
+              borderRadius: 16,
+              padding: 24,
+              maxWidth: 480,
+              width: '90%',
+              boxShadow: '0 20px 60px rgba(0,0,0,0.3)',
+            }}>
+              {/* Header */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
+                <div style={{
+                  width: 48,
+                  height: 48,
+                  borderRadius: 12,
+                  background: 'linear-gradient(135deg, #F59E0B 0%, #D97706 100%)',
+                  display: 'grid',
+                  placeItems: 'center',
+                }}>
+                  <AlertTriangle size={24} color="white" />
+                </div>
+                <div>
+                  <div style={{ fontSize: 18, fontWeight: 700, color: isDarkMode ? '#F1F5F9' : '#1E293B' }}>
+                    Snowflake Connection Lost
+                  </div>
+                  <div style={{ fontSize: 13, color: isDarkMode ? '#94A3B8' : '#64748B' }}>
+                    {snowflakeStatus.consecutive_failures} consecutive failures
+                  </div>
+                </div>
+              </div>
+
+              {/* Troubleshooting Steps */}
+              <div style={{
+                background: isDarkMode ? 'rgba(248,250,252,0.05)' : '#F8FAFC',
+                borderRadius: 10,
+                padding: 16,
+                marginBottom: 20,
+              }}>
+                <div style={{ fontSize: 13, fontWeight: 600, color: isDarkMode ? '#F1F5F9' : '#1E293B', marginBottom: 10 }}>
+                  Troubleshooting Steps:
+                </div>
+                <ol style={{
+                  margin: 0,
+                  paddingLeft: 20,
+                  fontSize: 12,
+                  color: isDarkMode ? '#94A3B8' : '#64748B',
+                  lineHeight: 1.8,
+                }}>
+                  {snowflakeStatus.troubleshooting?.map((step, i) => (
+                    <li key={i}>{step.replace(/^\d+\.\s*/, '')}</li>
+                  ))}
+                </ol>
+              </div>
+
+              {/* Buttons */}
+              <div style={{ display: 'flex', gap: 12 }}>
+                <button
+                  onClick={retrySnowflakeConnection}
+                  style={{
+                    flex: 1,
+                    padding: '12px 20px',
+                    borderRadius: 10,
+                    border: 'none',
+                    background: 'linear-gradient(135deg, #10B981 0%, #059669 100%)',
+                    color: 'white',
+                    fontSize: 14,
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: 8,
+                  }}
+                >
+                  <RefreshCw size={16} />
+                  Retry Connection
+                </button>
+                <button
+                  onClick={() => setShowConnectionWarning(false)}
+                  style={{
+                    padding: '12px 20px',
+                    borderRadius: 10,
+                    border: `2px solid ${isDarkMode ? '#334155' : '#E2E8F0'}`,
+                    background: 'transparent',
+                    color: isDarkMode ? '#94A3B8' : '#64748B',
+                    fontSize: 14,
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                  }}
+                >
+                  Dismiss
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Toast Notification */}
         {toast && (

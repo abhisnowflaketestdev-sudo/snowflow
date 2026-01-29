@@ -1689,5 +1689,155 @@ async def initialize_governance():
 app.include_router(translation_router)
 
 
+# =============================================================================
+# CONNECTION HEALTH MONITOR - Background thread to maintain Snowflake connection
+# =============================================================================
+
+import threading
+import time
+
+class ConnectionHealthMonitor:
+    """
+    Background monitor that:
+    1. Periodically checks Snowflake connection
+    2. Retries on failure
+    3. Tracks consecutive failures for frontend warning
+    """
+    
+    def __init__(self):
+        self.is_connected = False
+        self.last_check_time = None
+        self.consecutive_failures = 0
+        self.max_failures_before_warning = 3
+        self.check_interval_seconds = 30  # Check every 30 seconds
+        self.retry_interval_seconds = 10  # Retry every 10 seconds on failure
+        self.last_error = None
+        self._running = False
+        self._thread = None
+    
+    def start(self):
+        """Start the background monitor thread"""
+        if self._running:
+            return
+        self._running = True
+        self._thread = threading.Thread(target=self._monitor_loop, daemon=True)
+        self._thread.start()
+        print("[CONNECTION MONITOR] Started background health monitor")
+    
+    def stop(self):
+        """Stop the background monitor thread"""
+        self._running = False
+        if self._thread:
+            self._thread.join(timeout=5)
+        print("[CONNECTION MONITOR] Stopped background health monitor")
+    
+    def _monitor_loop(self):
+        """Main monitoring loop"""
+        while self._running:
+            try:
+                # Check connection
+                self.is_connected = snowflake_client.is_snowflake_available(force_check=True)
+                self.last_check_time = datetime.now().isoformat()
+                
+                if self.is_connected:
+                    if self.consecutive_failures > 0:
+                        print(f"[CONNECTION MONITOR] Connection restored after {self.consecutive_failures} failures")
+                    self.consecutive_failures = 0
+                    self.last_error = None
+                    # Sleep longer when connected
+                    time.sleep(self.check_interval_seconds)
+                else:
+                    self.consecutive_failures += 1
+                    self.last_error = "Connection check failed"
+                    print(f"[CONNECTION MONITOR] Connection failed (attempt {self.consecutive_failures})")
+                    # Sleep shorter when failing to retry sooner
+                    time.sleep(self.retry_interval_seconds)
+                    
+            except Exception as e:
+                self.consecutive_failures += 1
+                self.last_error = str(e)
+                print(f"[CONNECTION MONITOR] Error: {e}")
+                time.sleep(self.retry_interval_seconds)
+    
+    def get_status(self) -> dict:
+        """Get current connection status for API"""
+        return {
+            "connected": self.is_connected,
+            "last_check": self.last_check_time,
+            "consecutive_failures": self.consecutive_failures,
+            "warning": self.consecutive_failures >= self.max_failures_before_warning,
+            "last_error": self.last_error,
+            "troubleshooting": self._get_troubleshooting_steps() if not self.is_connected else None
+        }
+    
+    def _get_troubleshooting_steps(self) -> list:
+        """Return troubleshooting steps when connection fails"""
+        return [
+            "1. Check if you're connected to VPN (if required)",
+            "2. Verify your IP is allowlisted in Snowflake network policy",
+            "3. Check if Snowflake account is accessible: https://app.snowflake.com",
+            "4. Verify credentials in backend/.env file",
+            "5. Ensure private key file exists: backend/snowflake_key.p8",
+            "6. Try restarting the backend server",
+            "7. Check Snowflake status page: https://status.snowflake.com"
+        ]
+
+# Global instance
+connection_monitor = ConnectionHealthMonitor()
+
+
+@app.on_event("startup")
+async def startup_event():
+    """Start the connection monitor on app startup"""
+    connection_monitor.start()
+    # Do initial check
+    try:
+        snowflake_client.is_snowflake_available(force_check=True)
+    except:
+        pass
+
+
+@app.on_event("shutdown")
+async def shutdown_event():
+    """Stop the connection monitor on app shutdown"""
+    connection_monitor.stop()
+
+
+@app.get("/connection/status")
+async def get_connection_status():
+    """
+    Get current Snowflake connection status.
+    Frontend can poll this to show warnings.
+    
+    Returns:
+    - connected: bool - whether Snowflake is reachable
+    - warning: bool - true if multiple consecutive failures
+    - troubleshooting: list - steps to fix if not connected
+    """
+    return connection_monitor.get_status()
+
+
+@app.post("/connection/retry")
+async def retry_connection():
+    """
+    Force a connection retry.
+    Resets the availability cache and attempts fresh connection.
+    """
+    try:
+        snowflake_client.reset_availability_cache()
+        is_available = snowflake_client.is_snowflake_available(force_check=True)
+        connection_monitor.is_connected = is_available
+        connection_monitor.last_check_time = datetime.now().isoformat()
+        
+        if is_available:
+            connection_monitor.consecutive_failures = 0
+            connection_monitor.last_error = None
+            return {"success": True, "message": "Connection restored"}
+        else:
+            return {"success": False, "message": "Connection still unavailable", "troubleshooting": connection_monitor._get_troubleshooting_steps()}
+    except Exception as e:
+        return {"success": False, "message": str(e), "troubleshooting": connection_monitor._get_troubleshooting_steps()}
+
+
 if __name__ == "__main__":
     uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
