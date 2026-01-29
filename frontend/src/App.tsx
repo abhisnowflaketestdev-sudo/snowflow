@@ -2124,6 +2124,7 @@ function Flow() {
   const [selectedHistoryId, setSelectedHistoryId] = useState<string | null>(null);
   const [statsExpanded, setStatsExpanded] = useState(true); // Independent stats panel state
   const [chatInput, setChatInput] = useState(''); // Chat input field
+  const [selectedAgentId, setSelectedAgentId] = useState<string | null>(null); // For multi-agent selection
   const [showSaveModal, setShowSaveModal] = useState(false);
   const [showLoadModal, setShowLoadModal] = useState(false);
   const [savedWorkflows, setSavedWorkflows] = useState<Array<{ filename: string; name: string; node_count: number }>>([]);
@@ -5327,14 +5328,44 @@ function Flow() {
                       </span>
                     )}
                   </div>
-                  <div style={{ fontSize: 9, color: 'rgb(var(--muted))' }}>
-                    {nodes.some(n => n.type === 'agent') ? (workflowName || 'Ready to chat') : 'Add an agent to start'}
-                  </div>
+                  {/* Agent selector for multi-agent (Graph view) */}
+                  {(() => {
+                    const agentNodes = nodes.filter(n => n.type === 'agent');
+                    if (agentNodes.length > 1 && canvasView === 'graph') {
+                      return (
+                        <select
+                          value={selectedAgentId || agentNodes[0]?.id || ''}
+                          onChange={(e) => setSelectedAgentId(e.target.value)}
+                          style={{
+                            fontSize: 9,
+                            padding: '2px 4px',
+                            border: '1px solid rgb(var(--border))',
+                            borderRadius: 4,
+                            background: 'rgb(var(--surface))',
+                            color: 'rgb(var(--fg))',
+                            cursor: 'pointer',
+                            maxWidth: 120,
+                          }}
+                        >
+                          {agentNodes.map(agent => (
+                            <option key={agent.id} value={agent.id}>
+                              {agent.data?.label || agent.data?.name || 'Agent'}
+                            </option>
+                          ))}
+                        </select>
+                      );
+                    }
+                    return (
+                      <div style={{ fontSize: 9, color: 'rgb(var(--muted))' }}>
+                        {nodes.some(n => n.type === 'agent') ? (workflowName || 'Ready to chat') : 'Add an agent to start'}
+                      </div>
+                    );
+                  })()}
                 </div>
               </div>
               
-              {/* Header Actions: Copy, Download, Clear */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+              {/* Header Actions: Copy, Download Text, Download JSON, Clear */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
                 {selectedHistoryId && execResult?.results?.agent_response && (
                   <>
                     <button 
@@ -5368,6 +5399,32 @@ function Flow() {
                         color: 'rgb(var(--muted))',
                       }}
                       title="Download as text"
+                    >
+                      <FileText size={12} />
+                    </button>
+                    <button 
+                      onClick={() => {
+                        const content = JSON.stringify({
+                          status: 'success',
+                          timestamp: new Date().toISOString(),
+                          query: execResult.user_prompt,
+                          data: { agent_response: execResult.results?.agent_response }
+                        }, null, 2);
+                        const blob = new Blob([content], { type: 'application/json' });
+                        const url = URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = 'response.json';
+                        a.click();
+                      }}
+                      style={{ 
+                        background: 'none', 
+                        border: 'none', 
+                        cursor: 'pointer', 
+                        padding: 4,
+                        color: 'rgb(var(--muted))',
+                      }}
+                      title="Download as JSON"
                     >
                       <Download size={12} />
                     </button>
@@ -5603,11 +5660,12 @@ function Flow() {
                       value={chatInput}
                       onChange={(e) => setChatInput(e.target.value)}
                       onKeyDown={(e) => {
-                        if (e.key === 'Enter' && chatInput.trim() && nodes.some(n => n.type === 'agent')) {
-                          // Trigger the same flow as "Run Flow" button
-                          setShowRunModal(true);
-                          setRunModalPrompt(chatInput);
+                        if (e.key === 'Enter' && chatInput.trim() && nodes.some(n => n.type === 'agent') && execStatus !== 'running') {
+                          // Direct execution - no modal
+                          const prompt = chatInput.trim();
+                          setUserPrompt(prompt);
                           setChatInput('');
+                          runWorkflow(prompt);
                         }
                       }}
                       placeholder={nodes.some(n => n.type === 'agent') ? "Ask your agent..." : "Add an agent first"}
@@ -5626,10 +5684,12 @@ function Flow() {
                     />
                     <button
                       onClick={() => {
-                        if (chatInput.trim() && nodes.some(n => n.type === 'agent')) {
-                          setShowRunModal(true);
-                          setRunModalPrompt(chatInput);
+                        if (chatInput.trim() && nodes.some(n => n.type === 'agent') && execStatus !== 'running') {
+                          // Direct execution - no modal
+                          const prompt = chatInput.trim();
+                          setUserPrompt(prompt);
                           setChatInput('');
+                          runWorkflow(prompt);
                         }
                       }}
                       disabled={!chatInput.trim() || !nodes.some(n => n.type === 'agent') || execStatus === 'running'}
