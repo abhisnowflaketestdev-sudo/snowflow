@@ -456,11 +456,44 @@ SnowFlow UI
 ### Phase 2: Native App Packaging
 | Feature | Priority | Effort | Notes |
 |---------|----------|--------|-------|
+| **Deploy to Snowflake Intelligence** | 🔴 P0 | 6 hrs | Register agent via CORTEX AGENT DDL, make discoverable in SF Intelligence |
 | **Snowflake Native App manifest** | 🔴 P0 | 4 hrs | `manifest.yml`, setup scripts |
 | **Snowpark Container Services** | 🔴 P0 | 8 hrs | Run FastAPI backend in Snowflake compute |
 | **Streamlit UI option** | 🟡 P1 | 6 hrs | Alternative to React for simpler deployment |
 | **Native App versioning** | 🟡 P1 | 2 hrs | Upgrade path for installed apps |
 | **Marketplace listing** | 🟢 P2 | 4 hrs | Publish to Snowflake Marketplace |
+
+### Phase 2.5: Visualization Layer Integration
+| Feature | Priority | Effort | Notes |
+|---------|----------|--------|-------|
+| **Streamlit output (default)** | 🔴 P0 | 4 hrs | Native Snowflake ecosystem, generate st.dataframe/st.bar_chart code |
+| **Tableau connector** | 🟡 P1 | 4 hrs | Export to Tableau Server API or .hyper file |
+| **Power BI connector** | 🟡 P1 | 4 hrs | Power BI REST API push or .pbix template |
+| **Sigma connector** | 🟡 P1 | 3 hrs | Sigma API integration |
+| **Generic export (CSV/JSON/Parquet)** | 🟡 P1 | 2 hrs | Universal format for any viz tool |
+| **Visualization API endpoint** | 🟢 P2 | 3 hrs | `GET /workflow/{id}/data?format=tableau` |
+
+**Architecture:**
+```
+SnowFlow Workflow
+       │
+       ▼
+┌─────────────────────────────────┐
+│     VISUALIZATION ROUTER        │
+│  (format data for target tool)  │
+└──────┬──────┬──────┬──────┬────┘
+       │      │      │      │
+       ▼      ▼      ▼      ▼
+  Streamlit Tableau PowerBI Sigma
+  (default)
+```
+
+**Output formats per tool:**
+- Streamlit: Python code snippet with `st.dataframe()`, `st.bar_chart()`
+- Tableau: Hyper file or Tableau Server REST API payload
+- Power BI: JSON for Power BI Push Dataset API
+- Sigma: Sigma workbook API payload
+- Generic: CSV, JSON, Parquet download
 
 ### Phase 3: Auto-Generated Endpoints
 | Feature | Priority | Effort | Notes |
