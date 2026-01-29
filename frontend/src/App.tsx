@@ -5670,8 +5670,9 @@ function Flow() {
                               borderBottom: '1px solid rgb(var(--border))',
                               fontSize: 9,
                               fontWeight: 600,
-                              color: '#6B7280',
+                              color: 'rgb(var(--muted))',
                               textTransform: 'uppercase',
+                              letterSpacing: '0.5px',
                             }}>
                               Execution Timeline
                             </div>
@@ -5688,7 +5689,7 @@ function Flow() {
                                     display: 'flex',
                                     alignItems: 'center',
                                     gap: 6,
-                                    background: isAgent ? '#F0FDF4' : 'transparent',
+                                    background: isAgent ? 'rgba(16, 185, 129, 0.1)' : 'transparent',
                                   }}
                                 >
                                   <div style={{
@@ -5705,7 +5706,7 @@ function Flow() {
                                   }}>
                                     ✓
                                   </div>
-                                  <span style={{ color: '#374151', fontSize: 9 }}>{msg}</span>
+                                  <span style={{ color: 'rgb(var(--fg))', fontSize: 9 }}>{msg}</span>
                                 </div>
                               );
                             })}
@@ -5773,7 +5774,7 @@ function Flow() {
                       <div style={{
                         textAlign: 'center',
                         padding: '16px 12px',
-                        color: '#9CA3AF',
+                        color: 'rgb(var(--muted))',
                         fontSize: 11,
                       }}>
                         <BarChart3 size={24} style={{ opacity: 0.3, marginBottom: 8 }} />
