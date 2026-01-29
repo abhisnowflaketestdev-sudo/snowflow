@@ -20,7 +20,7 @@ import type { CustomTool } from './components/ToolCreator';
 import { AdminDashboard } from './components/AdminDashboard';
 import { GuidedStackCanvas } from './components/GuidedStackCanvas';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Database, Brain, FileOutput, Play, X, Sparkles, Save, FolderOpen, Loader2, CheckCircle, AlertCircle, FileText, Heart, Languages, GitBranch, Globe, Layers, BookOpen, Zap, MessageSquare, Download, Upload, Shield, Bot, Cloud, Building2, FileUp, FileDown, ArrowRightLeft, GripVertical, ChevronLeft, ChevronRight, ChevronDown, Sun, Moon, Pencil, Lock, Unlock, RefreshCw } from 'lucide-react';
+import { Database, Brain, FileOutput, Play, X, Sparkles, Save, FolderOpen, Loader2, CheckCircle, AlertCircle, FileText, Heart, Languages, GitBranch, Globe, Layers, BookOpen, Zap, MessageSquare, Download, Upload, Shield, Bot, Cloud, Building2, FileUp, FileDown, ArrowRightLeft, GripVertical, ChevronLeft, ChevronRight, ChevronDown, Sun, Moon, Pencil, Lock, Unlock, RefreshCw, Trash2, User, BarChart3, Copy } from 'lucide-react';
 import axios from 'axios';
 import type { Node } from 'reactflow';
 import { getStoredTheme, setTheme, type ThemeMode } from './theme';
@@ -5313,591 +5313,480 @@ function Flow() {
           </div>
         ) : (
           <>
-            {/* Header */}
+            {/* Chat Header */}
             <div style={{ 
-              padding: '16px 20px', 
+              padding: '12px 16px', 
               borderBottom: '1px solid rgb(var(--border))',
+              background: 'linear-gradient(135deg, rgb(var(--surface-2)) 0%, rgb(var(--surface-3)) 100%)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'space-between'
             }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                {execResult ? (
-                  <CheckCircle size={20} color="#10B981" />
-                ) : (
-                  <FileOutput size={20} color="#9CA3AF" />
-                )}
-                <span style={{ fontWeight: 600, color: '#1F2937' }}>
-                  {execResult ? 'Execution Results' : 'Results'}
-                </span>
-                {executionHistory.length > 0 && (
-                  <span style={{
-                    background: '#29B5E8',
-                    color: 'white',
-                    padding: '2px 8px',
-                    borderRadius: 10,
-                    fontSize: 10,
-                    fontWeight: 500,
-                  }}>
-                    {executionHistory.length} {executionHistory.length === 1 ? 'query' : 'queries'}
-                  </span>
-                )}
-              </div>
-              {execResult && (
-                <button 
-                  onClick={() => setExecResult(null)}
-                  style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4 }}
-                  title="Clear results"
-                >
-                  <X size={18} color="#6B7280" />
-                </button>
-              )}
-            </div>
-            
-            {/* Query History Bar - scrollable horizontal list */}
-            {executionHistory.length > 1 && (
-              <div style={{
-                padding: '8px 12px',
-                borderBottom: '1px solid rgb(var(--border))',
-                background: 'rgb(var(--surface-2))',
-              }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                 <div style={{
-                  fontSize: 9,
-                  fontWeight: 600,
-                  color: '#6B7280',
-                  textTransform: 'uppercase',
-                  marginBottom: 6,
-                  letterSpacing: '0.5px',
-                }}>
-                  Query History
-                </div>
-                <div style={{
-                  display: 'flex',
-                  gap: 6,
-                  overflowX: 'auto',
-                  paddingBottom: 4,
-                }}>
-                  {executionHistory.map((entry, idx) => (
-                    <button
-                      key={entry.id}
-                      onClick={() => {
-                        setSelectedHistoryId(entry.id);
-                        setExecResult(entry.result);
-                      }}
-                      style={{
-                        padding: '6px 10px',
-                        background: selectedHistoryId === entry.id 
-                          ? 'linear-gradient(135deg, #29B5E8 0%, #0EA5E9 100%)'
-                          : '#F3F4F6',
-                        border: selectedHistoryId === entry.id 
-                          ? '1px solid #0EA5E9'
-                          : '1px solid #E5E7EB',
-                        borderRadius: 6,
-                        cursor: 'pointer',
-                        flexShrink: 0,
-                        maxWidth: 150,
-                        textAlign: 'left',
-                        transition: 'all 0.15s ease',
-                      }}
-                    >
-                      <div style={{
-                        fontSize: 10,
-                        fontWeight: 500,
-                        color: selectedHistoryId === entry.id ? 'white' : '#374151',
-                        whiteSpace: 'nowrap',
-                        overflow: 'hidden',
-                        textOverflow: 'ellipsis',
-                      }}>
-                        {entry.prompt.length > 25 ? entry.prompt.substring(0, 25) + '...' : entry.prompt}
-                      </div>
-                      <div style={{
-                        fontSize: 8,
-                        color: selectedHistoryId === entry.id ? 'rgba(255,255,255,0.7)' : '#9CA3AF',
-                        marginTop: 2,
-                      }}>
-                        {entry.executionTimeMs ? `${entry.executionTimeMs}ms` : ''} • #{executionHistory.length - idx}
-                      </div>
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
-            
-          <div style={{ padding: 20, flex: 1, overflowY: 'auto' }}>
-            {/* Download button for YAML output */}
-            {execResult && execResult.results?.agent_response?.includes('```yaml') && (
-              <button
-                onClick={() => {
-                  // Extract YAML content from the response
-                  const yamlMatch = execResult?.results?.agent_response?.match(/```yaml\n([\s\S]*?)```/);
-                  const yamlContent = yamlMatch ? yamlMatch[1] : execResult?.results?.agent_response || '';
-                  
-                  // Create and download file
-                  const blob = new Blob([yamlContent], { type: 'text/yaml' });
-                  const url = URL.createObjectURL(blob);
-                  const a = document.createElement('a');
-                  a.href = url;
-                  a.download = 'cortex_semantic_model.yaml';
-                  document.body.appendChild(a);
-                  a.click();
-                  document.body.removeChild(a);
-                  URL.revokeObjectURL(url);
-                }}
-                style={{
-                  width: '100%',
-                  padding: '12px 16px',
-                  background: 'linear-gradient(135deg, #10B981 0%, #059669 100%)',
-                  color: 'white',
-                  border: 'none',
-                  borderRadius: 8,
-                  fontSize: 14,
-                  fontWeight: 600,
-                  cursor: 'pointer',
+                  width: 28,
+                  height: 28,
+                  borderRadius: 6,
+                  background: '#29B5E8',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  gap: 8,
-                  marginBottom: 16,
-                }}
-              >
-                <Download size={18} />
-                Download Snowflake YAML
-              </button>
-            )}
-            
-            {execResult && (execResult.results?.agent_response ? (
-              <>
-                <div style={{ 
-                  display: 'flex', 
-                  alignItems: 'center', 
-                  justifyContent: 'space-between',
-                  marginBottom: 8 
                 }}>
-                  <span style={{ fontSize: 11, fontWeight: 500, color: '#6B7280', textTransform: 'uppercase' }}>
-                    Agent Response
-                  </span>
-                  <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-                    {/* View toggle: Pretty vs Raw JSON */}
-                    <div style={{ display: 'flex', borderRadius: 4, overflow: 'hidden', border: '1px solid #E5E7EB' }}>
-                      <button
-                        onClick={() => setShowRawJson(false)}
-                        style={{
-                          padding: '3px 8px',
-                          background: !showRawJson ? '#3B82F6' : '#F3F4F6',
-                          border: 'none',
-                          fontSize: 9,
-                          fontWeight: 600,
-                          color: !showRawJson ? 'white' : '#6B7280',
-                          cursor: 'pointer',
-                        }}
-                        title="Pretty view"
-                      >
-                        Pretty
-                      </button>
-                      <button
-                        onClick={() => setShowRawJson(true)}
-                        style={{
-                          padding: '3px 8px',
-                          background: showRawJson ? '#3B82F6' : '#F3F4F6',
-                          border: 'none',
-                          fontSize: 9,
-                          fontWeight: 600,
-                          color: showRawJson ? 'white' : '#6B7280',
-                          cursor: 'pointer',
-                        }}
-                        title="Raw JSON (API response format)"
-                      >
-                        JSON
-                      </button>
-                    </div>
-                    <button
-                      onClick={() => {
-                        const apiResponse = showRawJson 
-                          ? JSON.stringify({
-                              status: "success",
-                              request_id: Math.random().toString(36).substring(2, 15),
-                              timestamp: new Date().toISOString(),
-                              data: {
-                                agent_response: execResult.results?.agent_response || null,
-                                metadata: {
-                                  model: "snowflake-arctic",
-                                  semantic_model: nodes.find(n => n.type === 'semanticModel')?.data?.label || null,
-                                  data_source: nodes.find(n => n.type === 'snowflakeSource')?.data?.label || null
-                                }
-                              }
-                            }, null, 2)
-                          : (execResult.results?.agent_response || '');
-                        navigator.clipboard.writeText(apiResponse);
-                      }}
-                      style={{
-                        padding: '4px 8px',
-                        background: '#F3F4F6',
-                        border: 'none',
-                        borderRadius: 4,
-                        fontSize: 10,
-                        color: '#6B7280',
-                        cursor: 'pointer',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: 4,
-                      }}
-                      title="Copy to clipboard"
-                    >
-                      📋 Copy
-                    </button>
-                    <button
-                      onClick={() => {
-                        const apiResponse = showRawJson 
-                          ? JSON.stringify({
-                              status: "success",
-                              request_id: Math.random().toString(36).substring(2, 15),
-                              timestamp: new Date().toISOString(),
-                              data: {
-                                agent_response: execResult.results?.agent_response || null,
-                                metadata: {
-                                  model: "snowflake-arctic",
-                                  semantic_model: nodes.find(n => n.type === 'semanticModel')?.data?.label || null,
-                                  data_source: nodes.find(n => n.type === 'snowflakeSource')?.data?.label || null
-                                }
-                              }
-                            }, null, 2)
-                          : (execResult.results?.agent_response || '');
-                        const ext = showRawJson ? 'json' : 'txt';
-                        const blob = new Blob([apiResponse], { type: showRawJson ? 'application/json' : 'text/plain' });
-                        const url = URL.createObjectURL(blob);
-                        const a = document.createElement('a');
-                        a.href = url;
-                        a.download = `api_response.${ext}`;
-                        document.body.appendChild(a);
-                        a.click();
-                        document.body.removeChild(a);
-                        URL.revokeObjectURL(url);
-                      }}
-                      style={{
-                        padding: '4px 8px',
-                        background: 'linear-gradient(135deg, #10B981 0%, #059669 100%)',
-                        border: 'none',
-                        borderRadius: 4,
-                        fontSize: 10,
+                  <MessageSquare size={14} color="white" />
+                </div>
+                <div>
+                  <div style={{ fontWeight: 600, fontSize: 12, color: 'rgb(var(--fg))', display: 'flex', alignItems: 'center', gap: 6 }}>
+                    Agent Chat
+                    {executionHistory.length > 0 && (
+                      <span style={{
+                        background: '#29B5E8',
                         color: 'white',
-                        cursor: 'pointer',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: 4,
-                      }}
-                      title="Download as file"
-                    >
-                      <Download size={12} />
-                      Download
-                    </button>
+                        padding: '1px 6px',
+                        borderRadius: 10,
+                        fontSize: 9,
+                        fontWeight: 500,
+                      }}>
+                        {executionHistory.length}
+                      </span>
+                    )}
+                  </div>
+                  <div style={{ fontSize: 10, color: 'rgb(var(--muted))' }}>
+                    {workflowName || 'Untitled Workflow'}
                   </div>
                 </div>
-                {showRawJson ? (
-                  <div style={{ 
-                    background: '#1E293B', 
-                    padding: 16, 
-                    borderRadius: 8, 
-                    fontSize: 11, 
-                    lineHeight: 1.5,
-                    color: '#E2E8F0',
-                    whiteSpace: 'pre-wrap',
-                    fontFamily: 'Monaco, Consolas, monospace',
-                    overflow: 'auto',
-                    maxHeight: 400
-                  }}>
-                    {/* HTTP-style response header */}
-                    <div style={{ color: '#10B981', marginBottom: 4 }}>HTTP/1.1 200 OK</div>
-                    <div style={{ color: '#94A3B8', fontSize: 10, marginBottom: 2 }}>Content-Type: application/json</div>
-                    <div style={{ color: '#94A3B8', fontSize: 10, marginBottom: 2 }}>X-Request-ID: {Math.random().toString(36).substring(2, 15)}</div>
-                    <div style={{ color: '#94A3B8', fontSize: 10, marginBottom: 8 }}>Date: {new Date().toUTCString()}</div>
-                    <div style={{ borderTop: '1px solid #475569', marginBottom: 12 }} />
-                    <div style={{ color: '#94A3B8', fontSize: 10, marginBottom: 8 }}>// Response Body (JSON)</div>
-                    {JSON.stringify({
-                      status: "success",
-                      request_id: Math.random().toString(36).substring(2, 15),
-                      timestamp: new Date().toISOString(),
-                      execution_time_ms: Math.round(Math.random() * 2000 + 500),
-                      data: {
-                        agent_response: execResult.results?.agent_response || null,
-                        metadata: {
-                          model: "snowflake-arctic",
-                          tokens_used: Math.round(Math.random() * 500 + 100),
-                          semantic_model: nodes.find(n => n.type === 'semanticModel')?.data?.label || null,
-                          data_source: nodes.find(n => n.type === 'snowflakeSource')?.data?.label || null
-                        }
-                      },
-                      ...((execResult.results as any)?.sql && { generated_sql: (execResult.results as any).sql })
-                    }, null, 2)}
-                  </div>
-                ) : (
-                  <div style={{ 
-                    background: '#F5F7FA', 
-                    padding: 16, 
-                    borderRadius: 8, 
-                    fontSize: 13, 
-                    lineHeight: 1.6,
-                    color: '#1F2937',
-                    whiteSpace: 'pre-wrap'
-                  }}>
-                    {execResult.results.agent_response}
-                  </div>
-                )}
-              </>
-            ) : (
-              <>
-                <div style={{ 
-                  display: 'flex', 
-                  alignItems: 'center', 
-                  justifyContent: 'space-between',
-                  marginBottom: 8 
+              </div>
+              {executionHistory.length > 0 && (
+                <button 
+                  onClick={() => {
+                    setExecutionHistory([]);
+                    setExecResult(null);
+                    setSelectedHistoryId(null);
+                  }}
+                  style={{ 
+                    background: 'none', 
+                    border: 'none', 
+                    cursor: 'pointer', 
+                    padding: 4,
+                    color: 'rgb(var(--muted))',
+                  }}
+                  title="Clear chat history"
+                >
+                  <Trash2 size={14} />
+                </button>
+              )}
+            </div>
+
+            {/* Two-Panel Layout: Chat (top 60%) + Stats (bottom 40%) */}
+            <div style={{ display: 'flex', flexDirection: 'column', flex: 1, overflow: 'hidden' }}>
+              
+              {/* CHAT PANEL - Top Section (scrollable messages + input) */}
+              <div style={{ 
+                flex: selectedHistoryId ? '0 0 60%' : 1, 
+                display: 'flex', 
+                flexDirection: 'column',
+                borderBottom: selectedHistoryId ? '2px solid rgb(var(--border))' : 'none',
+                overflow: 'hidden',
+              }}>
+                {/* Chat Messages - Scrollable */}
+                <div style={{
+                  flex: 1,
+                  overflowY: 'auto',
+                  padding: 16,
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: 16,
                 }}>
-                  <span style={{ fontSize: 11, fontWeight: 500, color: '#6B7280', textTransform: 'uppercase' }}>
-                    Workflow Results
-                  </span>
-                  {execResult.results && (
-                    <div style={{ display: 'flex', gap: 6 }}>
+                  {executionHistory.length === 0 ? (
+                    <div style={{
+                      flex: 1,
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      color: '#9CA3AF',
+                      textAlign: 'center',
+                      padding: 24,
+                    }}>
+                      <Bot size={40} style={{ marginBottom: 12, opacity: 0.3 }} />
+                      <div style={{ fontSize: 14, fontWeight: 500, color: '#6B7280' }}>
+                        Ask Your Agent
+                      </div>
+                      <div style={{ fontSize: 12, marginTop: 4, maxWidth: 200 }}>
+                        Click "Test Agent" on the left to run queries and see results here
+                      </div>
+                    </div>
+                  ) : (
+                    /* Render chat messages in chronological order (oldest first) */
+                    [...executionHistory].reverse().map((entry) => (
+                      <div key={entry.id}>
+                        {/* User Message */}
+                        <div 
+                          onClick={() => {
+                            setSelectedHistoryId(entry.id);
+                            setExecResult(entry.result);
+                          }}
+                          style={{
+                            display: 'flex',
+                            gap: 10,
+                            flexDirection: 'row-reverse',
+                            cursor: 'pointer',
+                            opacity: selectedHistoryId === entry.id ? 1 : 0.7,
+                            transition: 'opacity 0.15s ease',
+                          }}
+                        >
+                          <div style={{
+                            width: 28,
+                            height: 28,
+                            borderRadius: '50%',
+                            background: '#29B5E8',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            flexShrink: 0,
+                          }}>
+                            <User size={14} color="white" />
+                          </div>
+                          <div style={{
+                            maxWidth: '85%',
+                            padding: '10px 14px',
+                            borderRadius: 12,
+                            background: selectedHistoryId === entry.id ? '#29B5E8' : '#E0F2FE',
+                            color: selectedHistoryId === entry.id ? 'white' : '#0369A1',
+                            fontSize: 12,
+                            lineHeight: 1.5,
+                            border: selectedHistoryId === entry.id ? '2px solid #0EA5E9' : '1px solid #BAE6FD',
+                          }}>
+                            {entry.prompt}
+                          </div>
+                        </div>
+                        
+                        {/* Assistant Response */}
+                        <div 
+                          onClick={() => {
+                            setSelectedHistoryId(entry.id);
+                            setExecResult(entry.result);
+                          }}
+                          style={{
+                            display: 'flex',
+                            gap: 10,
+                            marginTop: 8,
+                            cursor: 'pointer',
+                            opacity: selectedHistoryId === entry.id ? 1 : 0.7,
+                          }}
+                        >
+                          <div style={{
+                            width: 28,
+                            height: 28,
+                            borderRadius: '50%',
+                            background: selectedHistoryId === entry.id ? '#10B981' : '#F3F4F6',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            flexShrink: 0,
+                          }}>
+                            <Bot size={14} color={selectedHistoryId === entry.id ? 'white' : '#6B7280'} />
+                          </div>
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <div style={{
+                              padding: '10px 14px',
+                              borderRadius: 12,
+                              background: selectedHistoryId === entry.id ? '#F0FDF4' : '#F9FAFB',
+                              border: selectedHistoryId === entry.id ? '2px solid #10B981' : '1px solid #E5E7EB',
+                              fontSize: 12,
+                              lineHeight: 1.5,
+                              color: '#1F2937',
+                              maxHeight: selectedHistoryId === entry.id ? 'none' : 80,
+                              overflow: 'hidden',
+                              position: 'relative',
+                            }}>
+                              <div style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
+                                {entry.result.results?.agent_response 
+                                  ? (selectedHistoryId === entry.id 
+                                      ? entry.result.results.agent_response 
+                                      : entry.result.results.agent_response.substring(0, 150) + (entry.result.results.agent_response.length > 150 ? '...' : ''))
+                                  : 'No response'}
+                              </div>
+                              {selectedHistoryId !== entry.id && entry.result.results?.agent_response && entry.result.results.agent_response.length > 150 && (
+                                <div style={{
+                                  position: 'absolute',
+                                  bottom: 0,
+                                  left: 0,
+                                  right: 0,
+                                  height: 30,
+                                  background: 'linear-gradient(transparent, #F9FAFB)',
+                                }}/>
+                              )}
+                            </div>
+                            <div style={{ 
+                              fontSize: 9, 
+                              color: '#10B981',
+                              marginTop: 4,
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: 8,
+                            }}>
+                              <span style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
+                                <Zap size={10} /> Snowflake Cortex
+                              </span>
+                              {entry.executionTimeMs && (
+                                <span style={{ color: '#9CA3AF' }}>• {entry.executionTimeMs}ms</span>
+                              )}
+                              {selectedHistoryId === entry.id && (
+                                <span style={{ color: '#10B981', fontWeight: 600 }}>• Selected ↓</span>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    ))
+                  )}
+                  
+                  {/* Loading indicator when running */}
+                  {execStatus === 'running' && (
+                    <div style={{ display: 'flex', gap: 10 }}>
+                      <div style={{
+                        width: 28,
+                        height: 28,
+                        borderRadius: '50%',
+                        background: '#F3F4F6',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                      }}>
+                        <Bot size={14} color="#6B7280" />
+                      </div>
+                      <div style={{
+                        padding: '10px 14px',
+                        borderRadius: 12,
+                        background: '#F3F4F6',
+                        color: '#6B7280',
+                        fontSize: 12,
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 8,
+                      }}>
+                        <Loader2 size={14} className="animate-spin" style={{ animation: 'spin 1s linear infinite' }} />
+                        Thinking...
+                      </div>
+                    </div>
+                  )}
+                </div>
+                
+                {/* Input hint */}
+                <div style={{
+                  padding: '8px 16px',
+                  borderTop: '1px solid rgb(var(--border))',
+                  background: 'rgb(var(--surface-2))',
+                  fontSize: 10,
+                  color: '#9CA3AF',
+                  textAlign: 'center',
+                }}>
+                  Use "Test Agent" button on the left to ask questions
+                </div>
+              </div>
+              
+              {/* STATS PANEL - Bottom Section (only when message selected) */}
+              {selectedHistoryId && execResult && (
+                <div style={{ 
+                  flex: '0 0 40%', 
+                  overflowY: 'auto',
+                  background: 'rgb(var(--surface-2))',
+                }}>
+                  {/* Stats Header */}
+                  <div style={{
+                    padding: '10px 16px',
+                    borderBottom: '1px solid rgb(var(--border))',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    background: 'rgb(var(--surface-3))',
+                  }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <BarChart3 size={14} color="#6366F1" />
+                      <span style={{ fontSize: 11, fontWeight: 600, color: 'rgb(var(--fg))' }}>
+                        Execution Stats
+                      </span>
+                    </div>
+                    <button
+                      onClick={() => setSelectedHistoryId(null)}
+                      style={{
+                        background: 'none',
+                        border: 'none',
+                        cursor: 'pointer',
+                        padding: 2,
+                        color: 'rgb(var(--muted))',
+                      }}
+                    >
+                      <ChevronDown size={14} />
+                    </button>
+                  </div>
+                  
+                  {/* Stats Content */}
+                  <div style={{ padding: 12 }}>
+                    {/* Metrics Row */}
+                    <div style={{
+                      display: 'flex',
+                      gap: 8,
+                      marginBottom: 12,
+                    }}>
+                      <div style={{
+                        flex: 1,
+                        background: '#10B981',
+                        padding: '10px 8px',
+                        borderRadius: 8,
+                        textAlign: 'center',
+                      }}>
+                        <div style={{ fontSize: 18, fontWeight: 700, color: 'white' }}>
+                          {execResult.messages?.filter((m: string) => m.includes('completed') || m.includes('Agent')).length || 1}
+                        </div>
+                        <div style={{ fontSize: 8, color: 'rgba(255,255,255,0.8)', textTransform: 'uppercase' }}>
+                          Agents
+                        </div>
+                      </div>
+                      <div style={{
+                        flex: 1,
+                        background: '#F59E0B',
+                        padding: '10px 8px',
+                        borderRadius: 8,
+                        textAlign: 'center',
+                      }}>
+                        <div style={{ fontSize: 18, fontWeight: 700, color: 'white' }}>
+                          {execResult.messages?.filter((m: string) => m.includes('routed')).length || 0}
+                        </div>
+                        <div style={{ fontSize: 8, color: 'rgba(255,255,255,0.8)', textTransform: 'uppercase' }}>
+                          Routes
+                        </div>
+                      </div>
+                      <div style={{
+                        flex: 1,
+                        background: '#8B5CF6',
+                        padding: '10px 8px',
+                        borderRadius: 8,
+                        textAlign: 'center',
+                      }}>
+                        <div style={{ fontSize: 18, fontWeight: 700, color: 'white' }}>
+                          {execResult.messages?.filter((m: string) => m.toLowerCase().includes('semantic')).length || 1}
+                        </div>
+                        <div style={{ fontSize: 8, color: 'rgba(255,255,255,0.8)', textTransform: 'uppercase' }}>
+                          Semantic
+                        </div>
+                      </div>
+                    </div>
+                    
+                    {/* Timeline */}
+                    {execResult.messages && execResult.messages.length > 0 && (
+                      <div style={{
+                        background: 'rgb(var(--surface))',
+                        borderRadius: 8,
+                        border: '1px solid rgb(var(--border))',
+                        overflow: 'hidden',
+                      }}>
+                        <div style={{
+                          padding: '8px 12px',
+                          borderBottom: '1px solid rgb(var(--border))',
+                          fontSize: 9,
+                          fontWeight: 600,
+                          color: '#6B7280',
+                          textTransform: 'uppercase',
+                        }}>
+                          Execution Timeline
+                        </div>
+                        {execResult.messages.slice(0, 8).map((msg: string, i: number) => {
+                          const isSuccess = msg.includes('completed') || msg.includes('success') || msg.includes('loaded');
+                          const isAgent = msg.includes('Agent') || msg.includes('Cortex');
+                          return (
+                            <div
+                              key={i}
+                              style={{
+                                padding: '6px 12px',
+                                borderBottom: i < Math.min(execResult.messages!.length - 1, 7) ? '1px solid rgb(var(--border))' : 'none',
+                                fontSize: 10,
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: 8,
+                                background: isAgent ? '#F0FDF4' : 'transparent',
+                              }}
+                            >
+                              <div style={{
+                                width: 14,
+                                height: 14,
+                                borderRadius: '50%',
+                                background: isSuccess ? '#10B981' : '#F59E0B',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                fontSize: 8,
+                                color: 'white',
+                                flexShrink: 0,
+                              }}>
+                                ✓
+                              </div>
+                              <span style={{ color: '#374151' }}>{msg}</span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                    
+                    {/* Copy/Download buttons */}
+                    <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
                       <button
                         onClick={() => {
-                          navigator.clipboard.writeText(JSON.stringify(execResult.results, null, 2));
+                          navigator.clipboard.writeText(execResult.results?.agent_response || '');
                         }}
                         style={{
-                          padding: '4px 8px',
-                          background: '#F3F4F6',
-                          border: 'none',
-                          borderRadius: 4,
-                          fontSize: 10,
-                          color: '#6B7280',
+                          flex: 1,
+                          padding: '8px 12px',
+                          background: 'rgb(var(--surface))',
+                          border: '1px solid rgb(var(--border))',
+                          borderRadius: 6,
                           cursor: 'pointer',
+                          fontSize: 10,
+                          color: 'rgb(var(--fg))',
                           display: 'flex',
                           alignItems: 'center',
-                          gap: 4,
+                          justifyContent: 'center',
+                          gap: 6,
                         }}
-                        title="Copy to clipboard"
                       >
-                        📋 Copy
+                        <Copy size={12} /> Copy Response
                       </button>
                       <button
                         onClick={() => {
-                          const content = JSON.stringify(execResult.results, null, 2);
+                          const content = JSON.stringify({
+                            status: 'success',
+                            timestamp: new Date().toISOString(),
+                            data: { agent_response: execResult.results?.agent_response }
+                          }, null, 2);
                           const blob = new Blob([content], { type: 'application/json' });
                           const url = URL.createObjectURL(blob);
                           const a = document.createElement('a');
                           a.href = url;
-                          a.download = 'workflow_results.json';
-                          document.body.appendChild(a);
+                          a.download = 'response.json';
                           a.click();
-                          document.body.removeChild(a);
-                          URL.revokeObjectURL(url);
                         }}
                         style={{
-                          padding: '4px 8px',
-                          background: 'linear-gradient(135deg, #10B981 0%, #059669 100%)',
+                          flex: 1,
+                          padding: '8px 12px',
+                          background: '#10B981',
                           border: 'none',
-                          borderRadius: 4,
+                          borderRadius: 6,
+                          cursor: 'pointer',
                           fontSize: 10,
                           color: 'white',
-                          cursor: 'pointer',
                           display: 'flex',
                           alignItems: 'center',
-                          gap: 4,
+                          justifyContent: 'center',
+                          gap: 6,
                         }}
-                        title="Download as file"
                       >
-                        <Download size={12} />
-                        Download
+                        <Download size={12} /> Download
                       </button>
                     </div>
-                  )}
-                </div>
-                <div style={{ 
-                  background: '#F5F7FA', 
-                  padding: 16, 
-                  borderRadius: 8, 
-                  fontSize: 13, 
-                  lineHeight: 1.6,
-                  color: '#1F2937',
-                  whiteSpace: 'pre-wrap'
-                }}>
-                  {execResult.results && typeof execResult.results === 'object' && Object.keys(execResult.results).length > 0
-                    ? JSON.stringify(execResult.results, null, 2) 
-                    : `⚠️ No results returned from the workflow.
-
-Possible causes:
-• Agent may not have received the query
-• Data source may be empty or inaccessible
-• Semantic model may be misconfigured
-• Network timeout during execution
-
-Try:
-1. Check Snowflake connection (green indicator in sidebar)
-2. Verify your data source has data
-3. Try a simpler query
-4. Check the backend terminal for errors`}
-                </div>
-              </>
-            ))}
-            {/* Execution Summary */}
-            {execResult && (
-              <div style={{ marginTop: 20 }}>
-                {/* User Query */}
-                {execResult.user_prompt && (
-                  <div style={{ 
-                    background: 'linear-gradient(135deg, #EEF2FF 0%, #E0E7FF 100%)', 
-                    padding: 12, 
-                    borderRadius: 8, 
-                    marginBottom: 12,
-                    border: '1px solid #C7D2FE'
-                  }}>
-                    <div style={{ fontSize: 10, fontWeight: 600, color: '#4338CA', textTransform: 'uppercase', marginBottom: 4 }}>
-                      💬 Your Question
-                    </div>
-                    <div style={{ fontSize: 13, color: '#3730A3', fontStyle: 'italic' }}>
-                      "{execResult.user_prompt}"
-                    </div>
-                  </div>
-                )}
-
-                {/* Execution Stats */}
-                <div style={{ 
-                  display: 'grid', 
-                  gridTemplateColumns: 'repeat(3, 1fr)', 
-                  gap: 8, 
-                  marginBottom: 12 
-                }}>
-                  <div style={{ background: '#F0FDF4', padding: 10, borderRadius: 6, textAlign: 'center' }}>
-                    <div style={{ fontSize: 18, fontWeight: 700, color: '#16A34A' }}>
-                      {execResult.messages?.filter((m: string) => m.includes('completed') || m.includes('Agent')).length || 0}
-                    </div>
-                    <div style={{ fontSize: 10, color: '#15803D' }}>Agents Run</div>
-                  </div>
-                  <div style={{ background: '#FEF3C7', padding: 10, borderRadius: 6, textAlign: 'center' }}>
-                    <div style={{ fontSize: 18, fontWeight: 700, color: '#D97706' }}>
-                      {execResult.messages?.filter((m: string) => m.includes('routed') || m.includes('MULTI-DOMAIN') || m.includes('Plan:')).length || 0}
-                    </div>
-                    <div style={{ fontSize: 10, color: '#B45309' }}>Routes Taken</div>
-                  </div>
-                  <div style={{ background: '#EDE9FE', padding: 10, borderRadius: 6, textAlign: 'center' }}>
-                    <div style={{ fontSize: 18, fontWeight: 700, color: '#7C3AED' }}>
-                      {execResult.messages?.filter((m: string) => m.toLowerCase().includes('semantic') || m.includes('SV')).length || 0}
-                    </div>
-                    <div style={{ fontSize: 10, color: '#6D28D9' }}>Semantic Views</div>
                   </div>
                 </div>
-
-                {/* Routing Decision */}
-                {execResult.messages?.some((m: string) => m.includes('routed')) && (
-                  <div style={{ 
-                    background: '#FFFBEB', 
-                    border: '1px solid #FCD34D',
-                    padding: 12, 
-                    borderRadius: 8, 
-                    marginBottom: 12 
-                  }}>
-                    <div style={{ fontSize: 10, fontWeight: 600, color: '#B45309', textTransform: 'uppercase', marginBottom: 6 }}>
-                      🔀 Routing Decision
-                    </div>
-                    {execResult.messages
-                      .filter((m: string) => m.includes('routed'))
-                      .map((msg: string, i: number) => {
-                        // Match "routed to: X, Y, Z" pattern
-                        const match = msg.match(/routed to[:\s]+(.+)$/i);
-                        const domains = match ? match[1].trim() : 'Unknown';
-                        const domainList = domains.split(',').map((d: string) => d.trim());
-                        const isMultiDomain = domainList.length > 1;
-                        return (
-                          <div key={i} style={{ fontSize: 12, color: '#92400E', marginBottom: 4 }}>
-                            <strong>{isMultiDomain ? 'Domains Selected:' : 'Domain Selected:'}</strong> {domains}
-                            <div style={{ fontSize: 11, color: '#A16207', marginTop: 2 }}>
-                              {isMultiDomain 
-                                ? `The supervisor analyzed your question and determined it requires insights from multiple domains: ${domainList.join(', ')}. Multi-agent orchestration coordinates responses across these business areas.`
-                                : `The router analyzed your question and determined the ${domains} domain is best suited to answer it. Intent classification uses AI to match your question to the most relevant business domain.`
-                              }
-      </div>
-    </div>
-                        );
-                      })}
-                  </div>
-                )}
-
-                {/* Agents Invoked */}
-                <div style={{ fontSize: 11, fontWeight: 500, color: '#6B7280', textTransform: 'uppercase', marginBottom: 8 }}>
-                  📋 Execution Timeline
-                </div>
-                <div style={{ 
-                  background: '#F9FAFB', 
-                  border: '1px solid #E5E7EB',
-                  borderRadius: 8, 
-                  overflow: 'hidden' 
-                }}>
-                  {execResult.messages?.map((msg: string, i: number) => {
-                    // Categorize message types
-                    let icon = '•';
-                    let bgColor = 'transparent';
-                    let textColor = '#6B7280';
-                    
-                    if (msg.includes('started')) {
-                      icon = '🚀'; bgColor = '#DBEAFE'; textColor = '#1E40AF';
-                    } else if (msg.includes('routed')) {
-                      icon = '🔀'; bgColor = '#FEF3C7'; textColor = '#92400E';
-                    } else if (msg.includes('completed') || msg.includes('analysis')) {
-                      icon = '✅'; bgColor = '#D1FAE5'; textColor = '#065F46';
-                    } else if (msg.includes('Agent') || msg.includes('agent')) {
-                      icon = '🤖'; bgColor = '#EDE9FE'; textColor = '#5B21B6';
-                    } else if (msg.includes('Semantic') || msg.includes('semantic') || msg.includes('SV')) {
-                      icon = '📊'; bgColor = '#FCE7F3'; textColor = '#9D174D';
-                    } else if (msg.includes('error') || msg.includes('Error')) {
-                      icon = '❌'; bgColor = '#FEE2E2'; textColor = '#991B1B';
-                    } else if (msg.includes('External') || msg.includes('API')) {
-                      icon = '🌐'; bgColor = '#CFFAFE'; textColor = '#0E7490';
-                    } else if (msg.includes('Query') || msg.includes('query')) {
-                      icon = '💬'; bgColor = '#EEF2FF'; textColor = '#3730A3';
-                    }
-                    
-                    return (
-                      <div 
-                        key={i} 
-                        style={{ 
-                          padding: '8px 12px', 
-                          background: bgColor,
-                          borderBottom: i < (execResult.messages?.length || 0) - 1 ? '1px solid #E5E7EB' : 'none',
-                          fontSize: 12,
-                          color: textColor,
-                          display: 'flex',
-                          alignItems: 'flex-start',
-                          gap: 8
-                        }}
-                      >
-                        <span style={{ flexShrink: 0 }}>{icon}</span>
-                        <span>{msg}</span>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
-            
-            {/* Empty State - when no results yet */}
-            {!execResult && (
-              <div style={{ 
-                display: 'flex', 
-                flexDirection: 'column', 
-                alignItems: 'center', 
-                justifyContent: 'center',
-                height: 200,
-                color: '#9CA3AF',
-                textAlign: 'center',
-                padding: 20,
-              }}>
-                <FileOutput size={40} color="#D1D5DB" style={{ marginBottom: 12 }} />
-                <div style={{ fontSize: 14, fontWeight: 500, color: '#6B7280', marginBottom: 4 }}>
-                  No Results Yet
-                </div>
-                <div style={{ fontSize: 12, color: '#9CA3AF' }}>
-                  Run a workflow to see results here
-                </div>
-              </div>
-            )}
-          </div>
+              )}
+            </div>
           </>
         )}
       </div>
