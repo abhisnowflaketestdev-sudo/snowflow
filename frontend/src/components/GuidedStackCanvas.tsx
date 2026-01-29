@@ -516,8 +516,15 @@ export function GuidedStackCanvas({
   );
 
   // Track when execution completes to mark config as "tested"
+  // Use ref to track previous execStatus and only act on CHANGE to success
+  const prevExecStatusRef = useRef(execStatus);
   useEffect(() => {
-    if (execStatus === 'success') {
+    const wasSuccess = prevExecStatusRef.current === 'success';
+    const isNowSuccess = execStatus === 'success';
+    prevExecStatusRef.current = execStatus;
+    
+    // Only reset when execStatus CHANGES to success (not on every guidedConfig change)
+    if (isNowSuccess && !wasSuccess) {
       const configSnapshot = JSON.stringify({ 
         data: guidedConfig.dataSource, 
         semantic: guidedConfig.semanticPath, 
