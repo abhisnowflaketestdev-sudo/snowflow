@@ -422,6 +422,7 @@ export function GuidedStackCanvas({
   completedNodes,
   execStatus,
   isDarkMode = false,
+  runningPrompt,
 }: {
   onOpenNode: (nodeId: string, anchorEl?: HTMLElement | null) => void;
   onOpenControlTower: () => void;
@@ -430,6 +431,7 @@ export function GuidedStackCanvas({
   completedNodes?: Set<string>;
   execStatus?: 'idle' | 'validating' | 'running' | 'success' | 'error';
   isDarkMode?: boolean;
+  runningPrompt?: string;
 }) {
   const { nodes, edges, setWorkflow, workflowName } = useFlowStore();
   const [zoom, setZoom] = useState(1);
@@ -1356,6 +1358,29 @@ export function GuidedStackCanvas({
                         }} />
                         <div style={{ fontSize: 12, color: '#F59E0B', fontWeight: 600 }}>
                           Changes detected — run again to apply
+                        </div>
+                      </div>
+                    )}
+                    {/* Show running prompt when executing */}
+                    {isRunning && runningPrompt && (
+                      <div style={{
+                        padding: '12px 14px',
+                        background: isDarkMode ? 'rgba(99,102,241,0.15)' : '#EEF2FF',
+                        borderRadius: 10,
+                        border: `2px solid ${isDarkMode ? 'rgba(99,102,241,0.4)' : '#C7D2FE'}`,
+                        marginBottom: 10,
+                      }}>
+                        <div style={{ fontSize: 10, fontWeight: 600, color: isDarkMode ? '#A5B4FC' : '#6366F1', marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                          Running Query
+                        </div>
+                        <div style={{ 
+                          fontSize: 13, 
+                          color: isDarkMode ? '#E0E7FF' : '#4338CA', 
+                          fontStyle: 'italic',
+                          lineHeight: 1.4,
+                          wordBreak: 'break-word',
+                        }}>
+                          "{runningPrompt.length > 100 ? runningPrompt.substring(0, 100) + '...' : runningPrompt}"
                         </div>
                       </div>
                     )}

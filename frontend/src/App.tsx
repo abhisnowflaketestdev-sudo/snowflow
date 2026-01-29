@@ -2238,6 +2238,7 @@ function Flow() {
   const hasUserEditedRef = useRef(false);
   const [showRunModal, setShowRunModal] = useState(false);
   const [runModalPrompt, setRunModalPrompt] = useState('');
+  const [currentRunningPrompt, setCurrentRunningPrompt] = useState('');
   const blockedDndToastAtRef = useRef<number>(0);
   // Selection: left-click drag to box-select (when unlocked). Cmd/Ctrl+click to add to selection.
   const [cortexModels, setCortexModels] = useState<Array<{ id: string; label?: string; provider?: string; available?: boolean | null }>>([]);
@@ -3039,6 +3040,7 @@ function Flow() {
     setCompletedNodes(new Set());
     setSimulatedNodes(new Set());
     setIsProductionMode(true); // Lock canvas during execution
+    setCurrentRunningPrompt(prompt || ''); // Track what query is running
     
     try {
       // Use fetch with streaming for real-time updates
@@ -3130,6 +3132,7 @@ function Flow() {
               setActiveNodes(new Set());
               setExecutionPhase('');
               setIsProductionMode(false); // Unlock canvas after successful execution
+              setCurrentRunningPrompt(''); // Clear running prompt
               showToast('Workflow completed!', 'success');
             } else if (eventData.type === 'error') {
               // Handle specific error types
@@ -3140,6 +3143,7 @@ function Flow() {
               setActiveNodes(new Set());
               setExecutionPhase('');
               setIsProductionMode(false); // Unlock canvas after error
+              setCurrentRunningPrompt(''); // Clear running prompt
               
               if (isAuthError) {
                 showToast('🔐 Snowflake Auth Error: Token expired. Restart backend to re-authenticate.', 'error');
@@ -3157,6 +3161,7 @@ function Flow() {
       setActiveNodes(new Set());
       setExecutionPhase('');
       setIsProductionMode(false); // Unlock canvas after catch error
+      setCurrentRunningPrompt(''); // Clear running prompt
       const errMsg = err instanceof Error ? err.message : 'Unknown error';
       // Show more specific error message
       if (errMsg.includes('Authentication') || errMsg.includes('expired') || errMsg.includes('auth')) {
@@ -4964,6 +4969,7 @@ function Flow() {
             completedNodes={completedNodes}
             execStatus={execStatus}
             isDarkMode={themeMode === 'dark'}
+            runningPrompt={currentRunningPrompt}
           />
         )}
         
