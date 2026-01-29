@@ -1971,6 +1971,18 @@ type ExecutionResult = {
   error?: string;
   user_prompt?: string;
   executed_nodes?: string[];
+  simulated_nodes?: string[];
+};
+
+// History entry for tracking past queries
+interface ExecutionHistoryEntry {
+  id: string;
+  prompt: string;
+  result: ExecutionResult;
+  timestamp: Date;
+  executionTimeMs?: number;
+  user_prompt?: string;
+  executed_nodes?: string[];
   simulated_nodes?: string[];  // Nodes that ran in simulated/demo mode
 };
 
@@ -2108,6 +2120,8 @@ function Flow() {
   const workflowNameInputRef = useRef<HTMLInputElement>(null);
   const [execStatus, setExecStatus] = useState<ExecutionStatus>('idle');
   const [execResult, setExecResult] = useState<ExecutionResult | null>(null);
+  const [executionHistory, setExecutionHistory] = useState<ExecutionHistoryEntry[]>([]);
+  const [selectedHistoryId, setSelectedHistoryId] = useState<string | null>(null);
   const [showSaveModal, setShowSaveModal] = useState(false);
   const [showLoadModal, setShowLoadModal] = useState(false);
   const [savedWorkflows, setSavedWorkflows] = useState<Array<{ filename: string; name: string; node_count: number }>>([]);
@@ -3042,6 +3056,8 @@ function Flow() {
     setIsProductionMode(true); // Lock canvas during execution
     setCurrentRunningPrompt(prompt || ''); // Track what query is running
     
+    const executionStartTime = Date.now(); // Track execution time for history
+    
     try {
       // Use fetch with streaming for real-time updates
       const response = await fetch('http://localhost:8000/run/stream', {
@@ -3121,13 +3137,27 @@ function Flow() {
               console.log('[COMPLETE] eventData.results:', JSON.stringify(eventData.results, null, 2));
               console.log('[COMPLETE] agent_response:', eventData.results?.agent_response);
               
-              setExecResult({
+              const newResult = {
                 status: 'completed',
                 messages: eventData.messages,
                 results: eventData.results || {},
                 executed_nodes: eventData.executed_nodes,
-                simulated_nodes: eventData.simulated_nodes
-              });
+                simulated_nodes: eventData.simulated_nodes,
+                user_prompt: prompt // Store the prompt with result
+              };
+              setExecResult(newResult);
+              
+              // Add to execution history
+              const historyEntry: ExecutionHistoryEntry = {
+                id: `exec_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+                prompt: prompt || 'Unknown query',
+                result: newResult,
+                timestamp: new Date(),
+                executionTimeMs: Date.now() - executionStartTime
+              };
+              setExecutionHistory(prev => [historyEntry, ...prev]); // Newest first
+              setSelectedHistoryId(historyEntry.id);
+              
               setExecStatus('success');
               setActiveNodes(new Set());
               setExecutionPhase('');
@@ -5300,6 +5330,18 @@ function Flow() {
                 <span style={{ fontWeight: 600, color: '#1F2937' }}>
                   {execResult ? 'Execution Results' : 'Results'}
                 </span>
+                {executionHistory.length > 0 && (
+                  <span style={{
+                    background: '#29B5E8',
+                    color: 'white',
+                    padding: '2px 8px',
+                    borderRadius: 10,
+                    fontSize: 10,
+                    fontWeight: 500,
+                  }}>
+                    {executionHistory.length} {executionHistory.length === 1 ? 'query' : 'queries'}
+                  </span>
+                )}
               </div>
               {execResult && (
                 <button 
@@ -5311,6 +5353,76 @@ function Flow() {
                 </button>
               )}
             </div>
+            
+            {/* Query History Bar - scrollable horizontal list */}
+            {executionHistory.length > 1 && (
+              <div style={{
+                padding: '8px 12px',
+                borderBottom: '1px solid rgb(var(--border))',
+                background: 'rgb(var(--surface-2))',
+              }}>
+                <div style={{
+                  fontSize: 9,
+                  fontWeight: 600,
+                  color: '#6B7280',
+                  textTransform: 'uppercase',
+                  marginBottom: 6,
+                  letterSpacing: '0.5px',
+                }}>
+                  Query History
+                </div>
+                <div style={{
+                  display: 'flex',
+                  gap: 6,
+                  overflowX: 'auto',
+                  paddingBottom: 4,
+                }}>
+                  {executionHistory.map((entry, idx) => (
+                    <button
+                      key={entry.id}
+                      onClick={() => {
+                        setSelectedHistoryId(entry.id);
+                        setExecResult(entry.result);
+                      }}
+                      style={{
+                        padding: '6px 10px',
+                        background: selectedHistoryId === entry.id 
+                          ? 'linear-gradient(135deg, #29B5E8 0%, #0EA5E9 100%)'
+                          : '#F3F4F6',
+                        border: selectedHistoryId === entry.id 
+                          ? '1px solid #0EA5E9'
+                          : '1px solid #E5E7EB',
+                        borderRadius: 6,
+                        cursor: 'pointer',
+                        flexShrink: 0,
+                        maxWidth: 150,
+                        textAlign: 'left',
+                        transition: 'all 0.15s ease',
+                      }}
+                    >
+                      <div style={{
+                        fontSize: 10,
+                        fontWeight: 500,
+                        color: selectedHistoryId === entry.id ? 'white' : '#374151',
+                        whiteSpace: 'nowrap',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                      }}>
+                        {entry.prompt.length > 25 ? entry.prompt.substring(0, 25) + '...' : entry.prompt}
+                      </div>
+                      <div style={{
+                        fontSize: 8,
+                        color: selectedHistoryId === entry.id ? 'rgba(255,255,255,0.7)' : '#9CA3AF',
+                        marginTop: 2,
+                      }}>
+                        {entry.executionTimeMs ? `${entry.executionTimeMs}ms` : ''} • #{executionHistory.length - idx}
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+            
           <div style={{ padding: 20, flex: 1, overflowY: 'auto' }}>
             {/* Download button for YAML output */}
             {execResult && execResult.results?.agent_response?.includes('```yaml') && (
