@@ -2123,6 +2123,7 @@ function Flow() {
   const [executionHistory, setExecutionHistory] = useState<ExecutionHistoryEntry[]>([]);
   const [selectedHistoryId, setSelectedHistoryId] = useState<string | null>(null);
   const [statsExpanded, setStatsExpanded] = useState(true); // Independent stats panel state
+  const [chatInput, setChatInput] = useState(''); // Chat input field
   const [showSaveModal, setShowSaveModal] = useState(false);
   const [showLoadModal, setShowLoadModal] = useState(false);
   const [savedWorkflows, setSavedWorkflows] = useState<Array<{ filename: string; name: string; node_count: number }>>([]);
@@ -5291,7 +5292,7 @@ function Flow() {
           <>
             {/* Chat Header */}
             <div style={{ 
-              padding: '12px 16px', 
+              padding: '10px 12px', 
               borderBottom: '1px solid rgb(var(--border))',
               background: 'linear-gradient(135deg, rgb(var(--surface-2)) 0%, rgb(var(--surface-3)) 100%)',
               display: 'flex',
@@ -5300,56 +5301,98 @@ function Flow() {
             }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                 <div style={{
-                  width: 28,
-                  height: 28,
+                  width: 24,
+                  height: 24,
                   borderRadius: 6,
-                  background: '#29B5E8',
+                  background: nodes.some(n => n.type === 'agent') ? '#29B5E8' : '#9CA3AF',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
                 }}>
-                  <MessageSquare size={14} color="white" />
+                  <MessageSquare size={12} color="white" />
                 </div>
                 <div>
-                  <div style={{ fontWeight: 600, fontSize: 12, color: 'rgb(var(--fg))', display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <div style={{ fontWeight: 600, fontSize: 11, color: 'rgb(var(--fg))', display: 'flex', alignItems: 'center', gap: 4 }}>
                     Agent Chat
                     {executionHistory.length > 0 && (
                       <span style={{
                         background: '#29B5E8',
                         color: 'white',
-                        padding: '1px 6px',
-                        borderRadius: 10,
-                        fontSize: 9,
+                        padding: '0px 5px',
+                        borderRadius: 8,
+                        fontSize: 8,
                         fontWeight: 500,
                       }}>
                         {executionHistory.length}
                       </span>
                     )}
                   </div>
-                  <div style={{ fontSize: 10, color: 'rgb(var(--muted))' }}>
-                    {workflowName || 'Untitled Workflow'}
+                  <div style={{ fontSize: 9, color: 'rgb(var(--muted))' }}>
+                    {nodes.some(n => n.type === 'agent') ? (workflowName || 'Ready to chat') : 'Add an agent to start'}
                   </div>
                 </div>
               </div>
-              {executionHistory.length > 0 && (
-                <button 
-                  onClick={() => {
-                    setExecutionHistory([]);
-                    setExecResult(null);
-                    setSelectedHistoryId(null);
-                  }}
-                  style={{ 
-                    background: 'none', 
-                    border: 'none', 
-                    cursor: 'pointer', 
-                    padding: 4,
-                    color: 'rgb(var(--muted))',
-                  }}
-                  title="Clear chat history"
-                >
-                  <Trash2 size={14} />
-                </button>
-              )}
+              
+              {/* Header Actions: Copy, Download, Clear */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                {selectedHistoryId && execResult?.results?.agent_response && (
+                  <>
+                    <button 
+                      onClick={() => navigator.clipboard.writeText(execResult.results?.agent_response || '')}
+                      style={{ 
+                        background: 'none', 
+                        border: 'none', 
+                        cursor: 'pointer', 
+                        padding: 4,
+                        color: 'rgb(var(--muted))',
+                      }}
+                      title="Copy response"
+                    >
+                      <Copy size={12} />
+                    </button>
+                    <button 
+                      onClick={() => {
+                        const content = execResult.results?.agent_response || '';
+                        const blob = new Blob([content], { type: 'text/plain' });
+                        const url = URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = 'response.txt';
+                        a.click();
+                      }}
+                      style={{ 
+                        background: 'none', 
+                        border: 'none', 
+                        cursor: 'pointer', 
+                        padding: 4,
+                        color: 'rgb(var(--muted))',
+                      }}
+                      title="Download as text"
+                    >
+                      <Download size={12} />
+                    </button>
+                  </>
+                )}
+                {executionHistory.length > 0 && (
+                  <button 
+                    onClick={() => {
+                      setExecutionHistory([]);
+                      setExecResult(null);
+                      setSelectedHistoryId(null);
+                    }}
+                    style={{ 
+                      background: 'none', 
+                      border: 'none', 
+                      cursor: 'pointer', 
+                      padding: 4,
+                      color: 'rgb(var(--muted))',
+                    }}
+                    title="Clear chat history"
+                  >
+                    <Trash2 size={12} />
+                  </button>
+                )}
+              </div>
             </div>
 
             {/* Two-Panel Layout: Chat (flexible) + Stats (fixed bottom) */}
@@ -5548,6 +5591,65 @@ function Flow() {
                   )}
                 </div>
                 
+                {/* Chat Input Field */}
+                <div style={{
+                  padding: '10px 12px',
+                  borderTop: '1px solid rgb(var(--border))',
+                  background: 'rgb(var(--surface-2))',
+                }}>
+                  <div style={{ display: 'flex', gap: 8 }}>
+                    <input
+                      type="text"
+                      value={chatInput}
+                      onChange={(e) => setChatInput(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' && chatInput.trim() && nodes.some(n => n.type === 'agent')) {
+                          // Trigger the same flow as "Run Flow" button
+                          setShowRunModal(true);
+                          setRunModalPrompt(chatInput);
+                          setChatInput('');
+                        }
+                      }}
+                      placeholder={nodes.some(n => n.type === 'agent') ? "Ask your agent..." : "Add an agent first"}
+                      disabled={!nodes.some(n => n.type === 'agent') || execStatus === 'running'}
+                      style={{
+                        flex: 1,
+                        padding: '8px 12px',
+                        border: '1px solid rgb(var(--border))',
+                        borderRadius: 8,
+                        fontSize: 12,
+                        outline: 'none',
+                        background: nodes.some(n => n.type === 'agent') ? 'rgb(var(--surface))' : 'rgb(var(--surface-2))',
+                        color: 'rgb(var(--fg))',
+                        opacity: nodes.some(n => n.type === 'agent') ? 1 : 0.5,
+                      }}
+                    />
+                    <button
+                      onClick={() => {
+                        if (chatInput.trim() && nodes.some(n => n.type === 'agent')) {
+                          setShowRunModal(true);
+                          setRunModalPrompt(chatInput);
+                          setChatInput('');
+                        }
+                      }}
+                      disabled={!chatInput.trim() || !nodes.some(n => n.type === 'agent') || execStatus === 'running'}
+                      style={{
+                        padding: '8px 12px',
+                        background: chatInput.trim() && nodes.some(n => n.type === 'agent') ? '#29B5E8' : 'rgb(var(--surface-3))',
+                        color: chatInput.trim() && nodes.some(n => n.type === 'agent') ? 'white' : 'rgb(var(--muted))',
+                        border: 'none',
+                        borderRadius: 8,
+                        cursor: chatInput.trim() && nodes.some(n => n.type === 'agent') ? 'pointer' : 'not-allowed',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                      }}
+                      title="Send message"
+                    >
+                      <Play size={14} />
+                    </button>
+                  </div>
+                </div>
               </div>
               
               {/* STATS PANEL - Always visible, independently collapsible */}
@@ -5713,61 +5815,7 @@ function Flow() {
                           </div>
                         )}
                         
-                        {/* Copy/Download buttons */}
-                        <div style={{ display: 'flex', gap: 8 }}>
-                          <button
-                            onClick={() => {
-                              navigator.clipboard.writeText(execResult.results?.agent_response || '');
-                            }}
-                            style={{
-                              flex: 1,
-                              padding: '6px 10px',
-                              background: 'rgb(var(--surface))',
-                              border: '1px solid rgb(var(--border))',
-                              borderRadius: 6,
-                              cursor: 'pointer',
-                              fontSize: 9,
-                              color: 'rgb(var(--fg))',
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              gap: 4,
-                            }}
-                          >
-                            <Copy size={10} /> Copy
-                          </button>
-                          <button
-                            onClick={() => {
-                              const content = JSON.stringify({
-                                status: 'success',
-                                timestamp: new Date().toISOString(),
-                                data: { agent_response: execResult.results?.agent_response }
-                              }, null, 2);
-                              const blob = new Blob([content], { type: 'application/json' });
-                              const url = URL.createObjectURL(blob);
-                              const a = document.createElement('a');
-                              a.href = url;
-                              a.download = 'response.json';
-                              a.click();
-                            }}
-                            style={{
-                              flex: 1,
-                              padding: '6px 10px',
-                              background: '#10B981',
-                              border: 'none',
-                              borderRadius: 6,
-                              cursor: 'pointer',
-                              fontSize: 9,
-                              color: 'white',
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              gap: 4,
-                            }}
-                          >
-                            <Download size={10} /> JSON
-                          </button>
-                        </div>
+                        {/* Copy/Download moved to header */}
                       </>
                     ) : (
                       /* Empty state when no message selected */
