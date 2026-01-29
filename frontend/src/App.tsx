@@ -2113,7 +2113,7 @@ function DraggablePanel({
 }
 
 function Flow() {
-  const { nodes, edges, onNodesChange, onEdgesChange, onConnect, addNode, selectedNode, setSelectedNode, workflowName, setWorkflowName, setWorkflow, clearWorkflow, updateNodeData, lastAutosavedAt } = useFlowStore();
+  const { nodes, edges, onNodesChange, onEdgesChange, onConnect, addNode, selectedNode, setSelectedNode, workflowId, workflowName, setWorkflowName, setWorkflow, clearWorkflow, updateNodeData, lastAutosavedAt } = useFlowStore();
   const { screenToFlowPosition } = useReactFlow();
   const reactFlowWrapper = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -2126,6 +2126,8 @@ function Flow() {
   const [chatInput, setChatInput] = useState(''); // Chat input field
   const [selectedAgentId, setSelectedAgentId] = useState<string | null>(null); // For multi-agent selection
   const [showSaveModal, setShowSaveModal] = useState(false);
+  const [showNamePrompt, setShowNamePrompt] = useState(false); // Prompt for workflow name before first run
+  const [pendingRunPrompt, setPendingRunPrompt] = useState<string | undefined>(undefined); // Store prompt while naming
   const [showLoadModal, setShowLoadModal] = useState(false);
   const [savedWorkflows, setSavedWorkflows] = useState<Array<{ filename: string; name: string; node_count: number }>>([]);
   const [workflowDescription, setWorkflowDescription] = useState('');
@@ -2938,6 +2940,13 @@ function Flow() {
   }, [setSelectedNode]);
 
   const runWorkflow = async (prompt?: string) => {
+    // Check if workflow needs a name (first run)
+    if (!workflowName.trim()) {
+      setPendingRunPrompt(prompt);
+      setShowNamePrompt(true);
+      return;
+    }
+    
     // Pre-run validation
     if (nodes.length === 0) {
       showToast('Add at least one node to run', 'error');
@@ -4476,6 +4485,60 @@ function Flow() {
           )}
         </div>
 
+        {/* Name Workflow Modal (shown on first run) */}
+        {showNamePrompt && (
+          <div style={modalOverlayStyle}>
+            <div style={{ ...modalStyle, minWidth: 380 }}>
+              <h3 style={{ margin: '0 0 8px 0', color: '#1F2937' }}>Name Your Workflow</h3>
+              <div style={{ fontSize: 12, color: '#6B7280', marginBottom: 12 }}>
+                Give your workflow a name to save and track it.
+              </div>
+              <input
+                type="text"
+                value={workflowName}
+                onChange={(e) => setWorkflowName(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && workflowName.trim()) {
+                    setShowNamePrompt(false);
+                    // Continue with the pending run
+                    setTimeout(() => runWorkflow(pendingRunPrompt), 100);
+                    setPendingRunPrompt(undefined);
+                  }
+                }}
+                placeholder="e.g., Retail Sales Agent"
+                style={{ ...inputStyle, marginBottom: 12 }}
+                autoFocus
+              />
+              <div style={{ display: 'flex', gap: 8 }}>
+                <button
+                  onClick={() => {
+                    setShowNamePrompt(false);
+                    setPendingRunPrompt(undefined);
+                  }}
+                  style={{ ...buttonStyle, flex: 1, background: '#E5E7EB', color: '#374151' }}
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={() => {
+                    if (!workflowName.trim()) {
+                      showToast('Please enter a workflow name', 'error');
+                      return;
+                    }
+                    setShowNamePrompt(false);
+                    // Continue with the pending run
+                    setTimeout(() => runWorkflow(pendingRunPrompt), 100);
+                    setPendingRunPrompt(undefined);
+                  }}
+                  style={{ ...buttonStyle, flex: 1, background: '#29B5E8', color: 'white' }}
+                >
+                  Save & Run
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Run Flow Modal (optional question) */}
         {showRunModal && (
           <div style={modalOverlayStyle}>
@@ -5356,8 +5419,20 @@ function Flow() {
                       );
                     }
                     return (
-                      <div style={{ fontSize: 9, color: 'rgb(var(--muted))' }}>
-                        {nodes.some(n => n.type === 'agent') ? (workflowName || 'Ready to chat') : 'Add an agent to start'}
+                      <div style={{ fontSize: 9, color: 'rgb(var(--muted))', display: 'flex', alignItems: 'center', gap: 4 }}>
+                        {nodes.some(n => n.type === 'agent') 
+                          ? (workflowName || <span style={{ fontStyle: 'italic', opacity: 0.7 }}>Unsaved workflow</span>) 
+                          : 'Add an agent to start'}
+                        {nodes.some(n => n.type === 'agent') && !workflowName && (
+                          <span style={{
+                            background: '#F59E0B',
+                            color: 'white',
+                            padding: '1px 4px',
+                            borderRadius: 4,
+                            fontSize: 7,
+                            fontWeight: 600,
+                          }}>DRAFT</span>
+                        )}
                       </div>
                     );
                   })()}
