@@ -2939,9 +2939,11 @@ function Flow() {
     setSelectedNode(null);
   }, [setSelectedNode]);
 
-  const runWorkflow = async (prompt?: string) => {
+  const runWorkflow = async (prompt?: string, skipNameCheck?: boolean) => {
     // Check if workflow needs a name (first run)
-    if (!workflowName.trim()) {
+    // Use fresh state from store to avoid closure issues
+    const currentName = useFlowStore.getState().workflowName;
+    if (!skipNameCheck && !currentName.trim()) {
       setPendingRunPrompt(prompt);
       setShowNamePrompt(true);
       return;
@@ -4500,8 +4502,8 @@ function Flow() {
                 onKeyDown={(e) => {
                   if (e.key === 'Enter' && workflowName.trim()) {
                     setShowNamePrompt(false);
-                    // Continue with the pending run
-                    setTimeout(() => runWorkflow(pendingRunPrompt), 100);
+                    // Continue with the pending run (skip name check since we just set it)
+                    setTimeout(() => runWorkflow(pendingRunPrompt, true), 100);
                     setPendingRunPrompt(undefined);
                   }
                 }}
@@ -4526,8 +4528,8 @@ function Flow() {
                       return;
                     }
                     setShowNamePrompt(false);
-                    // Continue with the pending run
-                    setTimeout(() => runWorkflow(pendingRunPrompt), 100);
+                    // Continue with the pending run (skip name check since we just set it)
+                    setTimeout(() => runWorkflow(pendingRunPrompt, true), 100);
                     setPendingRunPrompt(undefined);
                   }}
                   style={{ ...buttonStyle, flex: 1, background: '#29B5E8', color: 'white' }}
