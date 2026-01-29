@@ -14,7 +14,7 @@ import { FileInputNode, FileOutputNode, SchemaExtractorNode, SchemaTransformerNo
 import DaxTranslatorNode from './nodes/DaxTranslatorNode';
 import { DataCatalog } from './components/DataCatalog';
 import { Templates, templateConfigs } from './components/Templates';
-import { LivePreview } from './components/LivePreview';
+// LivePreview removed - chat now built into main panel
 import { ToolCreator } from './components/ToolCreator';
 import type { CustomTool } from './components/ToolCreator';
 import { AdminDashboard } from './components/AdminDashboard';
@@ -2122,6 +2122,7 @@ function Flow() {
   const [execResult, setExecResult] = useState<ExecutionResult | null>(null);
   const [executionHistory, setExecutionHistory] = useState<ExecutionHistoryEntry[]>([]);
   const [selectedHistoryId, setSelectedHistoryId] = useState<string | null>(null);
+  const [statsExpanded, setStatsExpanded] = useState(true); // Independent stats panel state
   const [showSaveModal, setShowSaveModal] = useState(false);
   const [showLoadModal, setShowLoadModal] = useState(false);
   const [savedWorkflows, setSavedWorkflows] = useState<Array<{ filename: string; name: string; node_count: number }>>([]);
@@ -2231,7 +2232,7 @@ function Flow() {
   const toastTimerRef = useRef<number | null>(null);
   const [componentSearch, setComponentSearch] = useState('');
   const [sidebarMode, setSidebarMode] = useState<'components' | 'catalog' | 'templates'>('components');
-  const [showPreview, setShowPreview] = useState(false);
+  // showPreview removed - chat panel always visible
   const [showToolCreator, setShowToolCreator] = useState(false);
   const [showAdminDashboard, setShowAdminDashboard] = useState(false);
   const [customTools, setCustomTools] = useState<CustomTool[]>([]);
@@ -4428,31 +4429,6 @@ function Flow() {
             </button>
           </div>
 
-          {/* Preview Toggle */}
-          <button
-            onClick={() => setShowPreview(!showPreview)}
-            style={{
-              width: '100%',
-              marginTop: 6,
-              background: showPreview ? 'rgb(var(--surface-3))' : 'rgb(var(--surface-2))',
-              color: showPreview ? 'rgb(var(--fg))' : 'rgb(var(--fg-muted))',
-              border: `1px solid ${showPreview ? 'rgb(var(--border-strong))' : 'rgb(var(--border))'}`,
-              padding: '8px 12px',
-              borderRadius: 6,
-            cursor: 'pointer',
-              fontWeight: 500,
-              fontSize: 11,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: 6,
-              fontFamily: 'Inter, -apple-system, sans-serif',
-            }}
-          >
-            <MessageSquare size={12} />
-            {showPreview ? 'Hide Preview' : 'Preview Chat'}
-        </button>
-
           {/* Admin Dashboard Button */}
           <button
             onClick={() => setShowAdminDashboard(true)}
@@ -5308,7 +5284,7 @@ function Flow() {
               color: 'rgb(var(--muted))',
               letterSpacing: 0.5,
             }}>
-              Results
+              Agent
             </span>
           </div>
         ) : (
@@ -5376,16 +5352,16 @@ function Flow() {
               )}
             </div>
 
-            {/* Two-Panel Layout: Chat (top 60%) + Stats (bottom 40%) */}
+            {/* Two-Panel Layout: Chat (flexible) + Stats (fixed bottom) */}
             <div style={{ display: 'flex', flexDirection: 'column', flex: 1, overflow: 'hidden' }}>
               
-              {/* CHAT PANEL - Top Section (scrollable messages + input) */}
+              {/* CHAT PANEL - Takes available space */}
               <div style={{ 
-                flex: selectedHistoryId ? '0 0 60%' : 1, 
+                flex: 1, 
                 display: 'flex', 
                 flexDirection: 'column',
-                borderBottom: selectedHistoryId ? '2px solid rgb(var(--border))' : 'none',
                 overflow: 'hidden',
+                minHeight: 0, // Important for flex scroll
               }}>
                 {/* Chat Messages - Scrollable */}
                 <div style={{
@@ -5572,237 +5548,245 @@ function Flow() {
                   )}
                 </div>
                 
-                {/* Input hint */}
-                <div style={{
-                  padding: '8px 16px',
-                  borderTop: '1px solid rgb(var(--border))',
-                  background: 'rgb(var(--surface-2))',
-                  fontSize: 10,
-                  color: '#9CA3AF',
-                  textAlign: 'center',
-                }}>
-                  Use "Test Agent" button on the left to ask questions
-                </div>
               </div>
               
-              {/* STATS PANEL - Bottom Section (only when message selected) */}
-              {selectedHistoryId && execResult && (
-                <div style={{ 
-                  flex: '0 0 40%', 
-                  overflowY: 'auto',
-                  background: 'rgb(var(--surface-2))',
-                }}>
-                  {/* Stats Header */}
-                  <div style={{
-                    padding: '10px 16px',
-                    borderBottom: '1px solid rgb(var(--border))',
+              {/* STATS PANEL - Always visible, independently collapsible */}
+              <div style={{ 
+                flexShrink: 0,
+                background: 'rgb(var(--surface-2))',
+                borderTop: '2px solid rgb(var(--border))',
+              }}>
+                {/* Draggable Divider / Stats Header */}
+                <button
+                  onClick={() => setStatsExpanded(!statsExpanded)}
+                  style={{
+                    width: '100%',
+                    padding: '8px 16px',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'space-between',
                     background: 'rgb(var(--surface-3))',
-                  }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                      <BarChart3 size={14} color="#6366F1" />
-                      <span style={{ fontSize: 11, fontWeight: 600, color: 'rgb(var(--fg))' }}>
-                        Execution Stats
-                      </span>
-                    </div>
-                    <button
-                      onClick={() => setSelectedHistoryId(null)}
-                      style={{
-                        background: 'none',
-                        border: 'none',
-                        cursor: 'pointer',
-                        padding: 2,
-                        color: 'rgb(var(--muted))',
-                      }}
-                    >
-                      <ChevronDown size={14} />
-                    </button>
-                  </div>
-                  
-                  {/* Stats Content */}
-                  <div style={{ padding: 12 }}>
-                    {/* Metrics Row */}
-                    <div style={{
-                      display: 'flex',
-                      gap: 8,
-                      marginBottom: 12,
-                    }}>
-                      <div style={{
-                        flex: 1,
+                    border: 'none',
+                    cursor: 'pointer',
+                    borderBottom: statsExpanded ? '1px solid rgb(var(--border))' : 'none',
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <BarChart3 size={14} color="#6366F1" />
+                    <span style={{ fontSize: 11, fontWeight: 600, color: 'rgb(var(--fg))' }}>
+                      Execution Stats
+                    </span>
+                    {selectedHistoryId && (
+                      <span style={{
                         background: '#10B981',
-                        padding: '10px 8px',
+                        color: 'white',
+                        padding: '1px 6px',
                         borderRadius: 8,
-                        textAlign: 'center',
+                        fontSize: 9,
                       }}>
-                        <div style={{ fontSize: 18, fontWeight: 700, color: 'white' }}>
-                          {execResult.messages?.filter((m: string) => m.includes('completed') || m.includes('Agent')).length || 1}
-                        </div>
-                        <div style={{ fontSize: 8, color: 'rgba(255,255,255,0.8)', textTransform: 'uppercase' }}>
-                          Agents
-                        </div>
-                      </div>
-                      <div style={{
-                        flex: 1,
-                        background: '#F59E0B',
-                        padding: '10px 8px',
-                        borderRadius: 8,
-                        textAlign: 'center',
-                      }}>
-                        <div style={{ fontSize: 18, fontWeight: 700, color: 'white' }}>
-                          {execResult.messages?.filter((m: string) => m.includes('routed')).length || 0}
-                        </div>
-                        <div style={{ fontSize: 8, color: 'rgba(255,255,255,0.8)', textTransform: 'uppercase' }}>
-                          Routes
-                        </div>
-                      </div>
-                      <div style={{
-                        flex: 1,
-                        background: '#8B5CF6',
-                        padding: '10px 8px',
-                        borderRadius: 8,
-                        textAlign: 'center',
-                      }}>
-                        <div style={{ fontSize: 18, fontWeight: 700, color: 'white' }}>
-                          {execResult.messages?.filter((m: string) => m.toLowerCase().includes('semantic')).length || 1}
-                        </div>
-                        <div style={{ fontSize: 8, color: 'rgba(255,255,255,0.8)', textTransform: 'uppercase' }}>
-                          Semantic
-                        </div>
-                      </div>
-                    </div>
-                    
-                    {/* Timeline */}
-                    {execResult.messages && execResult.messages.length > 0 && (
-                      <div style={{
-                        background: 'rgb(var(--surface))',
-                        borderRadius: 8,
-                        border: '1px solid rgb(var(--border))',
-                        overflow: 'hidden',
-                      }}>
+                        Active
+                      </span>
+                    )}
+                  </div>
+                  <div style={{ 
+                    transform: statsExpanded ? 'rotate(180deg)' : 'rotate(0deg)',
+                    transition: 'transform 0.2s ease',
+                    color: 'rgb(var(--muted))',
+                  }}>
+                    <ChevronDown size={14} />
+                  </div>
+                </button>
+                
+                {/* Stats Content - shown when expanded */}
+                {statsExpanded && (
+                  <div style={{ 
+                    padding: 12, 
+                    maxHeight: 300, 
+                    overflowY: 'auto',
+                  }}>
+                    {selectedHistoryId && execResult ? (
+                      <>
+                        {/* Metrics Row */}
                         <div style={{
-                          padding: '8px 12px',
-                          borderBottom: '1px solid rgb(var(--border))',
-                          fontSize: 9,
-                          fontWeight: 600,
-                          color: '#6B7280',
-                          textTransform: 'uppercase',
+                          display: 'flex',
+                          gap: 8,
+                          marginBottom: 12,
                         }}>
-                          Execution Timeline
-                        </div>
-                        {execResult.messages.slice(0, 8).map((msg: string, i: number) => {
-                          const isSuccess = msg.includes('completed') || msg.includes('success') || msg.includes('loaded');
-                          const isAgent = msg.includes('Agent') || msg.includes('Cortex');
-                          return (
-                            <div
-                              key={i}
-                              style={{
-                                padding: '6px 12px',
-                                borderBottom: i < Math.min(execResult.messages!.length - 1, 7) ? '1px solid rgb(var(--border))' : 'none',
-                                fontSize: 10,
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: 8,
-                                background: isAgent ? '#F0FDF4' : 'transparent',
-                              }}
-                            >
-                              <div style={{
-                                width: 14,
-                                height: 14,
-                                borderRadius: '50%',
-                                background: isSuccess ? '#10B981' : '#F59E0B',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                fontSize: 8,
-                                color: 'white',
-                                flexShrink: 0,
-                              }}>
-                                ✓
-                              </div>
-                              <span style={{ color: '#374151' }}>{msg}</span>
+                          <div style={{
+                            flex: 1,
+                            background: '#10B981',
+                            padding: '10px 8px',
+                            borderRadius: 8,
+                            textAlign: 'center',
+                          }}>
+                            <div style={{ fontSize: 18, fontWeight: 700, color: 'white' }}>
+                              {execResult.messages?.filter((m: string) => m.includes('completed') || m.includes('Agent')).length || 1}
                             </div>
-                          );
-                        })}
+                            <div style={{ fontSize: 8, color: 'rgba(255,255,255,0.8)', textTransform: 'uppercase' }}>
+                              Agents
+                            </div>
+                          </div>
+                          <div style={{
+                            flex: 1,
+                            background: '#F59E0B',
+                            padding: '10px 8px',
+                            borderRadius: 8,
+                            textAlign: 'center',
+                          }}>
+                            <div style={{ fontSize: 18, fontWeight: 700, color: 'white' }}>
+                              {execResult.messages?.filter((m: string) => m.includes('routed')).length || 0}
+                            </div>
+                            <div style={{ fontSize: 8, color: 'rgba(255,255,255,0.8)', textTransform: 'uppercase' }}>
+                              Routes
+                            </div>
+                          </div>
+                          <div style={{
+                            flex: 1,
+                            background: '#8B5CF6',
+                            padding: '10px 8px',
+                            borderRadius: 8,
+                            textAlign: 'center',
+                          }}>
+                            <div style={{ fontSize: 18, fontWeight: 700, color: 'white' }}>
+                              {execResult.messages?.filter((m: string) => m.toLowerCase().includes('semantic')).length || 1}
+                            </div>
+                            <div style={{ fontSize: 8, color: 'rgba(255,255,255,0.8)', textTransform: 'uppercase' }}>
+                              Semantic
+                            </div>
+                          </div>
+                        </div>
+                        
+                        {/* Timeline */}
+                        {execResult.messages && execResult.messages.length > 0 && (
+                          <div style={{
+                            background: 'rgb(var(--surface))',
+                            borderRadius: 8,
+                            border: '1px solid rgb(var(--border))',
+                            overflow: 'hidden',
+                            marginBottom: 12,
+                          }}>
+                            <div style={{
+                              padding: '8px 12px',
+                              borderBottom: '1px solid rgb(var(--border))',
+                              fontSize: 9,
+                              fontWeight: 600,
+                              color: '#6B7280',
+                              textTransform: 'uppercase',
+                            }}>
+                              Execution Timeline
+                            </div>
+                            {execResult.messages.slice(0, 6).map((msg: string, i: number) => {
+                              const isSuccess = msg.includes('completed') || msg.includes('success') || msg.includes('loaded');
+                              const isAgent = msg.includes('Agent') || msg.includes('Cortex');
+                              return (
+                                <div
+                                  key={i}
+                                  style={{
+                                    padding: '5px 12px',
+                                    borderBottom: i < Math.min(execResult.messages!.length - 1, 5) ? '1px solid rgb(var(--border))' : 'none',
+                                    fontSize: 9,
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: 6,
+                                    background: isAgent ? '#F0FDF4' : 'transparent',
+                                  }}
+                                >
+                                  <div style={{
+                                    width: 12,
+                                    height: 12,
+                                    borderRadius: '50%',
+                                    background: isSuccess ? '#10B981' : '#F59E0B',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    fontSize: 7,
+                                    color: 'white',
+                                    flexShrink: 0,
+                                  }}>
+                                    ✓
+                                  </div>
+                                  <span style={{ color: '#374151', fontSize: 9 }}>{msg}</span>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        )}
+                        
+                        {/* Copy/Download buttons */}
+                        <div style={{ display: 'flex', gap: 8 }}>
+                          <button
+                            onClick={() => {
+                              navigator.clipboard.writeText(execResult.results?.agent_response || '');
+                            }}
+                            style={{
+                              flex: 1,
+                              padding: '6px 10px',
+                              background: 'rgb(var(--surface))',
+                              border: '1px solid rgb(var(--border))',
+                              borderRadius: 6,
+                              cursor: 'pointer',
+                              fontSize: 9,
+                              color: 'rgb(var(--fg))',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              gap: 4,
+                            }}
+                          >
+                            <Copy size={10} /> Copy
+                          </button>
+                          <button
+                            onClick={() => {
+                              const content = JSON.stringify({
+                                status: 'success',
+                                timestamp: new Date().toISOString(),
+                                data: { agent_response: execResult.results?.agent_response }
+                              }, null, 2);
+                              const blob = new Blob([content], { type: 'application/json' });
+                              const url = URL.createObjectURL(blob);
+                              const a = document.createElement('a');
+                              a.href = url;
+                              a.download = 'response.json';
+                              a.click();
+                            }}
+                            style={{
+                              flex: 1,
+                              padding: '6px 10px',
+                              background: '#10B981',
+                              border: 'none',
+                              borderRadius: 6,
+                              cursor: 'pointer',
+                              fontSize: 9,
+                              color: 'white',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              gap: 4,
+                            }}
+                          >
+                            <Download size={10} /> JSON
+                          </button>
+                        </div>
+                      </>
+                    ) : (
+                      /* Empty state when no message selected */
+                      <div style={{
+                        textAlign: 'center',
+                        padding: '16px 12px',
+                        color: '#9CA3AF',
+                        fontSize: 11,
+                      }}>
+                        <BarChart3 size={24} style={{ opacity: 0.3, marginBottom: 8 }} />
+                        <div>Click a chat message to view its stats</div>
                       </div>
                     )}
-                    
-                    {/* Copy/Download buttons */}
-                    <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
-                      <button
-                        onClick={() => {
-                          navigator.clipboard.writeText(execResult.results?.agent_response || '');
-                        }}
-                        style={{
-                          flex: 1,
-                          padding: '8px 12px',
-                          background: 'rgb(var(--surface))',
-                          border: '1px solid rgb(var(--border))',
-                          borderRadius: 6,
-                          cursor: 'pointer',
-                          fontSize: 10,
-                          color: 'rgb(var(--fg))',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          gap: 6,
-                        }}
-                      >
-                        <Copy size={12} /> Copy Response
-                      </button>
-                      <button
-                        onClick={() => {
-                          const content = JSON.stringify({
-                            status: 'success',
-                            timestamp: new Date().toISOString(),
-                            data: { agent_response: execResult.results?.agent_response }
-                          }, null, 2);
-                          const blob = new Blob([content], { type: 'application/json' });
-                          const url = URL.createObjectURL(blob);
-                          const a = document.createElement('a');
-                          a.href = url;
-                          a.download = 'response.json';
-                          a.click();
-                        }}
-                        style={{
-                          flex: 1,
-                          padding: '8px 12px',
-                          background: '#10B981',
-                          border: 'none',
-                          borderRadius: 6,
-                          cursor: 'pointer',
-                          fontSize: 10,
-                          color: 'white',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          gap: 6,
-                        }}
-                      >
-                        <Download size={12} /> Download
-                      </button>
-                    </div>
                   </div>
-                </div>
-              )}
+                )}
+              </div>
             </div>
           </>
         )}
       </div>
-
-      {/* Live Preview Panel */}
-      {showPreview && !selectedNode && !execResult?.results?.agent_response && (
-        <div style={{ width: 'var(--panel-width, 380px)' }}>
-          <LivePreview 
-            workflowName={workflowName}
-            isConfigured={nodes.length > 0}
-            nodes={nodes}
-            edges={edges}
-            onClose={() => setShowPreview(false)}
-          />
-        </div>
-      )}
 
       {/* Tool Creator Modal */}
       {showToolCreator && (
