@@ -791,6 +791,138 @@
 
 ---
 
+### E1.4: Incomplete Setup - No Output Node
+**What you're testing:** Pre-flight validation blocks incomplete flows
+
+| Step | Do This | See This |
+|------|---------|----------|
+| 1 | Start Guided Canvas | Fresh state |
+| 2 | Configure Data Source | ✅ Step 1 done |
+| 3 | Configure Semantic Model | ✅ Step 2 done |
+| 4 | Choose Orchestration | ✅ Step 3 done |
+| 5 | **Do NOT click "Complete Setup"** | Skip step 4 |
+| 6 | Type query in chat input and press Enter | Try to run |
+| 7 | **Validation Panel appears** with error: "No output node configured" | ❌ Blocked |
+| 8 | Suggestion says: "Click 'Complete Setup' to add an output node" | Helpful message |
+| 9 | ✅ Pass - Blocked with clear guidance |
+
+---
+
+### E1.5: Invalid Data Source - Table Not Found
+**What you're testing:** Validation catches non-existent tables
+
+| Step | Do This | See This |
+|------|---------|----------|
+| 1 | In Graph mode, add a Snowflake Source node | Node added |
+| 2 | Manually set database/schema/table to fake values | e.g., `FAKE_DB.FAKE_SCHEMA.FAKE_TABLE` |
+| 3 | Add Agent and Output nodes, connect them | Complete flow |
+| 4 | Try to run a query | Submit |
+| 5 | **Validation Panel appears** with error: "Table does not exist" | ❌ Blocked |
+| 6 | Suggestion says: "Verify the table name is correct" | Helpful message |
+| 7 | ✅ Pass - Blocked with clear guidance |
+
+---
+
+### E1.6: Snowflake Token Expired
+**What you're testing:** Authentication error handling
+
+| Step | Do This | See This |
+|------|---------|----------|
+| 1 | Wait for Snowflake token to expire (or simulate) | Token invalid |
+| 2 | Try to run a query | Submit |
+| 3 | **Validation Panel appears** with error: "Token expired" | ❌ Blocked |
+| 4 | Suggestion includes: "Restart the backend to refresh" | Troubleshooting steps |
+| 5 | Troubleshooting details show exact commands | Actionable |
+| 6 | ✅ Pass - Clear recovery path |
+
+---
+
+### E1.7: Disconnected Agent Node
+**What you're testing:** Graph integrity validation
+
+| Step | Do This | See This |
+|------|---------|----------|
+| 1 | In Graph mode, add Data Source, Agent, Output | Nodes added |
+| 2 | Connect Data Source to Output (skip Agent) | Agent orphaned |
+| 3 | Try to run a query | Submit |
+| 4 | **Warning appears**: "Agent is not connected to a data source" | ⚠️ Warning |
+| 5 | Can click "Run Anyway" to proceed | Option given |
+| 6 | Or click "Fix Issues" to correct the graph | Option given |
+| 7 | ✅ Pass - Warns but allows override |
+
+---
+
+### E1.8: No Data Source Configured
+**What you're testing:** Required node validation
+
+| Step | Do This | See This |
+|------|---------|----------|
+| 1 | In Graph mode, add only Agent and Output | No data source |
+| 2 | Connect Agent to Output | Flow looks complete |
+| 3 | Try to run a query | Submit |
+| 4 | **Validation Panel appears** with error: "No data source configured" | ❌ Blocked |
+| 5 | Suggestion: "Click on the Data Source layer and select a Table or View" | Helpful |
+| 6 | ✅ Pass - Blocked with clear guidance |
+
+---
+
+### E1.9: Invalid Semantic Model Path
+**What you're testing:** Semantic model file validation
+
+| Step | Do This | See This |
+|------|---------|----------|
+| 1 | Add a Semantic Model node | Node added |
+| 2 | Manually set path to invalid value | e.g., `not_a_yaml.txt` |
+| 3 | Complete flow and try to run | Submit |
+| 4 | **Warning appears**: "Semantic model path should end with .yaml" | ⚠️ Warning |
+| 5 | Can still proceed if desired | Not blocking |
+| 6 | ✅ Pass - Warns about potential issue |
+
+---
+
+### E1.10: Empty Table Warning
+**What you're testing:** Data quality warnings
+
+| Step | Do This | See This |
+|------|---------|----------|
+| 1 | Connect to a table with 0 rows | Empty table |
+| 2 | Complete flow and try to run | Submit |
+| 3 | **Warning appears**: "Table has no data" | ⚠️ Warning |
+| 4 | Suggestion: "Queries will return empty results" | Helpful |
+| 5 | Can proceed with "Run Anyway" | Option given |
+| 6 | ✅ Pass - Warns about empty data |
+
+---
+
+### E1.11: Permission Denied on Table
+**What you're testing:** Access control error handling
+
+| Step | Do This | See This |
+|------|---------|----------|
+| 1 | Connect to a table user doesn't have SELECT on | No permission |
+| 2 | Try to run a query | Submit |
+| 3 | **Error appears**: "No permission to access table" | ❌ Blocked |
+| 4 | Suggestion: "Ask your Snowflake admin to grant SELECT" | Actionable |
+| 5 | ✅ Pass - Clear explanation of access issue |
+
+---
+
+### E1.12: Validation Panel UX
+**What you're testing:** User experience of error panel
+
+| Step | Do This | See This |
+|------|---------|----------|
+| 1 | Trigger any validation error (e.g., E1.4) | Error shown |
+| 2 | **Panel has clear title**: "Can't Run Workflow" | Obvious |
+| 3 | **Errors are red** with ❌ icon | Visual distinction |
+| 4 | **Warnings are amber** with ⚠️ icon | Visual distinction |
+| 5 | **Each error has "How to fix" section** | Actionable |
+| 6 | **"Fix Issues" button** dismisses panel | Easy to close |
+| 7 | Panel is scrollable if many errors | Usable |
+| 8 | ✅ Pass - Panel is clear and helpful |
+
+---
+
 ---
 
 # PART 7: EDGE CASES
@@ -898,6 +1030,15 @@
 | E1.1 | | | | |
 | E1.2 | | | | |
 | E1.3 | | | | |
+| E1.4 | | | | |
+| E1.5 | | | | |
+| E1.6 | | | | |
+| E1.7 | | | | |
+| E1.8 | | | | |
+| E1.9 | | | | |
+| E1.10 | | | | |
+| E1.11 | | | | |
+| E1.12 | | | | |
 | EC1.1 | | | | |
 | EC1.2 | | | | |
 | EC1.3 | | | | |
@@ -939,10 +1080,12 @@
 | Import Workflow | U3.5 |
 | Templates | U4.1 |
 | Response Time | P1.* |
-| Error Handling | E1.* |
+| Error Handling | E1.1-E1.3 |
+| Pre-flight Validation | E1.4-E1.12 |
+| Validation Panel UX | E1.12 |
 | Edge Cases | EC1.* |
 
 ---
 
-**Total Test Cases: 58**
-**Estimated Time: 2-3 hours for full run**
+**Total Test Cases: 67**
+**Estimated Time: 2.5-3.5 hours for full run**

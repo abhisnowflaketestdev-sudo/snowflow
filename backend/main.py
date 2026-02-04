@@ -15,6 +15,7 @@ from graph_builder import execute_workflow, execute_workflow_streaming
 from snowflake_client import snowflake_client
 from api import translation_router
 from demo_assets_installer import install_demo_assets, demo_assets_status
+from flow_validator import validate_flow, FlowValidator
 
 app = FastAPI(title="SnowFlow API", version="0.1.0")
 
@@ -209,125 +210,69 @@ async def run_workflow(workflow: WorkflowRequest):
 
 
 @app.post("/workflow/validate")
-async def validate_workflow(workflow: WorkflowRequest):
-    """Pre-flight validation before running a workflow
-    
-    Checks:
-    1. Snowflake connectivity
-    2. Required nodes exist (data source, agent, output)
-    3. Data sources are accessible
-    4. Semantic models exist (if referenced)
-    5. Prompt is provided
+async def validate_workflow_endpoint(workflow: WorkflowRequest):
     """
-    errors = []
-    warnings = []
+    Comprehensive pre-flight validation before running a workflow.
     
-    # 1. Check Snowflake connectivity
-    sf_available = snowflake_client.is_snowflake_available()
-    if not sf_available:
-        errors.append({
-            "code": "SNOWFLAKE_UNAVAILABLE",
-            "message": "Snowflake is not connected. Check your VPN or network connection.",
-            "severity": "error"
-        })
+    Validates:
+    1. Snowflake connectivity
+    2. Graph structure (connected nodes, valid paths)
+    3. Required nodes (data source, agent, output)
+    4. Data source accessibility (table exists, permissions)
+    5. Semantic model configuration
+    6. Agent configuration
+    7. Prompt validity
     
-    # 2. Check required nodes
-    node_types = {n.get('type') for n in workflow.nodes}
-    node_by_type = {n.get('type'): n for n in workflow.nodes}
+    Returns:
+    - valid: bool - True if no blocking errors
+    - errors: list - Blocking errors that prevent execution
+    - warnings: list - Non-blocking issues to be aware of
+    - info: list - Informational messages
     
-    has_data_source = 'snowflakeSource' in node_types
-    has_agent = 'agent' in node_types or 'cortexAgent' in node_types
-    has_output = 'output' in node_types
-    
-    if not has_data_source:
-        errors.append({
-            "code": "NO_DATA_SOURCE",
-            "message": "No data source node found. Add a Table or View from the catalog.",
-            "severity": "error"
-        })
-    
-    if not has_agent:
-        errors.append({
-            "code": "NO_AGENT",
-            "message": "No Cortex Agent node found. Add an agent to process queries.",
-            "severity": "error"
-        })
-    
-    if not has_output:
-        warnings.append({
-            "code": "NO_OUTPUT",
-            "message": "No Output node found. Results may not be displayed properly.",
-            "severity": "warning"
-        })
-    
-    # 3. Check data source accessibility (if Snowflake is available)
-    if sf_available and has_data_source:
-        for node in workflow.nodes:
-            if node.get('type') == 'snowflakeSource':
-                data = node.get('data', {})
-                db = data.get('database')
-                schema = data.get('schema')
-                obj_name = data.get('objectName') or data.get('table')
-                
-                if db and schema and obj_name:
-                    # Try to verify the object exists
-                    try:
-                        result = snowflake_client.execute_sql(
-                            f"SELECT 1 FROM {db}.{schema}.{obj_name} LIMIT 1"
-                        )
-                        if not result or result.get('error'):
-                            warnings.append({
-                                "code": "DATA_SOURCE_INACCESSIBLE",
-                                "message": f"Cannot access {db}.{schema}.{obj_name}. Check permissions.",
-                                "severity": "warning"
-                            })
-                    except Exception as e:
-                        warnings.append({
-                            "code": "DATA_SOURCE_ERROR",
-                            "message": f"Error checking data source: {str(e)[:100]}",
-                            "severity": "warning"
-                        })
-    
-    # 4. Check semantic models (if referenced)
-    if sf_available:
-        for node in workflow.nodes:
-            if node.get('type') == 'semanticModel':
-                data = node.get('data', {})
-                semantic_path = data.get('semanticPath')
-                if semantic_path:
-                    # Basic validation - just check format
-                    if not semantic_path.endswith('.yaml'):
-                        warnings.append({
-                            "code": "INVALID_SEMANTIC_MODEL",
-                            "message": f"Semantic model path should end with .yaml: {semantic_path}",
-                            "severity": "warning"
-                        })
-    
-    # 5. Check prompt
-    if not workflow.prompt or not workflow.prompt.strip():
-        errors.append({
-            "code": "NO_PROMPT",
-            "message": "No query provided. Enter a question to ask your agent.",
-            "severity": "error"
-        })
-    
-    # Build response
-    is_valid = len(errors) == 0
-    
-    return {
-        "valid": is_valid,
-        "errors": errors,
-        "warnings": warnings,
-        "summary": {
-            "snowflake_connected": sf_available,
-            "has_data_source": has_data_source,
-            "has_agent": has_agent,
-            "has_output": has_output,
+    Each error/warning includes:
+    - code: Machine-readable error code
+    - message: User-friendly description
+    - suggestion: How to fix the issue
+    - node_id: (optional) Which node has the issue
+    - details: (optional) Additional context
+    """
+    try:
+        result = validate_flow(
+            snowflake_client,
+            workflow.nodes,
+            workflow.edges,
+            workflow.prompt
+        )
+        
+        # Add summary for UI convenience
+        node_types = {n.get('type') for n in workflow.nodes}
+        result["summary"] = {
+            "snowflake_connected": snowflake_client.is_snowflake_available(),
+            "has_data_source": 'snowflakeSource' in node_types,
+            "has_agent": 'agent' in node_types or 'cortexAgent' in node_types,
+            "has_output": 'output' in node_types,
             "has_prompt": bool(workflow.prompt and workflow.prompt.strip()),
             "node_count": len(workflow.nodes),
             "edge_count": len(workflow.edges)
         }
-    }
+        
+        return result
+        
+    except Exception as e:
+        # Even validation shouldn't crash - return error gracefully
+        return {
+            "valid": False,
+            "errors": [{
+                "code": "VALIDATION_ERROR",
+                "severity": "error",
+                "message": f"Validation failed: {str(e)[:200]}",
+                "suggestion": "Try again. If the issue persists, check backend logs."
+            }],
+            "warnings": [],
+            "info": [],
+            "error_count": 1,
+            "warning_count": 0
+        }
 
 
 @app.post("/run/stream")

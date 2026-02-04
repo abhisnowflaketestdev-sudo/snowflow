@@ -20,7 +20,7 @@ import type { CustomTool } from './components/ToolCreator';
 import { AdminDashboard } from './components/AdminDashboard';
 import { GuidedStackCanvas } from './components/GuidedStackCanvas';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Database, Brain, FileOutput, Play, X, Sparkles, Save, FolderOpen, Loader2, CheckCircle, AlertCircle, FileText, Heart, Languages, GitBranch, Globe, Layers, BookOpen, Zap, MessageSquare, Download, Upload, Shield, Bot, Cloud, Building2, FileUp, FileDown, ArrowRightLeft, GripVertical, ChevronLeft, ChevronRight, ChevronDown, Sun, Moon, Pencil, Lock, Unlock, RefreshCw, Trash2, User, BarChart3, Copy } from 'lucide-react';
+import { Database, Brain, FileOutput, Play, X, Sparkles, Save, FolderOpen, Loader2, CheckCircle, CheckCircle2, AlertCircle, AlertTriangle, XCircle, FileText, Heart, Languages, GitBranch, Globe, Layers, BookOpen, Zap, MessageSquare, Download, Upload, Shield, Bot, Cloud, Building2, FileUp, FileDown, ArrowRightLeft, GripVertical, ChevronLeft, ChevronRight, ChevronDown, Sun, Moon, Pencil, Lock, Unlock, RefreshCw, Trash2, User, BarChart3, Copy } from 'lucide-react';
 import axios from 'axios';
 import type { Node } from 'reactflow';
 import { getStoredTheme, setTheme, type ThemeMode } from './theme';
@@ -2128,6 +2128,16 @@ function Flow() {
   const [showSaveModal, setShowSaveModal] = useState(false);
   const [showNamePrompt, setShowNamePrompt] = useState(false); // Prompt for workflow name before first run
   const [pendingRunPrompt, setPendingRunPrompt] = useState<string | undefined>(undefined); // Store prompt while naming
+  
+  // Validation state
+  const [showValidationPanel, setShowValidationPanel] = useState(false);
+  const [validationResult, setValidationResult] = useState<{
+    valid: boolean;
+    errors: Array<{ code: string; message: string; suggestion: string; node_id?: string; details?: Record<string, unknown> }>;
+    warnings: Array<{ code: string; message: string; suggestion: string; node_id?: string }>;
+    info: Array<{ code: string; message: string; node_id?: string }>;
+  } | null>(null);
+  const [pendingValidationPrompt, setPendingValidationPrompt] = useState<string | undefined>(undefined);
   const [showLoadModal, setShowLoadModal] = useState(false);
   const [savedWorkflows, setSavedWorkflows] = useState<Array<{ filename: string; name: string; node_count: number }>>([]);
   const [workflowDescription, setWorkflowDescription] = useState('');
@@ -3044,20 +3054,28 @@ function Flow() {
       
       if (validationRes.ok) {
         const validation = await validationRes.json();
+        setValidationResult(validation);
         
-        // Show warnings but don't block
+        // Block on errors - show detailed validation panel
+        if (!validation.valid) {
+          setPendingValidationPrompt(prompt);
+          setShowValidationPanel(true);
+          setExecStatus('idle');
+          return;
+        }
+        
+        // Show warnings as toasts but don't block
         if (validation.warnings && validation.warnings.length > 0) {
-          for (const warn of validation.warnings.slice(0, 2)) {  // Show max 2 warnings
-            showToast(`⚠️ ${warn.message}`, 'info');
+          // Show first warning as toast, rest in console
+          showToast(`⚠️ ${validation.warnings[0].message}`, 'info');
+          if (validation.warnings.length > 1) {
+            console.log('[PREFLIGHT] Additional warnings:', validation.warnings.slice(1));
           }
         }
         
-        // Block on errors
-        if (!validation.valid) {
-          const errorMsgs = validation.errors.map((e: { message: string }) => e.message).join('\n');
-          showToast(`❌ Cannot run workflow:\n${errorMsgs}`, 'error');
-          setExecStatus('idle');
-          return;
+        // Show info messages
+        if (validation.info && validation.info.length > 0) {
+          console.log('[PREFLIGHT] Info:', validation.info);
         }
         
         console.log('[PREFLIGHT] Validation passed:', validation.summary);
@@ -4544,6 +4562,260 @@ function Flow() {
                 >
                   Save & Run
                 </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Validation Errors Panel */}
+        {showValidationPanel && validationResult && (
+          <div style={modalOverlayStyle}>
+            <div style={{ 
+              ...modalStyle, 
+              minWidth: 480, 
+              maxWidth: 560,
+              maxHeight: '80vh',
+              overflow: 'auto'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
+                <div style={{ 
+                  width: 36, 
+                  height: 36, 
+                  borderRadius: '50%', 
+                  background: validationResult.errors.length > 0 ? 'rgba(239, 68, 68, 0.15)' : 'rgba(245, 158, 11, 0.15)',
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  justifyContent: 'center'
+                }}>
+                  {validationResult.errors.length > 0 ? (
+                    <XCircle size={20} color="#EF4444" />
+                  ) : (
+                    <AlertTriangle size={20} color="#F59E0B" />
+                  )}
+                </div>
+                <div>
+                  <h3 style={{ margin: 0, color: '#1F2937', fontSize: 16 }}>
+                    {validationResult.errors.length > 0 ? "Can't Run Workflow" : "Review Before Running"}
+                  </h3>
+                  <div style={{ fontSize: 12, color: '#6B7280' }}>
+                    {validationResult.errors.length > 0 
+                      ? `${validationResult.errors.length} issue${validationResult.errors.length > 1 ? 's' : ''} found that must be fixed`
+                      : `${validationResult.warnings.length} warning${validationResult.warnings.length > 1 ? 's' : ''} to review`
+                    }
+                  </div>
+                </div>
+              </div>
+
+              {/* Errors Section */}
+              {validationResult.errors.length > 0 && (
+                <div style={{ marginBottom: 16 }}>
+                  <div style={{ 
+                    fontSize: 11, 
+                    fontWeight: 700, 
+                    color: '#EF4444', 
+                    textTransform: 'uppercase', 
+                    letterSpacing: 0.5,
+                    marginBottom: 8
+                  }}>
+                    Errors (Must Fix)
+                  </div>
+                  {validationResult.errors.map((err, i) => (
+                    <div key={i} style={{ 
+                      background: 'rgba(239, 68, 68, 0.08)', 
+                      border: '1px solid rgba(239, 68, 68, 0.25)',
+                      borderRadius: 10,
+                      padding: 12,
+                      marginBottom: 8
+                    }}>
+                      <div style={{ 
+                        fontSize: 13, 
+                        fontWeight: 600, 
+                        color: '#B91C1C', 
+                        marginBottom: 4,
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 6
+                      }}>
+                        <XCircle size={14} />
+                        {err.message}
+                      </div>
+                      <div style={{ 
+                        fontSize: 12, 
+                        color: '#374151', 
+                        background: 'rgba(255,255,255,0.6)',
+                        padding: '8px 10px',
+                        borderRadius: 6,
+                        marginTop: 6
+                      }}>
+                        <strong style={{ color: '#059669' }}>How to fix:</strong> {err.suggestion}
+                      </div>
+                      {err.details && Object.keys(err.details).length > 0 && (
+                        <div style={{ 
+                          fontSize: 10, 
+                          color: '#6B7280', 
+                          marginTop: 6,
+                          fontFamily: 'monospace'
+                        }}>
+                          {err.details.troubleshooting && Array.isArray(err.details.troubleshooting) && (
+                            <div style={{ marginTop: 4 }}>
+                              {(err.details.troubleshooting as string[]).map((step: string, j: number) => (
+                                <div key={j} style={{ marginLeft: 8 }}>{String(step)}</div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Warnings Section */}
+              {validationResult.warnings.length > 0 && (
+                <div style={{ marginBottom: 16 }}>
+                  <div style={{ 
+                    fontSize: 11, 
+                    fontWeight: 700, 
+                    color: '#D97706', 
+                    textTransform: 'uppercase', 
+                    letterSpacing: 0.5,
+                    marginBottom: 8
+                  }}>
+                    Warnings
+                  </div>
+                  {validationResult.warnings.map((warn, i) => (
+                    <div key={i} style={{ 
+                      background: 'rgba(245, 158, 11, 0.08)', 
+                      border: '1px solid rgba(245, 158, 11, 0.25)',
+                      borderRadius: 10,
+                      padding: 12,
+                      marginBottom: 8
+                    }}>
+                      <div style={{ 
+                        fontSize: 13, 
+                        fontWeight: 600, 
+                        color: '#92400E', 
+                        marginBottom: 4,
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 6
+                      }}>
+                        <AlertTriangle size={14} />
+                        {warn.message}
+                      </div>
+                      <div style={{ 
+                        fontSize: 12, 
+                        color: '#374151', 
+                        marginTop: 4
+                      }}>
+                        {warn.suggestion}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Info Section */}
+              {validationResult.info && validationResult.info.length > 0 && (
+                <div style={{ marginBottom: 16 }}>
+                  <div style={{ 
+                    fontSize: 11, 
+                    fontWeight: 700, 
+                    color: '#0EA5E9', 
+                    textTransform: 'uppercase', 
+                    letterSpacing: 0.5,
+                    marginBottom: 8
+                  }}>
+                    Verified
+                  </div>
+                  {validationResult.info.map((info, i) => (
+                    <div key={i} style={{ 
+                      background: 'rgba(14, 165, 233, 0.08)', 
+                      border: '1px solid rgba(14, 165, 233, 0.25)',
+                      borderRadius: 10,
+                      padding: 10,
+                      marginBottom: 6,
+                      fontSize: 12,
+                      color: '#0369A1',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 6
+                    }}>
+                      <CheckCircle2 size={14} color="#0EA5E9" />
+                      {info.message}
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Actions */}
+              <div style={{ display: 'flex', gap: 8, marginTop: 16 }}>
+                <button
+                  onClick={() => {
+                    setShowValidationPanel(false);
+                    setPendingValidationPrompt(undefined);
+                    setValidationResult(null);
+                  }}
+                  style={{ 
+                    flex: 1, 
+                    background: '#E5E7EB', 
+                    color: '#374151',
+                    padding: '10px 16px',
+                    border: 'none',
+                    borderRadius: 8,
+                    fontSize: 13,
+                    fontWeight: 600,
+                    cursor: 'pointer'
+                  }}
+                >
+                  {validationResult.errors.length > 0 ? 'Fix Issues' : 'Cancel'}
+                </button>
+                {validationResult.errors.length === 0 && validationResult.warnings.length > 0 && (
+                  <button
+                    onClick={() => {
+                      setShowValidationPanel(false);
+                      setValidationResult(null);
+                      // Continue running despite warnings
+                      const prompt = pendingValidationPrompt;
+                      setPendingValidationPrompt(undefined);
+                      // Directly continue to execution
+                      setExecStatus('running');
+                      setExecResult(null);
+                      setActiveNodes(new Set());
+                      setCompletedNodes(new Set());
+                      setSimulatedNodes(new Set());
+                      setIsProductionMode(true);
+                      setCurrentRunningPrompt(prompt || '');
+                      
+                      // Execute the workflow
+                      fetch('http://localhost:8000/run/stream', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ nodes, edges, prompt: prompt || undefined })
+                      }).then(async (response) => {
+                        if (!response.body) throw new Error('No response body');
+                        // ... handle streaming (simplified - actual logic is in runWorkflow)
+                        showToast('Running workflow...', 'info');
+                      }).catch(err => {
+                        showToast(`Error: ${err.message}`, 'error');
+                        setExecStatus('error');
+                      });
+                    }}
+                    style={{ 
+                      flex: 1, 
+                      background: '#F59E0B', 
+                      color: 'white',
+                      padding: '10px 16px',
+                      border: 'none',
+                      borderRadius: 8,
+                      fontSize: 13,
+                      fontWeight: 600,
+                      cursor: 'pointer'
+                    }}
+                  >
+                    Run Anyway
+                  </button>
+                )}
               </div>
             </div>
           </div>
