@@ -16,6 +16,7 @@ from snowflake_client import snowflake_client
 from api import translation_router
 from demo_assets_installer import install_demo_assets, demo_assets_status
 from flow_validator import validate_flow, FlowValidator
+from flow_generator import generate_flow_from_prompt, generate_flow_quick
 
 app = FastAPI(title="SnowFlow API", version="0.1.0")
 
@@ -272,6 +273,65 @@ async def validate_workflow_endpoint(workflow: WorkflowRequest):
             "info": [],
             "error_count": 1,
             "warning_count": 0
+        }
+
+
+class FlowGenerateRequest(BaseModel):
+    prompt: str
+    use_llm: bool = False  # If True, use LLM for more intelligent generation
+
+
+@app.post("/flow/generate")
+async def generate_flow_endpoint(request: FlowGenerateRequest):
+    """
+    Generate a workflow from natural language description.
+    
+    Example prompts:
+    - "Create a retail sales analytics agent"
+    - "Build a multi-agent system with supervisor for ad campaign analysis"
+    - "Set up an intent router with sales and margin agents"
+    
+    Args:
+        prompt: Natural language description of the workflow
+        use_llm: If True, uses Cortex LLM for intelligent generation (slower but smarter)
+                 If False, uses pattern matching (faster but more limited)
+    
+    Returns:
+        - nodes: List of node definitions ready to render
+        - edges: List of edge definitions
+        - name: Suggested workflow name
+        - description: Workflow description
+    """
+    try:
+        if request.use_llm:
+            # Use LLM for intelligent generation
+            result = generate_flow_from_prompt(request.prompt)
+        else:
+            # Use quick pattern matching
+            result = generate_flow_quick(request.prompt)
+        
+        if not result.get("success"):
+            return {
+                "success": False,
+                "error": result.get("error", "Generation failed"),
+                "raw_response": result.get("raw_response")
+            }
+        
+        return {
+            "success": True,
+            "name": result["name"],
+            "description": result["description"],
+            "nodes": result["nodes"],
+            "edges": result["edges"],
+            "flow_type": result["flow_type"],
+            "node_count": len(result["nodes"]),
+            "edge_count": len(result["edges"])
+        }
+        
+    except Exception as e:
+        return {
+            "success": False,
+            "error": str(e)
         }
 
 
