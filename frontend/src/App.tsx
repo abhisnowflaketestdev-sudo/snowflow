@@ -2124,6 +2124,7 @@ function Flow() {
   const [selectedHistoryId, setSelectedHistoryId] = useState<string | null>(null);
   const [statsExpanded, setStatsExpanded] = useState(true); // Independent stats panel state
   const [chatInput, setChatInput] = useState(''); // Chat input field
+  const [chatMode, setChatMode] = useState<'query' | 'edit'>('query'); // Toggle between query and edit modes
   const [selectedAgentId, setSelectedAgentId] = useState<string | null>(null); // For multi-agent selection
   const [showSaveModal, setShowSaveModal] = useState(false);
   const [showNamePrompt, setShowNamePrompt] = useState(false); // Prompt for workflow name before first run
@@ -6032,24 +6033,78 @@ function Flow() {
                   borderTop: '1px solid rgb(var(--border))',
                   background: 'rgb(var(--surface-2))',
                 }}>
-                  {/* Mode hints */}
+                  {/* Mode Toggle - Only show when there's a flow */}
+                  {nodes.length > 0 && (
+                    <div style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      marginBottom: 8,
+                    }}>
+                      <div style={{
+                        display: 'flex',
+                        background: 'rgb(var(--surface-3))',
+                        borderRadius: 6,
+                        padding: 2,
+                        gap: 2,
+                      }}>
+                        <button
+                          onClick={() => setChatMode('query')}
+                          style={{
+                            padding: '4px 10px',
+                            fontSize: 10,
+                            fontWeight: 600,
+                            border: 'none',
+                            borderRadius: 4,
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 4,
+                            background: chatMode === 'query' ? '#29B5E8' : 'transparent',
+                            color: chatMode === 'query' ? 'white' : 'rgb(var(--muted))',
+                            transition: 'all 0.15s ease',
+                          }}
+                        >
+                          <MessageSquare size={10} />
+                          Ask
+                        </button>
+                        <button
+                          onClick={() => setChatMode('edit')}
+                          style={{
+                            padding: '4px 10px',
+                            fontSize: 10,
+                            fontWeight: 600,
+                            border: 'none',
+                            borderRadius: 4,
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 4,
+                            background: chatMode === 'edit' ? '#F59E0B' : 'transparent',
+                            color: chatMode === 'edit' ? 'white' : 'rgb(var(--muted))',
+                            transition: 'all 0.15s ease',
+                          }}
+                        >
+                          <Pencil size={10} />
+                          Edit Flow
+                        </button>
+                      </div>
+                      <div style={{ fontSize: 9, color: 'rgb(var(--muted))' }}>
+                        {chatMode === 'query' ? 'Ask questions' : 'Modify workflow'}
+                      </div>
+                    </div>
+                  )}
+                  
+                  {/* Mode hints based on input */}
                   {(() => {
                     const input = chatInput.trim().toLowerCase();
                     const isCreate = /^(create|build|set up|make|generate|design)\s/i.test(input);
-                    const isEdit = input.startsWith('/edit') || (nodes.length > 0 && /^(add|remove|delete|change|modify|update|switch|insert)\s/i.test(input));
                     
                     if (isCreate) {
                       return (
                         <div style={{ fontSize: 10, color: '#8B5CF6', marginBottom: 6, display: 'flex', alignItems: 'center', gap: 4 }}>
                           <Sparkles size={10} />
                           Create mode - Press Enter to generate new workflow
-                        </div>
-                      );
-                    } else if (isEdit && nodes.length > 0) {
-                      return (
-                        <div style={{ fontSize: 10, color: '#F59E0B', marginBottom: 6, display: 'flex', alignItems: 'center', gap: 4 }}>
-                          <Pencil size={10} />
-                          Edit mode - Press Enter to modify current workflow
                         </div>
                       );
                     }
@@ -6064,10 +6119,12 @@ function Flow() {
                         if (e.key === 'Enter' && chatInput.trim() && execStatus !== 'running') {
                           const prompt = chatInput.trim();
                           const isCreate = /^(create|build|set up|make|generate|design)\s/i.test(prompt);
-                          const isEdit = prompt.toLowerCase().startsWith('/edit') || (nodes.length > 0 && /^(add|remove|delete|change|modify|update|switch|insert)\s/i.test(prompt));
+                          // Edit mode: toggle is set to edit, OR explicit keywords, OR /edit prefix
+                          const isEditKeyword = prompt.toLowerCase().startsWith('/edit') || /^(add|remove|delete|change|modify|update|switch|insert)\s/i.test(prompt);
+                          const shouldEdit = (chatMode === 'edit' && nodes.length > 0) || isEditKeyword;
                           const editPrompt = prompt.toLowerCase().startsWith('/edit') ? prompt.slice(5).trim() : prompt;
                           
-                          if (isCreate) {
+                          if (isCreate && chatMode !== 'edit') {
                             // FLOW GENERATION MODE - Create new flow
                             setChatInput('');
                             setExecStatus('running');
@@ -6085,6 +6142,7 @@ function Flow() {
                                 if (data.success && data.nodes && data.edges) {
                                   setWorkflow(data.nodes, data.edges, data.name || 'Generated Workflow');
                                   setCanvasView('graph');
+                                  setChatMode('query'); // Switch back to query mode after creation
                                   showToast(`✨ Created "${data.name}" with ${data.node_count} nodes`, 'success');
                                 } else {
                                   showToast(`Generation failed: ${data.error || 'Unknown error'}`, 'error');
@@ -6097,7 +6155,7 @@ function Flow() {
                             } finally {
                               setExecStatus('idle');
                             }
-                          } else if (isEdit && nodes.length > 0) {
+                          } else if (shouldEdit && nodes.length > 0) {
                             // FLOW EDIT MODE - Modify existing flow
                             setChatInput('');
                             setExecStatus('running');
@@ -6141,9 +6199,11 @@ function Flow() {
                       placeholder={
                         nodes.length === 0
                           ? "Type 'Create a retail analytics agent' to start"
-                          : nodes.some(n => n.type === 'agent')
-                            ? "Ask a question, 'Create...', or 'Add/Remove...'"
-                            : "Type 'Create...' or 'Add an agent' to continue"
+                          : chatMode === 'edit'
+                            ? "e.g., 'Add an inventory agent' or 'Remove supervisor'"
+                            : nodes.some(n => n.type === 'agent')
+                              ? "Ask your agent a question..."
+                              : "Type 'Create...' to build a flow"
                       }
                       disabled={execStatus === 'running'}
                       style={{
@@ -6162,10 +6222,11 @@ function Flow() {
                         if (chatInput.trim() && execStatus !== 'running') {
                           const prompt = chatInput.trim();
                           const isCreate = /^(create|build|set up|make|generate|design)\s/i.test(prompt);
-                          const isEdit = prompt.toLowerCase().startsWith('/edit') || (nodes.length > 0 && /^(add|remove|delete|change|modify|update|switch|insert)\s/i.test(prompt));
+                          const isEditKeyword = prompt.toLowerCase().startsWith('/edit') || /^(add|remove|delete|change|modify|update|switch|insert)\s/i.test(prompt);
+                          const shouldEdit = (chatMode === 'edit' && nodes.length > 0) || isEditKeyword;
                           const editPrompt = prompt.toLowerCase().startsWith('/edit') ? prompt.slice(5).trim() : prompt;
                           
-                          if (isCreate) {
+                          if (isCreate && chatMode !== 'edit') {
                             setChatInput('');
                             setExecStatus('running');
                             showToast('Generating workflow...', 'info');
@@ -6180,6 +6241,7 @@ function Flow() {
                                 if (data.success) {
                                   setWorkflow(data.nodes, data.edges, data.name || 'Generated Workflow');
                                   setCanvasView('graph');
+                                  setChatMode('query'); // Switch back to query mode
                                   showToast(`✨ Created "${data.name}" with ${data.node_count} nodes`, 'success');
                                 } else {
                                   showToast(`Generation failed: ${data.error}`, 'error');
@@ -6190,7 +6252,7 @@ function Flow() {
                             } finally {
                               setExecStatus('idle');
                             }
-                          } else if (isEdit && nodes.length > 0) {
+                          } else if (shouldEdit && nodes.length > 0) {
                             setChatInput('');
                             setExecStatus('running');
                             showToast('Editing workflow...', 'info');
@@ -6215,12 +6277,12 @@ function Flow() {
                             } finally {
                               setExecStatus('idle');
                             }
-                          } else if (nodes.some(n => n.type === 'agent')) {
+                          } else if (nodes.some(n => n.type === 'agent') && chatMode === 'query') {
                             setUserPrompt(prompt);
                             setChatInput('');
                             runWorkflow(prompt);
                           } else {
-                            showToast('Type "Create..." to generate a flow', 'info');
+                            showToast('Type "Create..." to generate a flow or switch to Edit mode', 'info');
                           }
                         }
                       }}
@@ -6228,9 +6290,9 @@ function Flow() {
                       style={{
                         padding: '8px 12px',
                         background: chatInput.trim() ? (
-                          /^(create|build|set up|make|generate|design)\s/i.test(chatInput) 
+                          /^(create|build|set up|make|generate|design)\s/i.test(chatInput) && chatMode !== 'edit'
                             ? '#8B5CF6'  // Purple for create
-                            : (chatInput.toLowerCase().startsWith('/edit') || (nodes.length > 0 && /^(add|remove|delete|change|modify|update|switch|insert)\s/i.test(chatInput)))
+                            : chatMode === 'edit' || chatInput.toLowerCase().startsWith('/edit') || /^(add|remove|delete|change|modify|update|switch|insert)\s/i.test(chatInput)
                               ? '#F59E0B'  // Amber for edit
                               : '#29B5E8'  // Blue for queries
                         ) : 'rgb(var(--surface-3))',
@@ -6248,9 +6310,9 @@ function Flow() {
                         : "Send message"
                       }
                     >
-                      {/^(create|build|set up|make|generate|design)\s/i.test(chatInput) 
+                      {/^(create|build|set up|make|generate|design)\s/i.test(chatInput) && chatMode !== 'edit'
                         ? <Sparkles size={14} /> 
-                        : (chatInput.toLowerCase().startsWith('/edit') || (nodes.length > 0 && /^(add|remove|delete|change|modify|update|switch|insert)\s/i.test(chatInput)))
+                        : chatMode === 'edit' || chatInput.toLowerCase().startsWith('/edit') || /^(add|remove|delete|change|modify|update|switch|insert)\s/i.test(chatInput)
                           ? <Pencil size={14} />
                           : <Play size={14} />
                       }
