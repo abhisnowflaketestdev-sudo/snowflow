@@ -689,3 +689,338 @@ def generate_flow_quick(prompt: str) -> Dict:
         "edges": edges,
         "flow_type": flow_type
     }
+
+
+# ============================================================================
+# FLOW EDITING - Modify existing flows via natural language
+# ============================================================================
+
+def detect_edit_intent(prompt: str) -> Dict[str, Any]:
+    """
+    Detect what kind of edit the user wants to make.
+    
+    Returns:
+        {
+            "action": "add" | "remove" | "modify" | "replace",
+            "target": "agent" | "router" | "supervisor" | "data_source" | "semantic" | "output" | None,
+            "details": { ... specific details ... }
+        }
+    """
+    prompt_lower = prompt.lower()
+    
+    # Detect action
+    action = None
+    if any(w in prompt_lower for w in ["add", "insert", "include", "create another", "add another"]):
+        action = "add"
+    elif any(w in prompt_lower for w in ["remove", "delete", "drop", "get rid of"]):
+        action = "remove"
+    elif any(w in prompt_lower for w in ["change", "modify", "update", "set", "switch", "replace"]):
+        action = "modify"
+    elif any(w in prompt_lower for w in ["replace all", "rebuild", "start over"]):
+        action = "replace"
+    else:
+        action = "add"  # Default to add
+    
+    # Detect target
+    target = None
+    if any(w in prompt_lower for w in ["agent", "analyst"]):
+        target = "agent"
+    elif any(w in prompt_lower for w in ["router", "routing", "intent"]):
+        target = "router"
+    elif any(w in prompt_lower for w in ["supervisor", "orchestrat"]):
+        target = "supervisor"
+    elif any(w in prompt_lower for w in ["data source", "table", "view", "data"]):
+        target = "data_source"
+    elif any(w in prompt_lower for w in ["semantic", "model", "yaml"]):
+        target = "semantic"
+    elif any(w in prompt_lower for w in ["output", "channel"]):
+        target = "output"
+    
+    # Detect specific details
+    details = {}
+    
+    # Model changes
+    model_patterns = ["llama", "mistral", "snowflake-arctic", "claude", "gpt"]
+    for pattern in model_patterns:
+        if pattern in prompt_lower:
+            # Extract full model name
+            import re
+            match = re.search(rf'{pattern}[\w.-]*', prompt_lower)
+            if match:
+                details["model"] = match.group(0)
+    
+    # Temperature changes
+    import re
+    temp_match = re.search(r'temperature\s*(?:to|=|:)?\s*([\d.]+)', prompt_lower)
+    if temp_match:
+        details["temperature"] = float(temp_match.group(1))
+    
+    # Agent name/type
+    agent_types = ["sales", "margin", "inventory", "performance", "brand", "regional", "customer"]
+    for agent_type in agent_types:
+        if agent_type in prompt_lower:
+            details["agent_type"] = agent_type
+            break
+    
+    return {
+        "action": action,
+        "target": target,
+        "details": details
+    }
+
+
+def edit_flow(
+    prompt: str,
+    existing_nodes: List[Dict],
+    existing_edges: List[Dict]
+) -> Dict:
+    """
+    Edit an existing flow based on natural language instruction.
+    
+    Args:
+        prompt: Natural language edit instruction
+        existing_nodes: Current nodes in the flow
+        existing_edges: Current edges in the flow
+    
+    Returns:
+        Updated nodes and edges
+    """
+    intent = detect_edit_intent(prompt)
+    action = intent["action"]
+    target = intent["target"]
+    details = intent["details"]
+    
+    # Copy existing data
+    nodes = [dict(n) for n in existing_nodes]
+    edges = [dict(e) for e in existing_edges]
+    
+    # Track changes made
+    changes = []
+    
+    if action == "replace":
+        # Full replacement - generate new flow
+        return generate_flow_quick(prompt)
+    
+    elif action == "add":
+        if target == "agent":
+            # Add a new agent
+            agent_type = details.get("agent_type", "custom")
+            agent_labels = {
+                "sales": "Sales Agent",
+                "margin": "Margin Agent",
+                "inventory": "Inventory Agent",
+                "performance": "Performance Agent",
+                "brand": "Brand Agent",
+                "regional": "Regional Agent",
+                "customer": "Customer Agent",
+                "custom": "New Agent"
+            }
+            agent_instructions = {
+                "sales": "You are a sales analytics expert. Answer questions about revenue, transactions, and sales performance.",
+                "margin": "You are a profitability expert. Answer questions about margins, costs, and profitability analysis.",
+                "inventory": "You are an inventory expert. Answer questions about stock levels, supply chain, and inventory turnover.",
+                "performance": "You are a performance analyst. Answer questions about KPIs, metrics, and campaign performance.",
+                "brand": "You are a brand expert. Answer questions about brand awareness, sentiment, and marketing impact.",
+                "regional": "You are a regional analyst. Answer questions about geographic performance and regional comparisons.",
+                "customer": "You are a customer behavior analyst. Answer questions about shopping patterns and customer segments.",
+                "custom": "You are a helpful analytics assistant."
+            }
+            
+            new_agent = {
+                "id": generate_node_id(),
+                "type": "agent",
+                "data": {
+                    "label": agent_labels.get(agent_type, "New Agent"),
+                    "name": agent_labels.get(agent_type, "New Agent"),
+                    "model": details.get("model", "llama3.1-70b"),
+                    "instructions": agent_instructions.get(agent_type, "You are a helpful analytics assistant."),
+                    "temperature": details.get("temperature", 0.3)
+                }
+            }
+            nodes.append(new_agent)
+            changes.append(f"Added {agent_labels.get(agent_type, 'new agent')}")
+            
+            # Connect to semantic model or data source
+            semantic_nodes = [n for n in nodes if n["type"] == "semanticModel"]
+            data_nodes = [n for n in nodes if n["type"] == "snowflakeSource"]
+            source = semantic_nodes[0] if semantic_nodes else (data_nodes[0] if data_nodes else None)
+            
+            if source:
+                edges.append({
+                    "id": f"e-{source['id']}-{new_agent['id']}",
+                    "source": source["id"],
+                    "target": new_agent["id"],
+                    "animated": True
+                })
+            
+            # Connect to supervisor if exists
+            supervisor_nodes = [n for n in nodes if n["type"] == "supervisor"]
+            if supervisor_nodes:
+                edges.append({
+                    "id": f"e-{new_agent['id']}-{supervisor_nodes[0]['id']}",
+                    "source": new_agent["id"],
+                    "target": supervisor_nodes[0]["id"],
+                    "animated": True
+                })
+        
+        elif target == "supervisor":
+            # Add supervisor if not exists
+            if not any(n["type"] == "supervisor" for n in nodes):
+                new_supervisor = {
+                    "id": generate_node_id(),
+                    "type": "supervisor",
+                    "data": {
+                        "label": "Orchestrator",
+                        "model": details.get("model", "llama3.1-70b"),
+                        "systemPrompt": "You are the orchestrator. Route questions to the appropriate specialist agent and synthesize their responses.",
+                        "maxDelegations": 5
+                    }
+                }
+                nodes.append(new_supervisor)
+                changes.append("Added supervisor orchestrator")
+                
+                # Connect all agents to supervisor
+                agent_nodes = [n for n in nodes if n["type"] == "agent"]
+                for agent in agent_nodes:
+                    # Remove direct agent→output edges
+                    edges = [e for e in edges if not (e["source"] == agent["id"] and any(n["type"] == "output" and n["id"] == e["target"] for n in nodes))]
+                    # Add agent→supervisor edge
+                    edges.append({
+                        "id": f"e-{agent['id']}-{new_supervisor['id']}",
+                        "source": agent["id"],
+                        "target": new_supervisor["id"],
+                        "animated": True
+                    })
+                
+                # Connect supervisor to output
+                output_nodes = [n for n in nodes if n["type"] == "output"]
+                if output_nodes:
+                    edges.append({
+                        "id": f"e-{new_supervisor['id']}-{output_nodes[0]['id']}",
+                        "source": new_supervisor["id"],
+                        "target": output_nodes[0]["id"],
+                        "animated": True
+                    })
+        
+        elif target == "router":
+            # Add router if not exists
+            if not any(n["type"] == "router" for n in nodes):
+                new_router = {
+                    "id": generate_node_id(),
+                    "type": "router",
+                    "data": {
+                        "label": "Intent Router",
+                        "routes": [
+                            {"intent": "general", "description": "General questions"},
+                            {"intent": "specific", "description": "Specific analysis questions"}
+                        ]
+                    }
+                }
+                nodes.append(new_router)
+                changes.append("Added intent router")
+    
+    elif action == "modify":
+        if target == "agent":
+            # Modify agent settings
+            agent_nodes = [n for n in nodes if n["type"] == "agent"]
+            for agent in agent_nodes:
+                if "model" in details:
+                    agent["data"]["model"] = details["model"]
+                    changes.append(f"Changed {agent['data']['label']} model to {details['model']}")
+                if "temperature" in details:
+                    agent["data"]["temperature"] = details["temperature"]
+                    changes.append(f"Changed {agent['data']['label']} temperature to {details['temperature']}")
+        
+        elif target == "supervisor":
+            supervisor_nodes = [n for n in nodes if n["type"] == "supervisor"]
+            for sup in supervisor_nodes:
+                if "model" in details:
+                    sup["data"]["model"] = details["model"]
+                    changes.append(f"Changed supervisor model to {details['model']}")
+    
+    elif action == "remove":
+        if target == "agent":
+            # Remove last added agent (or specific one if named)
+            agent_nodes = [n for n in nodes if n["type"] == "agent"]
+            if len(agent_nodes) > 1:  # Keep at least one agent
+                agent_type = details.get("agent_type")
+                to_remove = None
+                
+                if agent_type:
+                    # Find specific agent
+                    for agent in agent_nodes:
+                        if agent_type.lower() in agent["data"]["label"].lower():
+                            to_remove = agent
+                            break
+                
+                if not to_remove:
+                    # Remove last agent
+                    to_remove = agent_nodes[-1]
+                
+                if to_remove:
+                    nodes = [n for n in nodes if n["id"] != to_remove["id"]]
+                    edges = [e for e in edges if e["source"] != to_remove["id"] and e["target"] != to_remove["id"]]
+                    changes.append(f"Removed {to_remove['data']['label']}")
+        
+        elif target == "supervisor":
+            supervisor_nodes = [n for n in nodes if n["type"] == "supervisor"]
+            if supervisor_nodes:
+                sup = supervisor_nodes[0]
+                nodes = [n for n in nodes if n["id"] != sup["id"]]
+                edges = [e for e in edges if e["source"] != sup["id"] and e["target"] != sup["id"]]
+                changes.append("Removed supervisor")
+                
+                # Reconnect agents directly to output
+                agent_nodes = [n for n in nodes if n["type"] == "agent"]
+                output_nodes = [n for n in nodes if n["type"] == "output"]
+                if output_nodes:
+                    for agent in agent_nodes:
+                        edges.append({
+                            "id": f"e-{agent['id']}-{output_nodes[0]['id']}",
+                            "source": agent["id"],
+                            "target": output_nodes[0]["id"],
+                            "animated": True
+                        })
+    
+    # Reposition nodes
+    nodes = position_nodes(nodes)
+    
+    return {
+        "success": True,
+        "action": action,
+        "target": target,
+        "changes": changes,
+        "nodes": nodes,
+        "edges": edges,
+        "node_count": len(nodes),
+        "edge_count": len(edges)
+    }
+
+
+def is_edit_request(prompt: str) -> bool:
+    """
+    Determine if a prompt is an edit request vs a new flow creation.
+    
+    Edit keywords: add, remove, change, modify, update, delete, insert
+    Create keywords: create, build, set up, make, generate, design
+    """
+    prompt_lower = prompt.lower().strip()
+    
+    # Check for explicit /edit command
+    if prompt_lower.startswith("/edit"):
+        return True
+    
+    # Edit keywords (when flow already exists)
+    edit_keywords = [
+        "add a", "add an", "add another",
+        "remove", "delete", "drop",
+        "change", "modify", "update", "set",
+        "switch to", "use instead",
+        "insert", "include"
+    ]
+    
+    for keyword in edit_keywords:
+        if keyword in prompt_lower:
+            return True
+    
+    return False

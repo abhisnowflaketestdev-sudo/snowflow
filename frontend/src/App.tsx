@@ -6026,26 +6026,35 @@ function Flow() {
                   )}
                 </div>
                 
-                {/* Chat Input Field - Supports both queries AND flow generation */}
+                {/* Chat Input Field - Supports queries, flow generation, AND flow editing */}
                 <div style={{
                   padding: '10px 12px',
                   borderTop: '1px solid rgb(var(--border))',
                   background: 'rgb(var(--surface-2))',
                 }}>
-                  {/* Flow generation hint */}
-                  {chatInput.trim().toLowerCase().match(/^(create|build|set up|make|generate|design)\s/) && (
-                    <div style={{
-                      fontSize: 10,
-                      color: '#8B5CF6',
-                      marginBottom: 6,
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 4,
-                    }}>
-                      <Sparkles size={10} />
-                      Flow generation mode - Press Enter to create workflow
-                    </div>
-                  )}
+                  {/* Mode hints */}
+                  {(() => {
+                    const input = chatInput.trim().toLowerCase();
+                    const isCreate = /^(create|build|set up|make|generate|design)\s/i.test(input);
+                    const isEdit = input.startsWith('/edit') || (nodes.length > 0 && /^(add|remove|delete|change|modify|update|switch|insert)\s/i.test(input));
+                    
+                    if (isCreate) {
+                      return (
+                        <div style={{ fontSize: 10, color: '#8B5CF6', marginBottom: 6, display: 'flex', alignItems: 'center', gap: 4 }}>
+                          <Sparkles size={10} />
+                          Create mode - Press Enter to generate new workflow
+                        </div>
+                      );
+                    } else if (isEdit && nodes.length > 0) {
+                      return (
+                        <div style={{ fontSize: 10, color: '#F59E0B', marginBottom: 6, display: 'flex', alignItems: 'center', gap: 4 }}>
+                          <Pencil size={10} />
+                          Edit mode - Press Enter to modify current workflow
+                        </div>
+                      );
+                    }
+                    return null;
+                  })()}
                   <div style={{ display: 'flex', gap: 8 }}>
                     <input
                       type="text"
@@ -6054,75 +6063,12 @@ function Flow() {
                       onKeyDown={async (e) => {
                         if (e.key === 'Enter' && chatInput.trim() && execStatus !== 'running') {
                           const prompt = chatInput.trim();
-                          const isFlowCreation = /^(create|build|set up|make|generate|design)\s/i.test(prompt);
+                          const isCreate = /^(create|build|set up|make|generate|design)\s/i.test(prompt);
+                          const isEdit = prompt.toLowerCase().startsWith('/edit') || (nodes.length > 0 && /^(add|remove|delete|change|modify|update|switch|insert)\s/i.test(prompt));
+                          const editPrompt = prompt.toLowerCase().startsWith('/edit') ? prompt.slice(5).trim() : prompt;
                           
-                          if (isFlowCreation) {
-                            // FLOW GENERATION MODE
-                            setChatInput('');
-                            setExecStatus('running');
-                            showToast('Generating workflow...', 'info');
-                            
-                            try {
-                              const res = await fetch('http://localhost:8000/flow/generate', {
-                                method: 'POST',
-                                headers: { 'Content-Type': 'application/json' },
-                                body: JSON.stringify({ prompt, use_llm: false })
-                              });
-                              
-                              if (res.ok) {
-                                const data = await res.json();
-                                if (data.success && data.nodes && data.edges) {
-                                  // Apply generated flow to canvas
-                                  setWorkflow(data.nodes, data.edges, data.name || 'Generated Workflow');
-                                  setCanvasView('graph'); // Switch to graph view to show result
-                                  showToast(`✨ Created "${data.name}" with ${data.node_count} nodes`, 'success');
-                                } else {
-                                  showToast(`Generation failed: ${data.error || 'Unknown error'}`, 'error');
-                                }
-                              } else {
-                                showToast('Failed to generate flow', 'error');
-                              }
-                            } catch (err) {
-                              showToast(`Error: ${err instanceof Error ? err.message : 'Unknown'}`, 'error');
-                            } finally {
-                              setExecStatus('idle');
-                            }
-                          } else if (nodes.some(n => n.type === 'agent')) {
-                            // QUERY EXECUTION MODE
-                            setUserPrompt(prompt);
-                            setChatInput('');
-                            runWorkflow(prompt);
-                          } else {
-                            // No agent and not a flow creation request
-                            showToast('Add an agent first, or type "Create..." to generate a flow', 'info');
-                          }
-                        }
-                      }}
-                      placeholder={
-                        nodes.some(n => n.type === 'agent') 
-                          ? "Ask your agent or type 'Create...' to build a flow" 
-                          : "Type 'Create a retail analytics agent' to start"
-                      }
-                      disabled={execStatus === 'running'}
-                      style={{
-                        flex: 1,
-                        padding: '8px 12px',
-                        border: '1px solid rgb(var(--border))',
-                        borderRadius: 8,
-                        fontSize: 12,
-                        outline: 'none',
-                        background: 'rgb(var(--surface))',
-                        color: 'rgb(var(--fg))',
-                      }}
-                    />
-                    <button
-                      onClick={async () => {
-                        if (chatInput.trim() && execStatus !== 'running') {
-                          const prompt = chatInput.trim();
-                          const isFlowCreation = /^(create|build|set up|make|generate|design)\s/i.test(prompt);
-                          
-                          if (isFlowCreation) {
-                            // FLOW GENERATION MODE
+                          if (isCreate) {
+                            // FLOW GENERATION MODE - Create new flow
                             setChatInput('');
                             setExecStatus('running');
                             showToast('Generating workflow...', 'info');
@@ -6151,13 +6097,130 @@ function Flow() {
                             } finally {
                               setExecStatus('idle');
                             }
+                          } else if (isEdit && nodes.length > 0) {
+                            // FLOW EDIT MODE - Modify existing flow
+                            setChatInput('');
+                            setExecStatus('running');
+                            showToast('Editing workflow...', 'info');
+                            
+                            try {
+                              const res = await fetch('http://localhost:8000/flow/edit', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ prompt: editPrompt, nodes, edges })
+                              });
+                              
+                              if (res.ok) {
+                                const data = await res.json();
+                                if (data.success && data.nodes && data.edges) {
+                                  setWorkflow(data.nodes, data.edges, workflowName);
+                                  setCanvasView('graph');
+                                  const changesList = data.changes?.join(', ') || 'Flow updated';
+                                  showToast(`✏️ ${changesList}`, 'success');
+                                } else {
+                                  showToast(`Edit failed: ${data.error || 'Unknown error'}`, 'error');
+                                }
+                              } else {
+                                showToast('Failed to edit flow', 'error');
+                              }
+                            } catch (err) {
+                              showToast(`Error: ${err instanceof Error ? err.message : 'Unknown'}`, 'error');
+                            } finally {
+                              setExecStatus('idle');
+                            }
                           } else if (nodes.some(n => n.type === 'agent')) {
                             // QUERY EXECUTION MODE
                             setUserPrompt(prompt);
                             setChatInput('');
                             runWorkflow(prompt);
                           } else {
-                            showToast('Add an agent first, or type "Create..." to generate a flow', 'info');
+                            showToast('Type "Create..." to generate a flow, or "Add..." to edit', 'info');
+                          }
+                        }
+                      }}
+                      placeholder={
+                        nodes.length === 0
+                          ? "Type 'Create a retail analytics agent' to start"
+                          : nodes.some(n => n.type === 'agent')
+                            ? "Ask a question, 'Create...', or 'Add/Remove...'"
+                            : "Type 'Create...' or 'Add an agent' to continue"
+                      }
+                      disabled={execStatus === 'running'}
+                      style={{
+                        flex: 1,
+                        padding: '8px 12px',
+                        border: '1px solid rgb(var(--border))',
+                        borderRadius: 8,
+                        fontSize: 12,
+                        outline: 'none',
+                        background: 'rgb(var(--surface))',
+                        color: 'rgb(var(--fg))',
+                      }}
+                    />
+                    <button
+                      onClick={async () => {
+                        if (chatInput.trim() && execStatus !== 'running') {
+                          const prompt = chatInput.trim();
+                          const isCreate = /^(create|build|set up|make|generate|design)\s/i.test(prompt);
+                          const isEdit = prompt.toLowerCase().startsWith('/edit') || (nodes.length > 0 && /^(add|remove|delete|change|modify|update|switch|insert)\s/i.test(prompt));
+                          const editPrompt = prompt.toLowerCase().startsWith('/edit') ? prompt.slice(5).trim() : prompt;
+                          
+                          if (isCreate) {
+                            setChatInput('');
+                            setExecStatus('running');
+                            showToast('Generating workflow...', 'info');
+                            try {
+                              const res = await fetch('http://localhost:8000/flow/generate', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ prompt, use_llm: false })
+                              });
+                              if (res.ok) {
+                                const data = await res.json();
+                                if (data.success) {
+                                  setWorkflow(data.nodes, data.edges, data.name || 'Generated Workflow');
+                                  setCanvasView('graph');
+                                  showToast(`✨ Created "${data.name}" with ${data.node_count} nodes`, 'success');
+                                } else {
+                                  showToast(`Generation failed: ${data.error}`, 'error');
+                                }
+                              }
+                            } catch (err) {
+                              showToast(`Error: ${err instanceof Error ? err.message : 'Unknown'}`, 'error');
+                            } finally {
+                              setExecStatus('idle');
+                            }
+                          } else if (isEdit && nodes.length > 0) {
+                            setChatInput('');
+                            setExecStatus('running');
+                            showToast('Editing workflow...', 'info');
+                            try {
+                              const res = await fetch('http://localhost:8000/flow/edit', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ prompt: editPrompt, nodes, edges })
+                              });
+                              if (res.ok) {
+                                const data = await res.json();
+                                if (data.success) {
+                                  setWorkflow(data.nodes, data.edges, workflowName);
+                                  setCanvasView('graph');
+                                  showToast(`✏️ ${data.changes?.join(', ') || 'Flow updated'}`, 'success');
+                                } else {
+                                  showToast(`Edit failed: ${data.error}`, 'error');
+                                }
+                              }
+                            } catch (err) {
+                              showToast(`Error: ${err instanceof Error ? err.message : 'Unknown'}`, 'error');
+                            } finally {
+                              setExecStatus('idle');
+                            }
+                          } else if (nodes.some(n => n.type === 'agent')) {
+                            setUserPrompt(prompt);
+                            setChatInput('');
+                            runWorkflow(prompt);
+                          } else {
+                            showToast('Type "Create..." to generate a flow', 'info');
                           }
                         }
                       }}
@@ -6166,8 +6229,10 @@ function Flow() {
                         padding: '8px 12px',
                         background: chatInput.trim() ? (
                           /^(create|build|set up|make|generate|design)\s/i.test(chatInput) 
-                            ? '#8B5CF6'  // Purple for flow generation
-                            : '#29B5E8'  // Blue for queries
+                            ? '#8B5CF6'  // Purple for create
+                            : (chatInput.toLowerCase().startsWith('/edit') || (nodes.length > 0 && /^(add|remove|delete|change|modify|update|switch|insert)\s/i.test(chatInput)))
+                              ? '#F59E0B'  // Amber for edit
+                              : '#29B5E8'  // Blue for queries
                         ) : 'rgb(var(--surface-3))',
                         color: chatInput.trim() ? 'white' : 'rgb(var(--muted))',
                         border: 'none',
@@ -6177,9 +6242,18 @@ function Flow() {
                         alignItems: 'center',
                         justifyContent: 'center',
                       }}
-                      title={/^(create|build|set up|make|generate|design)\s/i.test(chatInput) ? "Generate flow" : "Send message"}
+                      title={
+                        /^(create|build|set up|make|generate|design)\s/i.test(chatInput) ? "Generate new flow" 
+                        : (chatInput.toLowerCase().startsWith('/edit') || /^(add|remove|delete|change|modify|update|switch|insert)\s/i.test(chatInput)) ? "Edit flow"
+                        : "Send message"
+                      }
                     >
-                      {/^(create|build|set up|make|generate|design)\s/i.test(chatInput) ? <Sparkles size={14} /> : <Play size={14} />}
+                      {/^(create|build|set up|make|generate|design)\s/i.test(chatInput) 
+                        ? <Sparkles size={14} /> 
+                        : (chatInput.toLowerCase().startsWith('/edit') || (nodes.length > 0 && /^(add|remove|delete|change|modify|update|switch|insert)\s/i.test(chatInput)))
+                          ? <Pencil size={14} />
+                          : <Play size={14} />
+                      }
                     </button>
                   </div>
                 </div>

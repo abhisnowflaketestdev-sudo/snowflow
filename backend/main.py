@@ -16,7 +16,7 @@ from snowflake_client import snowflake_client
 from api import translation_router
 from demo_assets_installer import install_demo_assets, demo_assets_status
 from flow_validator import validate_flow, FlowValidator
-from flow_generator import generate_flow_from_prompt, generate_flow_quick
+from flow_generator import generate_flow_from_prompt, generate_flow_quick, edit_flow, is_edit_request
 
 app = FastAPI(title="SnowFlow API", version="0.1.0")
 
@@ -333,6 +333,73 @@ async def generate_flow_endpoint(request: FlowGenerateRequest):
             "success": False,
             "error": str(e)
         }
+
+
+class FlowEditRequest(BaseModel):
+    prompt: str
+    nodes: List[Dict[str, Any]]
+    edges: List[Dict[str, Any]]
+
+
+@app.post("/flow/edit")
+async def edit_flow_endpoint(request: FlowEditRequest):
+    """
+    Edit an existing workflow using natural language.
+    
+    Example prompts:
+    - "Add an inventory agent"
+    - "Remove the margin agent"
+    - "Change agent temperature to 0.5"
+    - "Add a supervisor to orchestrate the agents"
+    - "Switch agent model to mistral-large"
+    
+    Args:
+        prompt: Natural language edit instruction
+        nodes: Existing nodes in the workflow
+        edges: Existing edges in the workflow
+    
+    Returns:
+        Updated nodes and edges
+    """
+    try:
+        result = edit_flow(request.prompt, request.nodes, request.edges)
+        
+        if not result.get("success"):
+            return {
+                "success": False,
+                "error": result.get("error", "Edit failed")
+            }
+        
+        return {
+            "success": True,
+            "action": result.get("action"),
+            "target": result.get("target"),
+            "changes": result.get("changes", []),
+            "nodes": result["nodes"],
+            "edges": result["edges"],
+            "node_count": result["node_count"],
+            "edge_count": result["edge_count"]
+        }
+        
+    except Exception as e:
+        return {
+            "success": False,
+            "error": str(e)
+        }
+
+
+@app.get("/flow/is-edit")
+async def check_if_edit(prompt: str = Query(...)):
+    """
+    Check if a prompt is an edit request or a new flow creation.
+    
+    Returns:
+        is_edit: True if this should edit existing flow, False if creating new
+    """
+    return {
+        "is_edit": is_edit_request(prompt),
+        "prompt": prompt
+    }
 
 
 @app.post("/run/stream")
