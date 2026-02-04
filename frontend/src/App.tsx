@@ -2955,12 +2955,20 @@ function Flow() {
       return;
     }
     
-    // Check for disconnected output nodes
+    // CRITICAL: Require at least one output node (flow must be complete)
     const outputNodes = nodes.filter(n => n.type === 'output');
+    if (outputNodes.length === 0) {
+      showToast('Complete your flow setup first - no output node found', 'error');
+      setExecStatus('idle');
+      return;
+    }
+    
+    // Check for disconnected output nodes
     for (const outNode of outputNodes) {
       const hasInput = edges.some(e => e.target === outNode.id);
       if (!hasInput) {
-        showToast(`Output "${outNode.data.label}" has no input`, 'error');
+        showToast(`Output "${outNode.data.label}" has no input - complete setup first`, 'error');
+        setExecStatus('idle');
         return;
       }
     }
