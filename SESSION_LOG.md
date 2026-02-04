@@ -1,8 +1,36 @@
 # SnowFlow Session Log
 
-**Last Updated:** 2026-01-28 (Guided Canvas v1.0 milestone release)
+**Last Updated:** 2026-02-02 (Chat UI Redesign + Industry Testing)
 
 > **IF AI LOSES MEMORY, READ THIS FILE FIRST.**
+> Also check: `SESSION_BACKUP_FEB02_2026.md` for detailed session backup.
+
+---
+
+## 🎉 SESSION: February 2, 2026
+
+### Chat UI Redesign ✅
+- Renamed "Results" → "Agent Chat"
+- Scrollable chat history with user/assistant messages
+- Direct execution from chat input (no modal popup)
+- JSON + Text download options in header
+- Independent stats panel collapse
+- Dark mode contrast fixes
+
+### Workflow Management (Partial)
+- Added `workflowId` tracking to store
+- Workflow registry for agent selector
+- Name prompt temporarily DISABLED (closure bug)
+
+### Testing Progress ✅
+- **R1-R6 (Retail):** ALL PASSED
+- **A1-A4 (Ad/Media):** ALL PASSED
+
+### Pending TODOs
+1. Re-implement workflow naming prompt (fix closure bug)
+2. Workflow persistence in Snowflake
+3. Agent selector from registry
+4. External agent integration (Salesforce, Slack)
 
 ---
 
@@ -92,6 +120,11 @@
 
 - **Section 5**: ✅ Completed (TEST-5.1 → TEST-5.8) — logged in `TEST_PLANS.md` execution log.
 - **Section 6**: ✅ Completed (TEST-6.1 → TEST-6.3) — logged in `TEST_PLANS.md` execution log.
+
+### Industry Test Scenarios (Feb 2026)
+- **R1-R6 (Retail on Guided Canvas):** ✅ ALL PASSED
+- **A1-A4 (Ad/Media on Guided Canvas):** ✅ ALL PASSED
+- See `TEST_SCENARIOS_INDUSTRY.md` for full test matrix
 
 ---
 
